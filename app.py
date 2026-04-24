@@ -6,20 +6,12 @@ app = Flask(__name__)
 def home():
     return render_template('index.html')
 
-@app.route('/about')
-def about():
+@app.route('/mylist')
+def mylist():
     return render_template('index.html')
 
-@app.route('/product')
-def product():
-    return render_template('index.html')
-
-@app.route('/services')
-def services():
-    return render_template('index.html')
-
-@app.route('/contact')
-def contact():
+@app.route('/create')
+def create():
     return render_template('index.html')
 
 if __name__ == '__main__':
