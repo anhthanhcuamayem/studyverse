@@ -1,10 +1,9 @@
 from flask import Flask, render_template
-import os
 
-app = Flask(__name__)
-
-# THÊM DÒNG NÀY ĐỂ FIX LỖI CSS TRÊN RENDER
-app._static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+app = Flask(__name__, 
+            template_folder='.',      # Chỉ định thư mục gốc là nơi chứa HTML
+            static_folder='.',        # Chỉ định thư mục gốc là nơi chứa CSS/JS
+            static_url_path='/')      # Đường dẫn tĩnh là gốc
 
 @app.route('/')
 def home():
@@ -12,11 +11,11 @@ def home():
 
 @app.route('/mylist')
 def mylist():
-    return render_template('mylist.html')
+    return render_template('index.html')  # Tạm thời trỏ về index
 
 @app.route('/create')
 def create():
-    return render_template('create.html')
+    return render_template('index.html')  # Tạm thời trỏ về index
 
 if __name__ == '__main__':
     app.run(debug=True)
