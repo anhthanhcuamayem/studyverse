@@ -11,20 +11,26 @@ function activeLink() {
 // Gán sự kiện click cho mỗi mục trong menu
 list.forEach((item) => {
     item.addEventListener('click', function(e) {
-        // Chỉ xử lý cuộn mượt cho nút Home (index 0)
-        if (this.getAttribute('data-index') === "0") {
-            // Nếu đang ở trang chủ thì mới chặn link để cuộn lên
-            if (window.location.pathname === "/" || window.location.pathname === "/home") {
-                if (window.scrollY > 0) {
-                    e.preventDefault(); 
-                    window.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
-                }
-            }
-        } 
-        // Với các nút khác (index 1, 2), để mặc định cho trình duyệt chuyển trang
         activeLink.call(this);
+    });
+});
+
+// Cập nhật active theo đường dẫn hiện tại
+document.addEventListener('DOMContentLoaded', function() {
+    const path = window.location.pathname;
+    let activeIndex = 0;
+    
+    if (path === '/mylist') {
+        activeIndex = 1;
+    } else if (path === '/create') {
+        activeIndex = 2;
+    }
+    
+    list.forEach((item, index) => {
+        if (parseInt(item.getAttribute('data-index')) === activeIndex) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
     });
 });
