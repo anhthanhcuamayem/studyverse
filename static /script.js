@@ -4,28 +4,27 @@ const indicator = document.querySelector('.indicator');
 
 // 1. XỬ LÝ DI CHUYỂN THANH CÔNG CỤ (INDICATOR)
 function activeLink() {
-    // Loại bỏ class 'active' khỏi tất cả các mục
     list.forEach((item) => item.classList.remove('active'));
-    // Thêm class 'active' vào mục vừa được nhấn
     this.classList.add('active');
 }
 
 // Gán sự kiện click cho mỗi mục trong menu
 list.forEach((item) => {
     item.addEventListener('click', function(e) {
-        activeLink.call(this);
-
-        // 2. XỬ LÝ CUỘN LÊN ĐẦU TRANG KHI NHẤN "HOME"
-        // Kiểm tra nếu mục được nhấn có index là 0 (nút Home)
+        // Chỉ xử lý cuộn mượt cho nút Home (index 0)
         if (this.getAttribute('data-index') === "0") {
-            // Ngăn chặn hành vi nhảy trang mặc định
-            e.preventDefault();
-            
-            // Cuộn lên đỉnh màn hình một cách mượt mà
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }
+            // Nếu đang ở trang chủ thì mới chặn link để cuộn lên
+            if (window.location.pathname === "/" || window.location.pathname === "/home") {
+                if (window.scrollY > 0) {
+                    e.preventDefault(); 
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        } 
+        // Với các nút khác (index 1, 2), để mặc định cho trình duyệt chuyển trang
+        activeLink.call(this);
     });
 });
