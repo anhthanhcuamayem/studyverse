@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyVerse - Tạo thời khóa biểu</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        .section h2 { color: #667eea; margin-bottom: 15px; }
+        .subject-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .subject-item input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+        .subject-item button { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
+        .add-btn { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        .day-slot { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        .time-range { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+        .time-range input { padding: 6px; border: 1px solid #ddd; border-radius: 4px; }
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .timetable { margin-top: 30px; overflow-x: auto; }
+        .timetable table { width: 100%; border-collapse: collapse; }
+        .timetable th, .timetable td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: top; }
+        .timetable th { background: #667eea; color: white; }
+        .subject-badge { background: #e3f2fd; padding: 4px 8px; border-radius: 4px; margin: 4px; display: inline-block; font-size: 12px; }
+        textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .loading { display: none; text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 StudyVerse - Tạo thời khóa biểu</h1>
+        
+        <div class="section">
+            <h2>📖 Môn học & số tiết/tuần (1 tiết = 45 phút)</h2>
+            <div id="subjects-list"></div>
+            <button class="add-btn" onclick="addSubject()">+ Thêm môn</button>
+        </div>
+        
+        <div class="section">
+            <h2>⏰ Thời gian rảnh từng ngày</h2>
+            <div id="availability-list"></div>
+        </div>
+        
+        <div class="section">
+            <h2>✏️ Yêu cầu đặc biệt</h2>
+            <textarea id="special-req" rows="3" placeholder="VD: Không học 2 tiết Toán liên tiếp, ưu tiên buổi sáng..."></textarea>
+        </div>
+        
+        <button class="generate-btn" onclick="generateSchedule()">🚀 Tạo thời khóa biểu</button>
+        
+        <div class="loading" id="loading">⏳ Đang xếp lịch, vui lòng chờ...</div>
+        <div id="result" class="timetable"></div>
+    </div>
+
+    <script>
+        let subjects = [];
+        let availability = {0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+        const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+        
+        function addSubject() {
+            subjects.push({name: "", sessions: 1});
+            renderSubjects();
+        }
+        
+        function removeSubject(i) {
+            subjects.splice(i,1);
+            renderSubjects();
+        }
+        
+        function renderSubjects() {
+            const container = document.getElementById('subjects-list');
+            container.innerHTML = '';
+            subjects.forEach((s,i) => {
+                container.innerHTML += `
+                    <div class="subject-item">
+                        <input placeholder="Tên môn" value="${s.name}" onchange="subjects[${i}].name=this.value">
+                        <input type="number" value="${s.sessions}" min="1" onchange="subjects[${i}].sessions=parseInt(this.value)">
+                        <button onclick="removeSubject(${i})">Xóa</button>
+                    </div>
+                `;
+            });
+        }
+        
+        function addTimeSlot(day) {
+            availability[day].push({start:"08:00", end:"11:00"});
+            renderAvailability();
+        }
+        
+        function removeTimeSlot(day, idx) {
+            availability[day].splice(idx,1);
+            renderAvailability();
+        }
+        
+        function renderAvailability() {
+            const container = document.getElementById('availability-list');
+            container.innerHTML = '';
+            for(let d=0; d<7; d++) {
+                let html = `<div class="day-slot"><h3>${dayNames[d]}</h3>`;
+                availability[d].forEach((slot, idx) => {
+                    html += `
+                        <div class="time-range">
+                            <input type="time" value="${slot.start}" onchange="availability[${d}][${idx}].start=this.value">
+                            <span>→</span>
+                            <input type="time" value="${slot.end}" onchange="availability[${d}][${idx}].end=this.value">
+                            <button onclick="removeTimeSlot(${d}, ${idx})">Xóa</button>
+                        </div>
+                    `;
+                });
+                html += `<button class="add-btn" onclick="addTimeSlot(${d})">+ Thêm khung</button></div>`;
+                container.innerHTML += html;
+            }
+        }
+        
+        async function generateSchedule() {
+            if(subjects.length===0) { alert("Thêm ít nhất 1 môn"); return; }
+            document.getElementById('loading').style.display='block';
+            const res = await fetch('/schedule/generate', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    subjects: subjects,
+                    availability: availability,
+                    breaks: [],
+                    special_requirements: document.getElementById('special-req').value
+                })
+            });
+            const data = await res.json();
+            document.getElementById('loading').style.display='none';
+            if(data.success) displayTimetable(data.timetable);
+        }
+        
+        function displayTimetable(timetable) {
+            let html = '<table><thead><tr><th>Giờ</th>';
+            dayNames.forEach(d=>html+=`<th>${d}</th>`);
+            html+=`</tr></thead><tbody>`;
+            for(let h=6; h<=22; h++) {
+                let time = `${h.toString().padStart(2,'0')}:00`;
+                html+=`<tr><td style="background:#f0f0f0">${time}</td>`;
+                dayNames.forEach(day=>{
+                    let lessons = timetable[day]||[];
+                    let content = lessons.filter(l=>l.start===time).map(l=>`<span class="subject-badge">${l.subject}</span>`).join('<br>');
+                    html+=`<td>${content||'-'}</td>`;
+                });
+                html+=`</tr>`;
+            }
+            html+=`</tbody></table>`;
+            document.getElementById('result').innerHTML = html;
+        }
+        
+        // Mẫu dữ liệu
+        addSubject();
+        subjects[0]={name:"Toán", sessions:4};
+        addSubject();
+        subjects[1]={name:"Lý", sessions:3};
+        renderSubjects();
+        addTimeSlot(0); addTimeSlot(2); addTimeSlot(4);
+        renderAvailability();
+    </script>
+</body>
+</html>
