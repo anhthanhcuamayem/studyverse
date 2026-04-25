@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studyverse - KHKT Project</title>
+    <title>Home</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -23,15 +23,16 @@
                         </a>
                     </li>
                     <li class="list" data-index="1">
-                        <a href="{{ url_for('mylist') }}">
+                        <a href="{{ url_for('mylist') }}"> 
                             <span class="icon"><i class="fa-solid fa-list-check"></i></span>
                             <span class="text">My List</span>
                         </a>
                     </li>
+
                     <li class="list" data-index="2">
                         <a href="{{ url_for('create') }}">
                             <span class="icon"><i class="fa-solid fa-plus"></i></span>
-                            <span class="text">Create</span>
+                            <br><span class="text">Create</span>
                         </a>
                     </li>
                     <div class="indicator"></div>
@@ -42,7 +43,10 @@
 
     <main class="main-content">
         <section class="hero container">
-            <h1>Một danh sách đơn giản để <br> <span class="draw-underline">quản lý tất cả</span></h1>
+            <h1 class="hero-title">
+                <span class="white-text">Một danh sách đơn giản để</span>
+                <span class="blue-text draw-underline">quản lý tất cả</span>
+            </h1>
             <p class="hero-subtitle">
                 Sắp xếp công việc và cuộc sống mỗi ngày một cách khoa học <br class="desktop-only"> 
                 và hiệu quả nhất cùng Studyverse
