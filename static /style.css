@@ -161,15 +161,82 @@ body {
 }
 
 /* --- H1 TIÊU ĐỀ --- */
-h1 {
-    font-size: clamp(32px, 5.5vw, 72px);
-    font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 40px;
-    letter-spacing: -2px;
-    white-space: nowrap;
-    color: #ffffff;
+.hero-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px; /* Tăng khoảng cách giữa 2 dòng cho thoáng */
     text-align: center;
+    margin-top: 60px;
+    padding: 0 20px; /* Tránh chữ chạm sát mép màn hình */
+}
+
+.white-text {
+    color: #ffffff;
+    white-space: nowrap;
+    display: block;
+    /* Tăng size: Tối thiểu 35px, trung bình 8vw, tối đa 110px */
+    font-size: clamp(20px, 8vw, 65px); 
+    font-weight: 800;
+    line-height: 1.1; /* Giảm line-height để các dòng chữ to không bị quá xa nhau */
+}
+
+.blue-text {
+    color: #007AFF;
+    white-space: nowrap;
+    display: inline-block;
+    position: relative;
+    /* Chữ xanh cũng to tương ứng 110px */
+    font-size: clamp(20px, 8vw, 65px);
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+/* Điều chỉnh nét vẽ tay cho khớp với kích thước khổng lồ */
+.draw-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -20px; /* Hạ thấp hơn vì chữ giờ đã rất to */
+    width: 100%;
+    height: clamp(10px, 2vw, 20px); /* Nét vẽ dày hơn để cân đối */
+    background-image: url("data:image/svg+xml,%3Csvg width='300' height='12' viewBox='0 0 300 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 9C50 4 150 4 297 9' stroke='%23007AFF' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    z-index: -1;
+}
+
+@keyframes drawLine {
+    from { width: 0; opacity: 0; }
+    to { width: 100%; opacity: 1; }
+}
+
+@media (max-width: 768px) {
+    .hero-title {
+        /* Nếu màn hình quá nhỏ, ta giảm cỡ chữ để nó vẫn đủ chỗ trên 1 dòng */
+        font-size: 22px !important; 
+        white-space: nowrap !important; /* Vẫn giữ 1 dòng */
+    }
+}
+/* --- Nét vẽ xanh: Tách biệt đẹp mắt --- */
+.draw-underline {
+    position: relative;
+    color: var(--primary-blue);
+    display: inline-block;
+    white-space: nowrap; /* Giữ cụm này đi cùng nhau */
+}
+
+.draw-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -15px; /* Giữ khoảng cách không chạm chân chữ */
+    width: 100%;
+    height: 10px;
+    background-image: url("data:image/svg+xml,..."); /* SVG nét vẽ của bạn */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    z-index: -1;
 }
 
 /* --- NÉT VẼ TAY --- */
@@ -209,8 +276,10 @@ h1 {
     color: var(--text-gray);
     font-size: clamp(16px, 2vw, 19px);
     max-width: 700px;
-    margin: 0 auto 40px;
+    /* Tăng margin-top lên 60px để né cái nét vẽ xanh ra */
+    margin: 60px auto 40px; 
     line-height: 1.7;
+    position: relative; /* Đảm bảo nó tuân thủ dòng chảy văn bản */
 }
 
 .btn-main {
@@ -298,7 +367,7 @@ h1 {
     }
     
     h1 {
-        white-space: normal;
+        
         line-height: 1.3;
     }
     
