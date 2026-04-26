@@ -1,0 +1,319 @@
+main {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+/* --- BIẾN HỆ THỐNG --- */
+:root {
+    --bg-color: #05070a;
+    --card-bg: #0d1117;
+    --primary-blue: #007AFF;
+    --text-white: #ffffff;
+    --text-gray: rgba(255, 255, 255, 0.6);
+    --border-soft: rgba(255, 255, 255, 0.08);
+    --white-glow: 0 10px 30px -5px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.03);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-white);
+    overflow-x: hidden;
+}
+
+/* --- NAVBAR --- */
+.navbar {
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 115px;
+    background: rgba(5, 7, 10, 0.85);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--border-soft);
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 10px;
+    z-index: 1000;
+}
+
+.nav-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 40px;
+    font-weight: 800;
+    text-decoration: none !important;
+    color: var(--text-white);
+}
+
+.logo span {
+    color: var(--primary-blue);
+}
+
+/* --- NAVIGATION --- */
+.navigation {
+    position: relative;
+    width: 350px;
+    height: 70px;
+    background: var(--card-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 14px;
+    border: 1px solid var(--border-soft);
+}
+
+.navigation ul {
+    display: flex;
+    position: relative;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.navigation ul li {
+    position: relative;
+    list-style: none;
+    width: 70px;
+    height: 70px;
+    z-index: 10;
+}
+
+.navigation ul li a {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 100%;
+    text-align: center;
+    font-weight: 500;
+    color: #fff;
+}
+/* --- INDICATOR --- */
+.indicator {
+    
+    position: absolute;
+    top: -50%;
+    width: 70px;
+    height: 70px;
+    background: #2196f3; /* Màu xanh bạn muốn */
+    border-radius: 50%;
+    border: 6px solid #000; /* Màu nền web để tạo khoảng hở */
+    transition: 0.5s;
+    z-index: -1;
+    left:0;
+}
+.navigation ul li a .icon {
+    position: relative !important; 
+    display: block;
+    line-height: 75px;
+    font-size: 1.5em;
+    text-align: center;
+    transition: 0.5s;
+    color: #fff;
+    z-index: 1000;
+}
+.navigation ul li:hover a .icon,
+.navigation ul li.active a .icon {
+    transform: translateY(-35px) !important;
+    color: #fff !important;
+}
+
+.navigation ul li a .text {
+    position: absolute !important;
+    font-weight: 400;
+    font-size: 0.75em;
+    letter-spacing: 0.05em;
+    transition: 0.5s;
+    opacity: 0;
+    transform: translateY(20px);
+    z-index: 100 !important;
+}
+.navigation ul li:hover a .text,
+.navigation ul li.active a .text {
+    opacity: 1;
+    transform: translateY(10px);
+}
+.navigation ul .indicator {
+    position: absolute;
+    top: -50%;
+    width: 70px;
+    height: 70px;
+    background: #2196f3;
+    border-radius: 50%;
+    border: 6px solid #000; /* Màu nền web của bạn */
+    transition: 0.5s; /* Tạo hiệu ứng trượt */
+    z-index: 1;
+}
+
+
+.list[data-index="0"].active ~ .indicator {
+    transform: translateX(18px);
+}
+
+.list[data-index="1"].active ~ .indicator {
+    transform: translateX(118px);
+}
+
+.list[data-index="2"].active ~ .indicator {
+    transform: translateX(218px);
+}
+
+
+
+.white-text {
+    color: #ffffff;
+    white-space: nowrap;
+    display: block;
+    /* Tăng size: Tối thiểu 35px, trung bình 8vw, tối đa 110px */
+    font-size: clamp(20px, 8vw, 65px); 
+    font-weight: 800;
+    line-height: 1.1; /* Giảm line-height để các dòng chữ to không bị quá xa nhau */
+}
+
+.blue-text {
+    color: #007AFF;
+    white-space: nowrap;
+    display: inline-block;
+    position: relative;
+    /* Chữ xanh cũng to tương ứng 110px */
+    font-size: clamp(20px, 8vw, 65px);
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+
+
+
+
+
+
+
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    .navbar {
+        height: 80px;
+    }
+    
+    .nav-container {
+        flex-direction: column;
+        gap: 10px;
+        padding-top: 15px;
+    }
+    
+    
+    
+    
+    
+    .draw-underline::after {
+        bottom: -8px;
+        height: 8px;
+    }
+    
+    
+    
+    .navigation {
+        width: 300px;
+        height: 55px;
+    }
+    
+    .navigation ul {
+        width: 260px;
+    }
+    
+    .navigation ul li {
+        width: 86px;
+        height: 50px;
+    }
+    
+    .indicator {
+        width: 55px;
+        height: 55px;
+        top: -30px;
+    }
+    
+    .list[data-index="0"].active ~ .indicator {
+        transform: translateX(15px);
+    }
+    
+    .list[data-index="1"].active ~ .indicator {
+        transform: translateX(101px);
+    }
+    
+    .list[data-index="2"].active ~ .indicator {
+        transform: translateX(187px);
+    }
+    
+    .navigation ul li a .icon {
+        font-size: 1.2rem;
+        line-height: 55px;
+    }
+    
+    .navigation ul li.active a .icon {
+        transform: translateY(-25px);
+    }
+}
+
+
+
+/* Ẩn mặc định các section */
+.content-section {
+    display: none;
+    padding: 20px;
+}
+
+/* Hiện section khi có class active */
+.content-section.active {
+    display: block;
+}
+
+/* Modal CSS */
+.modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;
+}
+.modal-card { background: #1e1e1e; padding: 25px; border-radius: 12px; width: 400px; }
+.task-card { background: #111; padding: 15px; margin-top: 10px; border-radius: 8px; border: 1px solid #333; display: flex; justify-content: space-between;}
+/* Đẩy icon lên trên khi mục đó được chọn (Active) */
+/* Đảm bảo icon có hiệu ứng mượt mà */
+.navigation ul li a .icon {
+    transition: 0.5s;
+    position: relative;
+    display: block;
+    line-height: 75px;
+    font-size: 1.5em;
+    text-align: center;
+}
+.icon i {
+    position: relative !important;
+    z-index: 999 !important;
+}
+/* Hiện chữ (text) khi active (nếu bạn muốn) */
+.navigation ul li.active a .text {
+    opacity: 1;
+    transform: translateY(10px);
+}
+.navigation ul li.active a .icon {
+    transform: translateY(-32px); /* Đẩy icon lên vào giữa hình tròn */
+    color: #fff; /* Màu icon khi nằm trong hình tròn */
+    opacity: 1;
+}
