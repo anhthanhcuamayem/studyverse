@@ -317,3 +317,272 @@ body {
     color: #fff; /* Màu icon khi nằm trong hình tròn */
     opacity: 1;
 }
+
+
+
+
+/* nội dung nè
+/* Khung bao ngoài */
+.project-wrapper {
+    display: flex;
+    align-items: stretch;
+    gap: 25px;
+    max-width: 1200px;
+    margin: 140px auto 40px;
+    padding: 0 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Sidebar bên trái - Giữ tông xanh đen sâu */
+.project-sidebar {
+    width: 280px;
+    background: rgba(26, 32, 44, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 25px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+/* Sidebar list bọc ngoài */
+.sidebar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    /* Xóa cái border red cũ đi nhé */
+}
+
+/* Quan trọng: Phải có màu chữ trắng để nhìn thấy trên nền đen */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white; 
+    font-family: sans-serif;
+    padding: 8px;
+}
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.1); /* Hiệu ứng khi di chuột vào */
+}
+
+/* Màu cho cái Icon Folder */
+.sidebar-item i {
+    color: #3b82f6; /* Màu xanh dương giống nút Create */
+}
+    /* Mục đang được chọn: Giống màu nút + New Project của bạn */
+
+
+/* Định dạng Icon folder */
+.sidebar-item i {
+    font-size: 1rem;
+    color: #fff; /* Để icon màu trắng cho nổi bật */
+    opacity: 0.9;
+}
+.sidebar-item span {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+.sidebar-item.active {
+    background: rgba(66, 153, 225, 0.1); /* Xanh mờ nhẹ */
+    color: #4299e1; /* Màu xanh của Logo/Button */
+    font-weight: 600;
+}
+
+/* Khi mục đó active thì icon cũng đổi màu theo */
+.sidebar-item.active i {
+    color: #4299e1;
+}
+
+/* Nội dung bên phải - Chuyển từ TRẮNG sang DARK GLASS */
+.project-detail {
+    flex: 1;
+    display: flex;
+}
+
+.detail-card {
+    background: rgba(255, 255, 255, 0.03); /* Trong suốt cực nhẹ */
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 35px;
+    min-height: 100% ;
+    height: auto;
+    width: 100%;
+    color: white;
+}
+
+.detail-header h2 {
+    color: white;
+    font-size: 1.8rem;
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+}
+
+
+
+/* Nút New Project - Hiệu ứng Glow */
+.btn-new-project {
+    width: 100%;
+    background: linear-gradient(135deg, #4299e1, #3182ce); /* Giữ màu gradient của bạn */
+    color: white;
+    border: none;
+    
+    /* 1. DỜI XUỐNG 5PX: Tăng margin-top */
+    margin-top: 15px; 
+    margin-bottom: 8px;
+
+    /* 2. CHỮ TO HƠN: Tăng font-size và padding */
+    font-size: 1.1rem; /* Hoặc dùng 18px */
+    font-weight: 700;
+    padding: 14px; /* Tăng độ dày của nút để chữ có không gian */
+    
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+    transition: 0.4s;
+}
+
+.btn-new-project:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(66, 153, 225, 0.5);
+} 
+
+/* Nền mờ phủ toàn màn hình */
+.modal-overlay {
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(10px);
+    
+    /* QUAN TRỌNG: Phải lớn hơn z-index của Navbar (1000) */
+    z-index: 9999; 
+    
+    justify-content: center; 
+    align-items: center;
+}
+/* Khung nội dung chính */
+.modal-content {
+    background: #1a202c;
+    width: 22%; /* Nhỏ hơn 1/4 màn hình (25%) một chút */
+    min-width: 320px; /* Đảm bảo không quá nhỏ trên điện thoại */
+    padding: 30px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    color: white;
+    animation: modalShow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalShow {
+    from { transform: translateY(20px) scale(0.9); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.modal-header h3 {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+    color: #fff;
+}
+
+.modal-header p {
+    font-size: 0.9rem;
+    color: #a0aec0;
+    margin-bottom: 25px;
+}
+
+/* Group nhập liệu */
+.input-group {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.85rem;
+    color: #cbd5e0;
+    margin-bottom: 8px;
+    margin-left: 5px;
+}
+
+#projectNameInput {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: 0.3s;
+}
+
+#projectNameInput:focus {
+    border-color: #4299e1;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.15);
+}
+
+/* Chọn màu (Thêm cho xịn) */
+.color-picker {
+    display: flex;
+    gap: 12px;
+    margin-top: 5px;
+}
+
+.color-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+}
+
+.color-dot.active {
+    border-color: #fff;
+    transform: scale(1.2);
+}
+
+/* Footer & Buttons */
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.btn-modal {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    border: none;
+}
+
+.btn-cancel {
+    background: rgba(255, 255, 255, 0.05);
+    color: #cbd5e0;
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.btn-confirm {
+    background: #4299e1;
+    color: white;
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+.btn-confirm:hover {
+    background: #3182ce;
+    transform: translateY(-2px);
+}
