@@ -1,97 +1,85 @@
-// 1. KHỞI TẠO CÁC PHẦN TỬ
+// --- DỮ LIỆU ---
+let projects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+
 const list = document.querySelectorAll('.list');
 const indicator = document.querySelector('.indicator');
 
-// 2. HÀM CẬP NHẬT VỊ TRÍ HÌNH TRÒN (INDICATOR)
+// 1. HÀM CẬP NHẬT VỊ TRÍ HÌNH TRÒN (INDICATOR)
 function refreshIndicator() {
     const activeItem = document.querySelector('.list.active');
     if (activeItem && indicator) {
-        // Đẩy hình tròn đến đúng vị trí của mục đang active
+        // Tính toán vị trí chính xác theo mục đang active
         indicator.style.transform = `translateX(${activeItem.offsetLeft}px)`;
     }
 }
 
-// 3. HÀM XỬ LÝ TẢI NỘI DUNG (SPA MODE)
-async function fetchAndReplace(url, index) {
-    try {
-        // 1. Cập nhật class Active và vị trí hình tròn NGAY LẬP TỨC khi click
-        list.forEach(item => item.classList.remove('active'));
-        list[index].classList.add('active');
-        refreshIndicator();
+// 2. HÀM VẼ SIDEBAR
+function renderSidebar() {
+    const sidebarList = document.querySelector('.sidebar-list');
+    if (!sidebarList) return;
 
-        const response = await fetch(url);
-        const text = await response.text();
-        const data = new DOMParser().parseFromString(text, "text/html");
-        
-        // 2. Thay thế nội dung sau khi đã di chuyển hình tròn
-        const newContent = data.querySelector("main").innerHTML;
-        document.querySelector("main").innerHTML = newContent;
+    const savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+    sidebarList.innerHTML = '';
 
-        document.title = data.title;
-        window.history.pushState({ index }, "", url);
-        
-        // 3. Kiểm tra lại vị trí một lần nữa sau khi trang mới đã ổn định
-        requestAnimationFrame(refreshIndicator);
-
-    } catch (error) {
-        window.location.href = url;
-    }
-}
-
-// 4. HÀM ĐIỀU HƯỚNG SIÊU MƯỢT
-function navigate(url, index) {
-    // Nếu trình duyệt hỗ trợ hiệu ứng chuyển cảnh mới (View Transition API)
-    if (document.startViewTransition) {
-        document.startViewTransition(() => fetchAndReplace(url, index));
-    } else {
-        fetchAndReplace(url, index);
-    }
-}
-
-// 5. GÁN SỰ KIỆN CHO THANH CÔNG CỤ
-list.forEach((item, index) => {
-    const link = item.querySelector('a');
-
-    // Sự kiện CLICK: Chuyển trang mượt
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        navigate(link.getAttribute('href'), index);
+    savedProjects.forEach((proj) => {
+        const item = document.createElement('div');
+        item.className = 'sidebar-item';
+        item.innerHTML = `
+            <i class="fa-solid fa-folder" style="color: #3b82f6; margin-right: 10px;"></i>
+            <span style="color: white; font-weight: 500;">${proj.name}</span>
+        `;
+        sidebarList.appendChild(item);
     });
+}
 
-    // Sự kiện HOVER (Rê chuột): Hình tròn chạy theo chuột ngay lập tức
+// 3. XỬ LÝ CLICK TOÀN TRANG (Event Delegation)
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('modalOverlay');
+    const input = document.getElementById('projectNameInput');
+
+    // Mở Modal
+    if (e.target.classList.contains('btn-new-project')) {
+        if (modal) {
+            modal.style.display = 'flex';
+            input.value = '';
+            input.focus();
+        }
+    }
+
+    // Đóng Modal
+    if (e.target.id === 'btnCancel' || e.target === modal) {
+        if (modal) modal.style.display = 'none';
+    }
+
+    // Nút Tạo ngay
+    if (e.target.id === 'btnConfirm' || e.target.classList.contains('btn-confirm')) {
+        const name = input.value.trim();
+        if (name !== "") {
+            let savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+            savedProjects.push({ name: name });
+            localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
+
+            renderSidebar();
+            modal.style.display = 'none';
+            input.value = "";
+        } else {
+            alert("Vui lòng nhập tên dự án!");
+        }
+    }
+});
+
+// 4. KHỞI TẠO NAVBAR
+list.forEach((item, index) => {
     item.addEventListener('mouseenter', () => {
         indicator.style.transform = `translateX(${item.offsetLeft}px)`;
     });
 });
 
-// Khi chuột rời khỏi vùng thanh công cụ, hình tròn tự trượt về nút Active hiện tại
 document.querySelector('.navigation').addEventListener('mouseleave', refreshIndicator);
 
-// 6. XỬ LÝ KHI TRANG VỪA TẢI XONG (LẦN ĐẦU)
 window.addEventListener('DOMContentLoaded', () => {
-    const path = window.location.pathname;
-    
-    list.forEach((item, index) => {
-        const linkHref = item.querySelector('a').getAttribute('href');
-        if (path.includes(linkHref) || (path.endsWith('/') && index === 0)) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
-        }
-    });
-
-    // Mẹo: Tắt transition tạm thời để hình tròn nằm đúng chỗ ngay lập tức, không bị trượt
-    indicator.style.transition = 'none'; 
     refreshIndicator();
-    
-    // Bật lại transition sau khi đã ổn định vị trí (khoảng 50ms)
-    setTimeout(() => {
-        indicator.style.transition = '0.5s'; 
-    }, 50);
+    renderSidebar();
 });
 
-// Cập nhật lại vị trí nếu người dùng đổi kích thước trình duyệt
 window.addEventListener('resize', refreshIndicator);
-
-// Xử lý nút Back/Forward của trình duyệt
-window.onpopstate = () => location.reload();            
