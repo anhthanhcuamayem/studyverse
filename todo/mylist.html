@@ -17,8 +17,8 @@
             
             <nav class="navigation">
                 <ul>
-                    <li class="list active" id="li-create" data-index="0" >
-                        <a href="index.html">
+                    <li class="list" id="li-create" data-index="0" >
+                        <a href="../index.html">
                             <span class="icon"><i class="fa-solid fa-house"></i></span>
                             <span class="text">Home</span>
                         </a>
@@ -29,7 +29,7 @@
                             <span class="text">My Project</span>
                         </a>
                     </li>
-                    <li class="list active" id="li-create" data-index="2">
+                    <li class="list" id="li-create" data-index="2">
                         <a href="create.html">
                             <span class="icon"><i class="fa-solid fa-plus"></i></span>
                             <span class="text">Create</span>
@@ -40,7 +40,45 @@
             </nav>
         </div>
     </header>  
-    <!-- SỬA LẠI ĐƯỜNG DẪN JS -->
+
+    <main>
+    <div class="project-wrapper">
+        <aside class="project-sidebar">
+            <div class="sidebar-header">
+                <h2>My Projects</h2>
+                <button class="btn-new-project">+ New Project</button>
+            </div>
+            <div class="sidebar-list">
+                </div>
+        </aside>
+
+        <section class="project-detail">
+            <div class="detail-card">
+                <div class="detail-header">
+                    <h2>My Projects</h2>
+                </div>
+                
+            </div>
+        </section>
+    </div>
+    </main>
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>New Project</h3>
+                <p>Tạo một không gian học tập mới</p>
+            </div>
+            <div class="input-group">
+                <label for="projectNameInput">Tên dự án</label>
+                <input type="text" id="projectNameInput" placeholder="Ví dụ: Học Tiếng Anh, Dự án Web...">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" id="btnCancel">Hủy</button>
+                <button class="btn-modal btn-confirm" id="btnConfirm">Tạo ngay</button>
+            </div>
+        </div>
+    </div>
+    <!-- SỬA LẠI ĐƯỜ    NG DẪN JS -->
     <script src="mylist.js"></script>
 </body>
 </html>
