@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyVerse - Tạo thời khóa biểu</title>
+    <title>StudyVerse - Lịch học tương tác</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
         body {
             font-family: 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -17,180 +20,496 @@
             margin: 0 auto;
             background: white;
             border-radius: 20px;
-            padding: 30px;
+            padding: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        h1 { color: #333; margin-bottom: 10px; }
-        .section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 25px;
+        h1 {
+            margin-top: 0;
         }
-        .section h2 { color: #667eea; margin-bottom: 15px; }
-        .subject-item {
-            background: white;
+        .subjects-panel {
+            background: #f0f0f0;
             padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
+            border-radius: 12px;
+            margin-bottom: 20px;
             display: flex;
+            flex-wrap: wrap;
             gap: 15px;
+            align-items: flex-end;
+        }
+        .subject-input {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-flex;
+            gap: 8px;
             align-items: center;
         }
-        .subject-item input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
-        .subject-item button { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
-        .add-btn { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-top: 10px; }
-        .day-slot { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
-        .time-range { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
-        .time-range input { padding: 6px; border: 1px solid #ddd; border-radius: 4px; }
-        .generate-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .subject-input input {
+            width: 100px;
+            padding: 6px;
+        }
+        .subject-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin: 4px;
+            display: inline-block;
+        }
+        .warning {
+            color: red;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .timetable-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        .timetable {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+        .timetable th, .timetable td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+            vertical-align: middle;
+            min-width: 100px;
+        }
+        .timetable th {
+            background: #4a5568;
+            color: white;
+            cursor: pointer;
+        }
+        .timetable td {
+            background: #fefefe;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .timetable td:hover {
+            background: #e2e8f0;
+        }
+        .timetable td.disabled-day {
+            background: repeating-linear-gradient(45deg, #ddd, #ddd 10px, #eee 10px, #eee 20px);
+            color: #999;
+            cursor: not-allowed;
+        }
+        .timetable td.x-mark {
+            background: #ffcccc;
+            position: relative;
+        }
+        .timetable td.x-mark::after {
+            content: "✗";
+            font-size: 20px;
+            font-weight: bold;
+            color: red;
+            display: block;
+        }
+        .subject-cell {
+            font-weight: bold;
+            background: #c3dafe;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin: 15px 0;
+            font-size: 13px;
+        }
+        .legend span {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        button {
+            background: #28a745;
             color: white;
             border: none;
-            padding: 15px 30px;
-            font-size: 16px;
-            border-radius: 10px;
+            padding: 10px 20px;
+            border-radius: 8px;
             cursor: pointer;
-            width: 100%;
+            margin-right: 10px;
         }
-        .timetable { margin-top: 30px; overflow-x: auto; }
-        .timetable table { width: 100%; border-collapse: collapse; }
-        .timetable th, .timetable td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: top; }
-        .timetable th { background: #667eea; color: white; }
-        .subject-badge { background: #e3f2fd; padding: 4px 8px; border-radius: 4px; margin: 4px; display: inline-block; font-size: 12px; }
-        textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
-        .loading { display: none; text-align: center; padding: 20px; }
+        button.ai-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📚 StudyVerse - Tạo thời khóa biểu</h1>
-        
-        <div class="section">
-            <h2>📖 Môn học & số tiết/tuần (1 tiết = 45 phút)</h2>
-            <div id="subjects-list"></div>
-            <button class="add-btn" onclick="addSubject()">+ Thêm môn</button>
+<div class="container">
+    <h1>📅 StudyVerse - Lịch học tương tác</h1>
+    <p>👉 Click vào <strong>cột ngày</strong> để gạch chéo cả ngày (nghỉ). <br>
+       👉 Click vào <strong>ô tiết</strong> để chọn môn học (hoặc đánh dấu X). <br>
+       👉 Mỗi môn có giới hạn số tiết, hệ thống sẽ tự kiểm soát.
+    </p>
+
+    <!-- Danh sách môn học -->
+    <div class="subjects-panel" id="subjects-panel">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="subjects-list"></div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="new-subject-name" placeholder="Tên môn" style="padding:6px;">
+            <input type="number" id="new-subject-sessions" placeholder="Số tiết" min="1" value="2" style="width:80px;">
+            <button id="add-subject-btn">+ Thêm môn</button>
         </div>
-        
-        <div class="section">
-            <h2>⏰ Thời gian rảnh từng ngày</h2>
-            <div id="availability-list"></div>
-        </div>
-        
-        <div class="section">
-            <h2>✏️ Yêu cầu đặc biệt</h2>
-            <textarea id="special-req" rows="3" placeholder="VD: Không học 2 tiết Toán liên tiếp, ưu tiên buổi sáng..."></textarea>
-        </div>
-        
-        <button class="generate-btn" onclick="generateSchedule()">🚀 Tạo thời khóa biểu</button>
-        
-        <div class="loading" id="loading">⏳ Đang xếp lịch, vui lòng chờ...</div>
-        <div id="result" class="timetable"></div>
     </div>
 
-    <script>
-        let subjects = [];
-        let availability = {0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
-        const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
-        
-        function addSubject() {
-            subjects.push({name: "", sessions: 1});
-            renderSubjects();
+    <!-- Bảng lịch -->
+    <div class="timetable-container">
+        <table class="timetable" id="timetable">
+            <thead id="table-header"></thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+
+    <div class="legend">
+        <div><span style="background:#c3dafe;"></span> Đã xếp môn</div>
+        <div><span style="background:#ffcccc;"></span> Đánh dấu X (không học)</div>
+        <div><span style="background:repeating-linear-gradient(45deg, #ddd, #ddd 10px, #eee 10px, #eee 20px);"></span> Cả ngày nghỉ</div>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <button class="ai-btn" id="auto-schedule">✨ AI tự động xếp lịch (dựa trên số tiết còn thiếu)</button>
+        <button id="clear-all">🗑️ Xóa toàn bộ</button>
+    </div>
+
+    <div id="status" class="status"></div>
+</div>
+
+<script>
+    // Cấu hình: các tiết trong ngày (mỗi tiết 45 phút)
+    // Tạo các mốc giờ bắt đầu tiết: 7:00, 7:45, 8:30, 9:15, 10:00, 10:45, 13:00, 13:45, 14:30, 15:15, 16:00, 16:45
+    const lessonSlots = [
+        "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
+        "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
+    ];
+    const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+
+    // Dữ liệu lịch: timetable[dayIndex][slotIndex] = { type: 'subject', name: 'Toán' } hoặc { type: 'x' } hoặc null
+    let timetableData = [];
+    // disabledDays: array boolean 7 ngày
+    let disabledDays = new Array(7).fill(false);
+    // Danh sách môn học với số tiết yêu cầu và số tiết đã xếp
+    let subjects = [];
+    // subjectCounter để theo dõi đã xếp bao nhiêu tiết cho mỗi môn
+    let subjectCounts = {};
+
+    // Khởi tạo bảng
+    function initTimetable() {
+        timetableData = [];
+        for (let i = 0; i < days.length; i++) {
+            timetableData[i] = new Array(lessonSlots.length).fill(null);
         }
-        
-        function removeSubject(i) {
-            subjects.splice(i,1);
-            renderSubjects();
+        renderTable();
+    }
+
+    // Render bảng
+    function renderTable() {
+        const thead = document.getElementById('table-header');
+        const tbody = document.getElementById('table-body');
+        // Header: cột giờ + các ngày
+        let headerRow = '<tr><th>Giờ / Ngày</th>';
+        for (let i = 0; i < days.length; i++) {
+            headerRow += `<th data-day="${i}">${days[i]}</th>`;
         }
-        
-        function renderSubjects() {
-            const container = document.getElementById('subjects-list');
-            container.innerHTML = '';
-            subjects.forEach((s,i) => {
-                container.innerHTML += `
-                    <div class="subject-item">
-                        <input placeholder="Tên môn" value="${s.name}" onchange="subjects[${i}].name=this.value">
-                        <input type="number" value="${s.sessions}" min="1" onchange="subjects[${i}].sessions=parseInt(this.value)">
-                        <button onclick="removeSubject(${i})">Xóa</button>
-                    </div>
-                `;
+        headerRow += '</tr>';
+        thead.innerHTML = headerRow;
+
+        // Body: từng slot giờ
+        let bodyHtml = '';
+        for (let s = 0; s < lessonSlots.length; s++) {
+            const time = lessonSlots[s];
+            const endTime = getEndTime(time);
+            bodyHtml += `<tr><td style="background:#f0f0f0;">${time} - ${endTime}</td>`;
+            for (let d = 0; d < days.length; d++) {
+                const cellData = timetableData[d][s];
+                let cellClass = '';
+                let content = '';
+                if (disabledDays[d]) {
+                    cellClass = 'disabled-day';
+                    content = '🚫 Nghỉ';
+                } else if (cellData) {
+                    if (cellData.type === 'subject') {
+                        cellClass = 'subject-cell';
+                        content = cellData.name;
+                    } else if (cellData.type === 'x') {
+                        cellClass = 'x-mark';
+                        content = '';
+                    }
+                } else {
+                    content = '';
+                }
+                bodyHtml += `<td class="${cellClass}" data-day="${d}" data-slot="${s}">${content}</td>`;
+            }
+            bodyHtml += '</tr>';
+        }
+        tbody.innerHTML = bodyHtml;
+
+        // Gắn sự kiện click cho các cột ngày (header)
+        document.querySelectorAll('th[data-day]').forEach(th => {
+            th.style.cursor = 'pointer';
+            th.addEventListener('click', (e) => {
+                const day = parseInt(th.dataset.day);
+                toggleDisableDay(day);
             });
-        }
-        
-        function addTimeSlot(day) {
-            availability[day].push({start:"08:00", end:"11:00"});
-            renderAvailability();
-        }
-        
-        function removeTimeSlot(day, idx) {
-            availability[day].splice(idx,1);
-            renderAvailability();
-        }
-        
-        function renderAvailability() {
-            const container = document.getElementById('availability-list');
-            container.innerHTML = '';
-            for(let d=0; d<7; d++) {
-                let html = `<div class="day-slot"><h3>${dayNames[d]}</h3>`;
-                availability[d].forEach((slot, idx) => {
-                    html += `
-                        <div class="time-range">
-                            <input type="time" value="${slot.start}" onchange="availability[${d}][${idx}].start=this.value">
-                            <span>→</span>
-                            <input type="time" value="${slot.end}" onchange="availability[${d}][${idx}].end=this.value">
-                            <button onclick="removeTimeSlot(${d}, ${idx})">Xóa</button>
-                        </div>
-                    `;
-                });
-                html += `<button class="add-btn" onclick="addTimeSlot(${d})">+ Thêm khung</button></div>`;
-                container.innerHTML += html;
+        });
+        // Gắn sự kiện click cho các ô
+        document.querySelectorAll('td[data-day]').forEach(td => {
+            td.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const day = parseInt(td.dataset.day);
+                const slot = parseInt(td.dataset.slot);
+                if (disabledDays[day]) return; // ngày nghỉ không sửa
+                handleCellClick(day, slot);
+            });
+            // Chuột phải để đánh dấu X
+            td.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const day = parseInt(td.dataset.day);
+                const slot = parseInt(td.dataset.slot);
+                if (disabledDays[day]) return;
+                toggleXMark(day, slot);
+            });
+        });
+        updateStatus();
+    }
+
+    function getEndTime(startTime) {
+        // thêm 45p
+        let [h, m] = startTime.split(':').map(Number);
+        let total = h*60 + m + 45;
+        let nh = Math.floor(total/60);
+        let nm = total % 60;
+        return `${nh.toString().padStart(2,'0')}:${nm.toString().padStart(2,'0')}`;
+    }
+
+    function toggleDisableDay(day) {
+        disabledDays[day] = !disabledDays[day];
+        if (disabledDays[day]) {
+            // Xóa tất cả dữ liệu trong ngày đó
+            for (let s = 0; s < lessonSlots.length; s++) {
+                const cell = timetableData[day][s];
+                if (cell && cell.type === 'subject') {
+                    // giảm số lượng môn đã xếp
+                    const subjName = cell.name;
+                    if (subjectCounts[subjName] > 0) subjectCounts[subjName]--;
+                }
+                timetableData[day][s] = null;
             }
         }
-        
-        async function generateSchedule() {
-            if(subjects.length===0) { alert("Thêm ít nhất 1 môn"); return; }
-            document.getElementById('loading').style.display='block';
-            const res = await fetch('/schedule/generate', {
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({
-                    subjects: subjects,
-                    availability: availability,
-                    breaks: [],
-                    special_requirements: document.getElementById('special-req').value
-                })
-            });
-            const data = await res.json();
-            document.getElementById('loading').style.display='none';
-            if(data.success) displayTimetable(data.timetable);
+        renderTable();
+    }
+
+    function handleCellClick(day, slot) {
+        const current = timetableData[day][slot];
+        // Nếu ô đang có môn -> xóa môn
+        if (current && current.type === 'subject') {
+            const subjName = current.name;
+            if (subjectCounts[subjName] > 0) subjectCounts[subjName]--;
+            timetableData[day][slot] = null;
+            renderTable();
+            return;
         }
-        
-        function displayTimetable(timetable) {
-            let html = '<table><thead><tr><th>Giờ</th>';
-            dayNames.forEach(d=>html+=`<th>${d}</th>`);
-            html+=`</tr></thead><tbody>`;
-            for(let h=6; h<=22; h++) {
-                let time = `${h.toString().padStart(2,'0')}:00`;
-                html+=`<tr><td style="background:#f0f0f0">${time}</td>`;
-                dayNames.forEach(day=>{
-                    let lessons = timetable[day]||[];
-                    let content = lessons.filter(l=>l.start===time).map(l=>`<span class="subject-badge">${l.subject}</span>`).join('<br>');
-                    html+=`<td>${content||'-'}</td>`;
-                });
-                html+=`</tr>`;
+        // Nếu ô đang là X -> xóa X
+        if (current && current.type === 'x') {
+            timetableData[day][slot] = null;
+            renderTable();
+            return;
+        }
+        // Nếu ô trống -> hiện danh sách môn để chọn
+        showSubjectPicker(day, slot);
+    }
+
+    function showSubjectPicker(day, slot) {
+        if (subjects.length === 0) {
+            alert("Vui lòng thêm môn học trước!");
+            return;
+        }
+        // Tạo popup đơn giản
+        let options = subjects.map(s => `${s.name} (${subjectCounts[s.name] || 0}/${s.sessions} tiết)`);
+        options.push("Đánh dấu X (không học)");
+        const choice = prompt("Chọn môn học (hoặc X):\n" + options.map((opt, idx) => `${idx+1}. ${opt}`).join("\n") + "\n\nNhập số:");
+        if (choice === null) return;
+        const idx = parseInt(choice) - 1;
+        if (isNaN(idx)) return;
+        if (idx === subjects.length) {
+            // Chọn X
+            toggleXMark(day, slot);
+            return;
+        }
+        if (idx >= 0 && idx < subjects.length) {
+            const selectedSubj = subjects[idx];
+            const currentCount = subjectCounts[selectedSubj.name] || 0;
+            if (currentCount >= selectedSubj.sessions) {
+                alert(`Môn ${selectedSubj.name} đã đủ ${selectedSubj.sessions} tiết! Không thể thêm.`);
+                return;
             }
-            html+=`</tbody></table>`;
-            document.getElementById('result').innerHTML = html;
+            // Kiểm tra xem ô đã có môn chưa
+            if (timetableData[day][slot] !== null) {
+                alert("Ô này đã có nội dung, hãy xóa trước.");
+                return;
+            }
+            timetableData[day][slot] = { type: 'subject', name: selectedSubj.name };
+            subjectCounts[selectedSubj.name] = (subjectCounts[selectedSubj.name] || 0) + 1;
+            renderTable();
         }
-        
-        // Mẫu dữ liệu
-        addSubject();
-        subjects[0]={name:"Toán", sessions:4};
-        addSubject();
-        subjects[1]={name:"Lý", sessions:3};
-        renderSubjects();
-        addTimeSlot(0); addTimeSlot(2); addTimeSlot(4);
-        renderAvailability();
-    </script>
+    }
+
+    function toggleXMark(day, slot) {
+        const current = timetableData[day][slot];
+        if (current && current.type === 'subject') {
+            alert("Hãy xóa môn trước khi đánh dấu X.");
+            return;
+        }
+        if (current && current.type === 'x') {
+            timetableData[day][slot] = null;
+        } else {
+            timetableData[day][slot] = { type: 'x' };
+        }
+        renderTable();
+    }
+
+    // Cập nhật thanh trạng thái
+    function updateStatus() {
+        let totalPlanned = 0;
+        let totalScheduled = 0;
+        subjects.forEach(s => {
+            const scheduled = subjectCounts[s.name] || 0;
+            totalPlanned += s.sessions;
+            totalScheduled += scheduled;
+        });
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerHTML = `<strong>📊 Tiến độ:</strong> Đã xếp ${totalScheduled}/${totalPlanned} tiết. `;
+        if (totalScheduled < totalPlanned) {
+            statusDiv.innerHTML += `<span style="color:orange;">Còn thiếu ${totalPlanned - totalScheduled} tiết. Dùng AI để xếp tự động hoặc chọn thêm.</span>`;
+        } else if (totalScheduled === totalPlanned && totalPlanned > 0) {
+            statusDiv.innerHTML += `<span style="color:green;">✅ Tuyệt vời! Bạn đã xếp đủ số tiết cho tất cả môn.</span>`;
+        }
+        // Liệt kê từng môn
+        subjects.forEach(s => {
+            statusDiv.innerHTML += `<br> - ${s.name}: ${subjectCounts[s.name] || 0}/${s.sessions}`;
+        });
+    }
+
+    // Thêm môn học
+    function addSubject() {
+        const nameInput = document.getElementById('new-subject-name');
+        const sessInput = document.getElementById('new-subject-sessions');
+        const name = nameInput.value.trim();
+        const sessions = parseInt(sessInput.value);
+        if (!name || isNaN(sessions) || sessions < 1) {
+            alert("Tên môn hợp lệ và số tiết >0");
+            return;
+        }
+        if (subjects.find(s => s.name === name)) {
+            alert("Môn đã tồn tại");
+            return;
+        }
+        subjects.push({ name, sessions });
+        subjectCounts[name] = 0;
+        nameInput.value = '';
+        sessInput.value = '2';
+        renderSubjectList();
+        updateStatus();
+        renderTable(); // để cập nhật
+    }
+
+    function renderSubjectList() {
+        const container = document.getElementById('subjects-list');
+        container.innerHTML = '';
+        subjects.forEach((sub, idx) => {
+            const span = document.createElement('span');
+            span.className = 'subject-badge';
+            span.innerHTML = `${sub.name} (${subjectCounts[sub.name] || 0}/${sub.sessions}) 
+                <button style="margin-left:8px; background:red; border:none; color:white; border-radius:10px; padding:0 6px;" onclick="removeSubject('${sub.name}')">x</button>`;
+            container.appendChild(span);
+        });
+    }
+
+    function removeSubject(name) {
+        if (confirm(`Xóa môn ${name}? Các tiết đã xếp của môn này sẽ bị xóa.`)) {
+            // Xóa tất cả ô liên quan
+            for (let d=0; d<days.length; d++) {
+                for (let s=0; s<lessonSlots.length; s++) {
+                    const cell = timetableData[d][s];
+                    if (cell && cell.type === 'subject' && cell.name === name) {
+                        timetableData[d][s] = null;
+                    }
+                }
+            }
+            subjects = subjects.filter(s => s.name !== name);
+            delete subjectCounts[name];
+            renderSubjectList();
+            renderTable();
+        }
+    }
+
+    // AI tự động xếp lịch: tìm các ô trống (không bị disabled, không có X, không có môn) và xếp những môn còn thiếu
+    function autoSchedule() {
+        // Tạo danh sách các môn còn thiếu số tiết
+        let needSchedule = [];
+        subjects.forEach(subj => {
+            let scheduled = subjectCounts[subj.name] || 0;
+            let need = subj.sessions - scheduled;
+            for (let i=0; i<need; i++) {
+                needSchedule.push(subj.name);
+            }
+        });
+        if (needSchedule.length === 0) {
+            alert("Tất cả các môn đã đủ số tiết!");
+            return;
+        }
+        // Thu thập các ô trống
+        let emptySlots = [];
+        for (let d=0; d<days.length; d++) {
+            if (disabledDays[d]) continue;
+            for (let s=0; s<lessonSlots.length; s++) {
+                if (timetableData[d][s] === null) {
+                    emptySlots.push({day:d, slot:s});
+                }
+            }
+        }
+        if (emptySlots.length < needSchedule.length) {
+            alert(`Không đủ ô trống! Cần ${needSchedule.length} ô nhưng chỉ có ${emptySlots.length} ô trống. Hãy bỏ bớt X hoặc nghỉ ngày.`);
+            return;
+        }
+        // Xáo trộn để xếp ngẫu nhiên
+        for (let i=0; i<needSchedule.length; i++) {
+            let subjName = needSchedule[i];
+            if (emptySlots.length === 0) break;
+            let randomIndex = Math.floor(Math.random() * emptySlots.length);
+            let {day, slot} = emptySlots[randomIndex];
+            timetableData[day][slot] = { type: 'subject', name: subjName };
+            subjectCounts[subjName]++;
+            emptySlots.splice(randomIndex,1);
+        }
+        renderTable();
+    }
+
+    function clearAll() {
+        if (confirm("Xóa toàn bộ lịch và reset môn?")) {
+            initTimetable();
+            subjects = [];
+            subjectCounts = {};
+            disabledDays.fill(false);
+            renderSubjectList();
+            updateStatus();
+        }
+    }
+
+    // Khởi tạo
+    initTimetable();
+    document.getElementById('add-subject-btn').addEventListener('click', addSubject);
+    document.getElementById('auto-schedule').addEventListener('click', autoSchedule);
+    document.getElementById('clear-all').addEventListener('click', clearAll);
+    window.removeSubject = removeSubject;
+</script>
 </body>
 </html>
