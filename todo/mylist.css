@@ -14,7 +14,7 @@ main {
     --text-white: #ffffff;
     --text-gray: rgba(255, 255, 255, 0.6);
     --border-soft: rgba(255, 255, 255, 0.08);
-    --white-glow: 0 10px 30px -5px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.03);
+    --white-glow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -28,6 +28,7 @@ body {
     background-color: var(--bg-color);
     color: var(--text-white);
     overflow-x: hidden;
+    min-height: 100vh;
 }
 
 /* --- NAVBAR --- */
@@ -117,9 +118,10 @@ body {
     background: #2196f3; /* Màu xanh bạn muốn */
     border-radius: 50%;
     border: 6px solid #000; /* Màu nền web để tạo khoảng hở */
-    transition: 0.5s;
-    z-index: -1;
+    
+    z-index: 1;
     left:0;
+    
 }
 .navigation ul li a .icon {
     position: relative !important; 
@@ -160,7 +162,7 @@ body {
     background: #2196f3;
     border-radius: 50%;
     border: 6px solid #000; /* Màu nền web của bạn */
-    transition: 0.5s; /* Tạo hiệu ứng trượt */
+        transition: 0.5s; /* Tạo hiệu ứng trượt */
     z-index: 1;
 }
 
@@ -201,13 +203,6 @@ body {
 }
 
 
-
-
-
-
-
-
-
 /* --- RESPONSIVE --- */
 @media (max-width: 768px) {
     .navbar {
@@ -219,9 +214,6 @@ body {
         gap: 10px;
         padding-top: 15px;
     }
-    
-    
-    
     
     
     .draw-underline::after {
@@ -289,7 +281,7 @@ body {
 /* Modal CSS */
 .modal-overlay {
     display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;
+    background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
 }
 .modal-card { background: #1e1e1e; padding: 25px; border-radius: 12px; width: 400px; }
 .task-card { background: #111; padding: 15px; margin-top: 10px; border-radius: 8px; border: 1px solid #333; display: flex; justify-content: space-between;}
@@ -320,7 +312,9 @@ body {
 
 
 
-
+html {
+    background-color: #05070a; /* Màu đen nền của bạn */
+}
 /* nội dung nè
 /* Khung bao ngoài */
 .project-wrapper {
@@ -331,6 +325,8 @@ body {
     margin: 140px auto 40px;
     padding: 0 20px;
     font-family: 'Inter', sans-serif;
+    min-height: calc(100vh - 180px);
+    height: auto;
 }
 
 /* Sidebar bên trái - Giữ tông xanh đen sâu */
@@ -385,11 +381,16 @@ body {
     font-weight: 500;
 }
 .sidebar-item.active {
-    background: rgba(66, 153, 225, 0.1); /* Xanh mờ nhẹ */
+    background: rgba(255, 255, 255, 0.1); /* Xanh mờ nhẹ */
     color: #4299e1; /* Màu xanh của Logo/Button */
     font-weight: 600;
+    transform: scale(0.98); /* Hiệu ứng lún xuống */
+    transition: 0.1s;
 }
-
+.sidebar-item.active-item {
+    background: rgba(59, 130, 246, 0.2); /* Đổi màu nền xanh nhạt khi đang chọn */
+    border-left: 4px solid #ffffff; /* Thêm vạch xanh bên trái */
+}
 /* Khi mục đó active thì icon cũng đổi màu theo */
 .sidebar-item.active i {
     color: #4299e1;
@@ -585,4 +586,62 @@ body {
 .btn-confirm:hover {
     background: #3182ce;
     transform: translateY(-2px);
+}
+
+.btn-delete:hover {
+    color: #ef4444 !important; /* Màu đỏ khi rê chuột vào */
+    transform: scale(1.2);
+}
+
+.project-info {
+    display: flex;
+    align-items: center;
+}
+/* Tùy chỉnh ô input sau khi gắn Flatpickr */
+.flatpickr-input[readonly] {
+    background-color: #1a1d23 !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 12px 15px !important;
+    cursor: pointer;
+}
+
+/* Ẩn cái lịch mặc định xấu xí của trình duyệt */
+#projectDeadlineInput::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+/* Hiệu ứng khi di chuột vào vùng Add Task */
+.add-task-btn {
+    transition: all 0.2s ease; /* Giúp màu sắc chuyển đổi mượt mà, không bị giật */
+}
+
+.add-task-btn:hover {
+    opacity: 1 !important; /* Đảm bảo hiện rõ nét khi rê chuột */
+}
+
+/* Khi di chuột vào, cả icon và chữ đều đổi sang màu đỏ */
+.add-task-btn:hover i, 
+.add-task-btn:hover span {
+    color: #db4c3f !important; /* Màu đỏ cam đặc trưng của nút Plus */
+}
+/* Khi task đã hoàn thành (Tick) */
+.task-check.completed {
+    background-color: #2196f3 !important; /* Nền màu xanh (cùng tông với indicator) */
+    border-color: #2196f3 !important;     /* Viền cũng màu xanh */
+    transition: all 0.3s ease;
+}
+
+/* Dấu check bên trong */
+.task-check.completed i {
+    color: white !important; /* Dấu check màu trắng */
+    display: block !important;
+}
+
+/* Hiệu ứng gạch ngang chữ và làm mờ task đã xong */
+.task-name.completed {
+    text-decoration: line-through;
+    opacity: 0.5;
+    color: var(--text-gray) !important;
 }
