@@ -28,7 +28,8 @@ body {
     background-color: var(--bg-color);
     color: var(--text-white);
     overflow-x: hidden;
-    min-height: 100vh;
+    opacity: 0; /* Mặc định ẩn để không bị chớp */
+    transition: opacity 0.4s ease-in-out;   
 }
 
 /* --- NAVBAR --- */
@@ -361,6 +362,7 @@ html {
 }
 .sidebar-item:hover {
     background: rgba(255, 255, 255, 0.1); /* Hiệu ứng khi di chuột vào */
+    border-radius: 10px;
 }
 
 /* Màu cho cái Icon Folder */
@@ -390,6 +392,7 @@ html {
 .sidebar-item.active-item {
     background: rgba(59, 130, 246, 0.2); /* Đổi màu nền xanh nhạt khi đang chọn */
     border-left: 4px solid #ffffff; /* Thêm vạch xanh bên trái */
+    border-radius: 10px;
 }
 /* Khi mục đó active thì icon cũng đổi màu theo */
 .sidebar-item.active i {
@@ -644,4 +647,27 @@ html {
     text-decoration: line-through;
     opacity: 0.5;
     color: var(--text-gray) !important;
+}
+
+/* Khung chứa tên trong danh sách project ở Main */
+.project-list-row span {
+    max-width: 66%; /* Giới hạn không quá 2/3 chiều dài khung */
+    display: inline-block;
+    word-break: break-word; /* Tự động ngắt từ khi quá dài */
+    white-space: normal;    /* Cho phép xuống dòng */
+    line-height: 1.4;       /* Khoảng cách dòng cho dễ đọc */
+}
+
+/* Xử lý tên project ở Sidebar */
+.project-name-text {
+    display: block;
+    max-width: 150px;       /* Bạn có thể điều chỉnh độ rộng này cho khớp với Sidebar */
+    white-space: nowrap;    /* Không cho phép xuống dòng */
+    overflow: hidden;       /* Ẩn phần chữ bị thừa */
+    text-overflow: ellipsis; /* Hiện dấu 3 chấm ở cuối */
+}
+
+/* Đảm bảo khung chứa không bị phình to khi chữ dài */
+.project-info {
+    min-width: 0;           /* Bắt buộc phải có để text-overflow hoạt động trong flexbox */
 }
