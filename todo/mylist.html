@@ -9,6 +9,7 @@
     <!-- SỬA LẠI ĐƯỜNG DẪN CSS -->
     <link rel="stylesheet" href="mylist.css">
     <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body style="visibility: hidden;">
@@ -67,7 +68,10 @@
                         <i class="fa-solid fa-pen btn-edit-deadline" style="cursor: pointer; font-size: 13px; color: rgba(255,255,255,0.3); display: none;" title="Sửa hạn chót"></i>
                     </div>
                 </div> 
+                
                 <div id="taskAreaContainer" style="display: none;">
+                    
+                    <p id="mainProjectDeadline"></p>
                     <div id="displayTaskList" style="margin-bottom: 10px;"></div>
 
                     <div class="add-task-btn" id="btnShowInput" style="display: flex; align-items: center; gap: 10px; cursor: pointer; width: fit-content; opacity: 0.6; padding: 5px 0;">
@@ -89,6 +93,7 @@
                             <button id="btnSaveTask" style="background: #db4c3f; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: 600;">Add task</button>
                         </div>
                     </div>
+
                 </div>
             </div>
 
@@ -116,8 +121,10 @@
                 <button class="btn-modal btn-cancel" id="btnCancel">Hủy</button>
                 <button class="btn-modal btn-confirm" id="btnConfirm">Tạo ngay</button>
             </div>
+            
         </div>
     </div>
+    
     <!-- SỬA LẠI ĐƯỜ    NG DẪN JS -->
     <script src="mylist.js"></script>
 </body>
