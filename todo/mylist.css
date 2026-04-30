@@ -671,3 +671,8 @@ html {
 .project-info {
     min-width: 0;           /* Bắt buộc phải có để text-overflow hoạt động trong flexbox */
 }
+
+.delete-project-btn:hover {
+    color: #ef4444 !important; /* Chuyển sang màu đỏ khi di chuột vào */
+    transform: scale(1.1);
+}
