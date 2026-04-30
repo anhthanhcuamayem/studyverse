@@ -16,26 +16,20 @@ function refreshIndicator() {
 // 3. HÀM XỬ LÝ TẢI NỘI DUNG (SPA MODE)
 async function fetchAndReplace(url, index) {
     try {
-        const response = await fetch(url);
-        const text = await response.text();
-        const data = new DOMParser().parseFromString(text, "text/html");
-
-        // --- BƯỚC 1: DỌN DẸP CSS CŨ (Trừ file navbar/common) ---
-        // Xóa các link CSS không liên quan để trang mới không bị dính layout cũ
-        const oldLinks = document.querySelectorAll('link[rel="stylesheet"]');
-        oldLinks.forEach(link => {
-            if (!link.href.includes('navbar') && !link.href.includes('common')) {
-                link.remove();
-            }
-        });
-
-        // --- BƯỚC 2: NẠP CSS MỚI CỦA TRANG ĐÍCH ---
+        const currentLinks = document.querySelectorAll('link[rel="stylesheet"]');
         const newLinks = data.querySelectorAll('link[rel="stylesheet"]');
+
+        // Nạp các file CSS mới mà trang hiện tại chưa có
         newLinks.forEach(newLink => {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = newLink.getAttribute('href');
-            document.head.appendChild(link);
+            const href = newLink.getAttribute('href');
+            const isAlreadyLoaded = Array.from(currentLinks).some(link => link.getAttribute('href') === href);
+            
+            if (!isAlreadyLoaded) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = href;
+                document.head.appendChild(link);
+            }
         });
 
         // --- BƯỚC 3: THAY THẾ NỘI DUNG MAIN ---
@@ -54,7 +48,7 @@ async function fetchAndReplace(url, index) {
         // --- BƯỚC 5: CHẠY LẠI JS CHO TRANG MỚI ---
         // Vì nạp innerHTML nên JS cũ sẽ không nhận diện được phần tử mới
         if (url.includes('mylist.html')) {
-            initMyListLogic(); 
+            if (typeof initPage === 'function') initPage();
         } else if (url.includes('index.html')) {
             initHomeLogic(); // Nếu trang chủ có JS riêng
         }
