@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>StudyVerse - Lịch học thông minh</title>
-    <!-- Google Fonts & Font Awesome (đồng bộ với trang chủ) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        /* ---------- VARIABLES & RESET (giống style.css) ---------- */
         :root {
             --bg-color: #05070a;
             --card-bg: #0d1117;
@@ -30,7 +28,7 @@
             overflow-x: hidden;
         }
 
-        /* ---------- NAVBAR (tái sử dụng từ trang chủ) ---------- */
+        /* Navbar (giống hệt trang chủ) */
         .navbar {
             width: 100%;
             position: fixed;
@@ -139,12 +137,11 @@
             transition: 0.5s;
             z-index: 1;
         }
-        /* vị trí indicator cho từng mục (active tại Create - index 2) */
         .list[data-index="0"].active ~ .indicator { transform: translateX(18px); }
         .list[data-index="1"].active ~ .indicator { transform: translateX(118px); }
         .list[data-index="2"].active ~ .indicator { transform: translateX(218px); }
 
-        /* ---------- MAIN CONTENT (padding tránh navbar) ---------- */
+        /* Main content schedule */
         .main-schedule {
             padding-top: 160px;
             padding-bottom: 60px;
@@ -155,8 +152,6 @@
             margin: 0 auto;
             padding: 0 24px;
         }
-
-        /* ---------- CARD NỀN ---------- */
         .schedule-card {
             background: var(--card-bg);
             border: 1px solid var(--border-soft);
@@ -165,8 +160,6 @@
             box-shadow: var(--white-glow);
             transition: all 0.3s ease;
         }
-
-        /* ---------- TIÊU ĐỀ & MÔ TẢ ---------- */
         h1 {
             font-size: 2.2rem;
             font-weight: 800;
@@ -184,8 +177,6 @@
             border-left: 3px solid var(--primary-blue);
             padding-left: 16px;
         }
-
-        /* ---------- PANEL MÔN HỌC (thêm/xóa) ---------- */
         .subjects-panel {
             background: rgba(255, 255, 255, 0.03);
             border-radius: 24px;
@@ -214,7 +205,6 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            transition: 0.2s;
         }
         .subject-badge button {
             background: #ff4d4d;
@@ -251,33 +241,44 @@
         .add-subject-form input:focus {
             border-color: var(--primary-blue);
         }
-        button {
+        /* ===== KIỂU NÚT GIỐNG TRANG CHỦ ===== */
+        button, .btn-main {
             background: var(--primary-blue);
             border: none;
-            padding: 10px 22px;
-            border-radius: 40px;
+            padding: 12px 28px;
+            border-radius: 12px;
             font-weight: 600;
             color: white;
             cursor: pointer;
-            transition: 0.2s;
+            transition: 0.3s;
             display: inline-flex;
             align-items: center;
             gap: 8px;
             font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
         }
-        button:hover {
-            transform: translateY(-2px);
+        button:hover, .btn-main:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 122, 255, 0.4);
             filter: brightness(1.05);
-            box-shadow: 0 8px 20px rgba(0, 122, 255, 0.3);
         }
         .ai-btn {
             background: linear-gradient(135deg, #007AFF, #5e2a84);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }
         .clear-btn {
             background: rgba(255, 77, 77, 0.9);
+            box-shadow: 0 4px 12px rgba(255, 77, 77, 0.2);
         }
-
-        /* ---------- BẢNG LỊCH (đẹp, responsive) ---------- */
+        .clear-btn:hover {
+            background: #ff4d4d;
+            box-shadow: 0 8px 20px rgba(255, 77, 77, 0.4);
+        }
+        /* Các nút nhỏ trong form thêm môn cũng đồng nhất */
+        #add-subject-btn {
+            padding: 10px 20px;
+        }
+        /* Bảng lịch */
         .timetable-container {
             overflow-x: auto;
             margin: 28px 0 20px;
@@ -316,7 +317,6 @@
         .timetable td:hover {
             background: #1a1f2a;
         }
-        /* Các trạng thái đặc biệt */
         .timetable td.disabled-day {
             background: repeating-linear-gradient(45deg, #1e1e2a, #1e1e2a 12px, #15171f 12px, #15171f 24px);
             color: #6c6f7e;
@@ -332,7 +332,6 @@
         .timetable td.x-mark::after {
             content: "✗";
             font-size: 1.4rem;
-            font-weight: bold;
             display: block;
         }
         .timetable td.subject-cell {
@@ -340,7 +339,6 @@
             font-weight: 600;
             color: white;
         }
-        /* Legend */
         .legend {
             display: flex;
             flex-wrap: wrap;
@@ -357,7 +355,6 @@
             margin-right: 8px;
             vertical-align: middle;
         }
-        /* Status */
         .status {
             background: rgba(0, 0, 0, 0.4);
             border-radius: 20px;
@@ -366,8 +363,6 @@
             font-size: 0.9rem;
             border-left: 4px solid var(--primary-blue);
         }
-
-        /* Responsive */
         @media (max-width: 900px) {
             .navbar { height: 90px; }
             .main-schedule { padding-top: 130px; }
@@ -380,21 +375,12 @@
             .list[data-index="0"].active ~ .indicator { transform: translateX(12px); }
             .list[data-index="1"].active ~ .indicator { transform: translateX(95px); }
             .list[data-index="2"].active ~ .indicator { transform: translateX(178px); }
-            .schedule-card { padding: 20px; }
-            h1 { font-size: 1.6rem; }
+            button { padding: 8px 20px; font-size: 0.8rem; }
         }
-        @media (max-width: 640px) {
-            .subjects-panel { flex-direction: column; align-items: stretch; }
-            .add-subject-form { justify-content: stretch; }
-            button { justify-content: center; }
-        }
-        /* Ẩn nội dung mặc định của nút khi có icon */
-        button i { font-size: 1rem; }
     </style>
 </head>
 <body>
 
-<!-- NAVBAR giống hệt trang chủ, active tại Create -->
 <header class="navbar">
     <div class="nav-container">
         <a href="/" class="logo">Study<span>verse</span></a>
@@ -414,8 +400,8 @@
                 </li>
                 <li class="list active" data-index="2">
                     <a href="#">
-                        <span class="icon"><i class="fa-solid fa-plus"></i></span>
-                        <span class="text">Create</span>
+                        <span class="icon"><i class="fa-regular fa-calendar"></i></span>
+                        <span class="text">Schedule</span>
                     </a>
                 </li>
                 <div class="indicator"></div>
@@ -429,12 +415,11 @@
         <div class="schedule-card">
             <h1><i class="fa-regular fa-calendar-alt"></i> Lịch học tương tác</h1>
             <div class="intro-text">
-                👉 Click vào <strong>cột ngày (Thứ...)</strong> để bật/tắt nghỉ cả ngày. <br>
-                👉 Click vào <strong>ô tiết học</strong> để chọn môn hoặc đánh dấu ✗ (không học). <br>
+                👉 Click vào <strong>cột ngày (Thứ...)</strong> để bật/tắt nghỉ cả ngày.<br>
+                👉 Click vào <strong>ô tiết học</strong> để chọn môn hoặc đánh dấu ✗ (không học).<br>
                 👉 Mỗi môn có giới hạn số tiết, hệ thống tự kiểm soát.
             </div>
 
-            <!-- Danh sách môn học (giữ nguyên ID để JS hoạt động) -->
             <div class="subjects-panel" id="subjects-panel">
                 <div class="subjects-list" id="subjects-list"></div>
                 <div class="add-subject-form">
@@ -444,7 +429,6 @@
                 </div>
             </div>
 
-            <!-- Bảng lịch chính -->
             <div class="timetable-container">
                 <table class="timetable" id="timetable">
                     <thead id="table-header"></thead>
@@ -452,7 +436,6 @@
                 </table>
             </div>
 
-            <!-- Legend và các nút hành động -->
             <div class="legend">
                 <div><span style="background:#007AFF33; border:1px solid #007AFF;"></span> Đã xếp môn</div>
                 <div><span style="background:#2a1215;"></span> Đánh dấu ✗ (không học)</div>
@@ -470,7 +453,7 @@
 </main>
 
 <script>
-    // ---------- TOÀN BỘ LOGIC GIỮ NGUYÊN (chỉ cập nhật giao diện, không sửa logic xếp lịch) ----------
+    // ---------- TOÀN BỘ LOGIC LỊCH (GIỮ NGUYÊN) ----------
     const lessonSlots = [
         "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
         "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
@@ -537,7 +520,6 @@
         }
         tbody.innerHTML = bodyHtml;
 
-        // sự kiện click cột ngày
         document.querySelectorAll('th[data-day]').forEach(th => {
             th.style.cursor = 'pointer';
             th.addEventListener('click', (e) => {
@@ -545,7 +527,6 @@
                 toggleDisableDay(day);
             });
         });
-        // sự kiện click ô
         document.querySelectorAll('td[data-day]').forEach(td => {
             td.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -644,8 +625,7 @@
     }
 
     function updateStatus() {
-        let totalPlanned = 0;
-        let totalScheduled = 0;
+        let totalPlanned = 0, totalScheduled = 0;
         subjects.forEach(s => {
             const scheduled = subjectCounts[s.name] || 0;
             totalPlanned += s.sessions;
@@ -688,7 +668,7 @@
     function renderSubjectList() {
         const container = document.getElementById('subjects-list');
         container.innerHTML = '';
-        subjects.forEach((sub, idx) => {
+        subjects.forEach(sub => {
             const span = document.createElement('span');
             span.className = 'subject-badge';
             span.innerHTML = `${sub.name} (${subjectCounts[sub.name] || 0}/${sub.sessions}) 
@@ -698,7 +678,7 @@
     }
 
     window.removeSubject = function(name) {
-        if (confirm(`Xóa môn ${name}? Các tiết đã xếp của môn này sẽ bị xóa.`)) {
+        if (confirm(`Xóa môn ${name}? Các tiết đã xếp sẽ bị xóa.`)) {
             for (let d=0; d<days.length; d++) {
                 for (let s=0; s<lessonSlots.length; s++) {
                     const cell = timetableData[d][s];
@@ -733,12 +713,11 @@
             }
         }
         if (emptySlots.length < needSchedule.length) {
-            alert(`Không đủ ô trống! Cần ${needSchedule.length} ô nhưng chỉ có ${emptySlots.length} ô trống. Hãy bỏ bớt X hoặc nghỉ ngày.`);
+            alert(`Không đủ ô trống! Cần ${needSchedule.length} ô nhưng chỉ có ${emptySlots.length} ô trống.`);
             return;
         }
         for (let i=0; i<needSchedule.length; i++) {
             let subjName = needSchedule[i];
-            if (emptySlots.length === 0) break;
             let randomIndex = Math.floor(Math.random() * emptySlots.length);
             let {day, slot} = emptySlots[randomIndex];
             timetableData[day][slot] = { type: 'subject', name: subjName };
@@ -759,7 +738,6 @@
         }
     }
 
-    // Khởi tạo và gắn sự kiện
     initTimetable();
     document.getElementById('add-subject-btn').addEventListener('click', addSubject);
     document.getElementById('auto-schedule').addEventListener('click', autoSchedule);
