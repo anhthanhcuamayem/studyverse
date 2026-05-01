@@ -314,21 +314,22 @@ document.addEventListener('click', function (event) {
         const newName = prompt("Nhập tên dự án mới:", oldName);
         
         if (newName && newName.trim() !== "" && newName !== oldName) {
-            // Cập nhật trong mảng dữ liệu
+            const trimmedNewName = newName.trim();
             const pIdx = projects.findIndex(p => p.name === oldName);
+
             if (pIdx !== -1) {
-                projects[pIdx].name = newName.trim();
+                projects[pIdx].name = trimmedNewName;
                 localStorage.setItem('studyverse_projects', JSON.stringify(projects));
                 
-                // Cập nhật giao diện ngay lập tức
-                mainTitle.innerText = newName.trim();
-                mainTitle.setAttribute('data-old-name', newName.trim());
+                // Cập nhật giao diện tiêu đề
+                mainTitle.innerText = trimmedNewName;
+                mainTitle.setAttribute('data-old-name', trimmedNewName);
                 
-                // Vẽ lại Sidebar để cập nhật tên mới bên trái
+                // QUAN TRỌNG: Cập nhật tên mới vào bộ nhớ trước khi vẽ lại Sidebar
+                localStorage.setItem('lastSelectedProject', trimmedNewName);
+                
+                // Vẽ lại Sidebar - Lúc này Sidebar sẽ đọc tên mới từ localStorage để kẻ vạch trắng
                 renderSidebar();
-                
-                // Cập nhật trạng thái project đang mở cuối cùng
-                localStorage.setItem('lastSelectedProject', newName.trim());
             }
         }
     }
@@ -463,7 +464,7 @@ document.addEventListener('click', function (event) {
             modal.removeAttribute('data-mode'); // Xóa chế độ edit
         }
     }
-    // --- SỬA TASK (KHI NHẤP CÂY VIẾT) ---
+
     const btnEditTask = event.target.closest('.btn-edit-task');
     if (btnEditTask) {
         const taskId = btnEditTask.getAttribute('data-task-id');
@@ -474,27 +475,33 @@ document.addEventListener('click', function (event) {
         const task = project.tasks.find(t => t.id == taskId);
 
         if (task) {
-            // Biến dòng task thành bảng nhập liệu
             const taskItem = btnEditTask.closest('.task-item');
             taskItem.innerHTML = `
-                <div class="edit-task-card" style="width: 100%; background: #1a1d23; padding: 15px; border-radius: 10px; border: 1px solid #333;">
-                    <input type="text" id="editTaskName-${task.id}" value="${task.name}" 
-                        style="width: 100%; background: transparent; border: none; color: white; outline: none; font-size: 15px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <input type="text" id="editTaskDate-${task.id}" value="${task.deadline || ''}" placeholder="Hạn chót"
-                            style="background: transparent; border: none; color: #db4c3f; font-size: 12px; outline: none; width: 100px;">
-                        <div style="display: flex; gap: 10px;">
-                            <button class="btn-delete-task" data-task-id="${task.id}" style="background: transparent; color: #ef4444; border: none; cursor: pointer; font-size: 13px;">Xóa</button>
-                            <button class="btn-cancel-edit" style="background: #333; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 13px;">Hủy</button>
-                            <button class="btn-save-edit" data-task-id="${task.id}" style="background: #4299e1; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 13px;">Lưu</button>
-                        </div>
+                <div class="edit-task-card" style="width: 100%; background: #1a1d23; padding: 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 8px 0;">
+                    <input type="text" id="editTaskName-${task.id}" value="${task.name}" placeholder="Tên công việc..."
+                        style="width: 100%; background: transparent; border: none; color: white; outline: none; font-size: 16px; margin-bottom: 12px; font-family: inherit;">
+                    
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: rgba(255,255,255,0.5);">
+                        <i class="fa-regular fa-clock" style="font-size: 14px;"></i>
+                        <input type="text" id="editTaskDate-${task.id}" value="${task.deadline || ''}" placeholder="Deadline (VD: 20/10 hoặc Thứ 2)..."
+                            style="background: transparent; border: none; color: rgba(255,255,255,0.5); font-size: 14px; outline: none; width: 100%; font-family: inherit;">
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
+                        <span class="btn-delete-task" data-task-id="${task.id}" 
+                            style="color: #ef4444; cursor: pointer; font-size: 14px; font-weight: 500; margin-right: auto;">Xóa</span>
+                        
+                        <span class="btn-cancel-edit" 
+                            style="color: rgba(255,255,255,0.4); cursor: pointer; font-size: 14px; font-weight: 500;">Hủy</span>
+                        
+                        <button class="btn-save-edit" data-task-id="${task.id}" 
+                            style="background: #db4c3f; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">Lưu thay đổi</button>
                     </div>
                 </div>
             `;
-            // Gắn lại Flatpickr cho ô date mới tạo (nếu bạn dùng thư viện này)
-            if (typeof flatpickr !== "undefined") {
-                flatpickr(`#editTaskDate-${task.id}`, { dateFormat: "d/m" });
-            }
+            
+            document.getElementById(`editTaskName-${task.id}`).focus();
+            // LƯU Ý: Không thêm đoạn flatpickr ở đây để nó là ô nhập liệu text bình thường
         }
     }
 
@@ -555,58 +562,62 @@ document.addEventListener('click', function (event) {
 });
 
 function renderProjectListMain() {
-    const displayArea = document.getElementById('displayTaskList');
-    const btnShowInput = document.getElementById('btnShowInput');
-    
-    if (!displayArea) return;
-    if (btnShowInput) btnShowInput.style.display = 'none';
+    // 1. DỌN DẸP: Ẩn các box nhập liệu để trang Main sạch sẽ
+    const listToHide = ['taskInputBox', 'btnShowInput', 'editTaskBox', 'taskInputCard'];
+    listToHide.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.setProperty('display', 'none', 'important'); 
+    });
 
-    const saved = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+    // 2. Lấy vùng hiển thị chính
+    const displayArea = document.getElementById('displayTaskList');
+    if (!displayArea) return;
+    displayArea.style.display = 'block';
+
+    // 3. LẤY DỮ LIỆU VÀ SẮP XẾP THEO % GIẢM DẦN
+    let saved = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
     
+    saved.sort((a, b) => {
+        const getPercent = (proj) => {
+            if (!proj.tasks || proj.tasks.length === 0) return 0;
+            const completed = proj.tasks.filter(t => t.completed).length;
+            return completed / proj.tasks.length;
+        };
+        return getPercent(b) - getPercent(a);
+    });
+
     if (saved.length === 0) {
         displayArea.innerHTML = `<p style="color: rgba(255,255,255,0.4); text-align: center; margin-top: 50px;">Chưa có dự án nào.</p>`;
         return;
     }
 
+    // 4. VẼ HTML (Giữ nguyên giao diện của bạn)
     let html = '<div class="project-list-view" style="display: flex; flex-direction: column; gap: 10px; padding: 20px 0;">';
     saved.forEach(proj => {
         const deadlineText = (proj.deadline && proj.deadline !== "Không có") ? formatDate(proj.deadline) : "Chưa đặt";
-        
-        // Tính toán phần trăm
         const totalTasks = proj.tasks ? proj.tasks.length : 0;
         const completedTasks = proj.tasks ? proj.tasks.filter(t => t.completed).length : 0;
         const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-        // Tính màu sắc đậm đà
-        const hue = (percentage * 1.2); 
-        const color = `hsl(${hue}, 100%, 60%)`; 
+        const color = `hsl(${percentage * 1.2}, 100%, 60%)`; 
 
         html += `
             <div class="project-list-row" data-name="${proj.name}" 
                  style="display: flex; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px 0px 18px 20px; cursor: pointer; transition: all 0.2s ease; min-height: 60px; position: relative;">
-                
                 <i class="fa-solid fa-circle-dot" style="color: #3b82f6; margin-right: 15px; font-size: 14px; flex-shrink: 0;"></i>
-                
                 <div style="flex: 0 0 50%; max-width: 50%; padding-right: 10px; word-break: break-word;">
                     <span style="color: white; font-size: 16px; font-weight: 500; display: block; line-height: 1.4;">${proj.name}</span>
                 </div>
-
                 <div style="flex: 1; min-width: 90px; text-align: left;">
                     <span style="color: rgba(255,255,255,0.4); font-size: 13px; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
                         <i class="fa-regular fa-calendar" style="font-size: 11px;"></i>
                         ${deadlineText}
                     </span>
                 </div>
-
                 <div style="display: flex; align-items: center; flex-shrink: 0; padding-right: 12px; gap: 12px;">
-                    
                     <span style="color: ${color}; font-size: 14px; font-weight: 700; white-space: nowrap; display: inline-flex; align-items: baseline;">
                         ${percentage}<span style="font-size: 11px; margin-left: 1px;">%</span>
                     </span>
-
-                    <div class="delete-project-btn" data-name="${proj.name}" 
-                         style="color: rgba(255,255,255,0.3); transition: color 0.2s ease; padding: 5px;"
-                         onclick="event.stopPropagation(); deleteProject('${proj.name}')">
+                    <div class="delete-project-btn" onclick="event.stopPropagation(); deleteProject('${proj.name}')" style="color: rgba(255,255,255,0.3); padding: 5px; cursor: pointer;">
                         <i class="fa-solid fa-trash-can" style="font-size: 14px;"></i>
                     </div>
                 </div>
@@ -615,30 +626,20 @@ function renderProjectListMain() {
     html += '</div>';
     displayArea.innerHTML = html;
 
-    document.querySelectorAll('.project-list-row').forEach(row => {
-        row.onclick = () => {
-            if (btnShowInput) btnShowInput.style.display = 'flex';
-            openProject(row.getAttribute('data-name'));
-        };
-    });
-
-    // Gán sự kiện click cho từng hàng project ở màn hình chính
+    // 5. XỬ LÝ CLICK: Vào project và hiện nút Add Task
     document.querySelectorAll('.project-list-row').forEach(row => {
         row.onclick = () => {
             const projectName = row.getAttribute('data-name');
             
-            // 1. Tìm dữ liệu project trong localStorage để lấy deadline chính xác
-            const saved = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+            // Cập nhật giao diện Header
             const projectData = saved.find(p => p.name === projectName);
             const deadline = (projectData && projectData.deadline) ? projectData.deadline : "chưa đặt";
-
-            // 2. Cập nhật Tiêu đề và Deadline lên vùng Header (Main Content)
             const mainTitle = document.getElementById('mainProjectName');
             const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
             
             if (mainTitle) {
                 mainTitle.innerText = projectName;
-                mainTitle.setAttribute('data-old-name', projectName); // Quan trọng để sửa tên sau này
+                mainTitle.setAttribute('data-old-name', projectName);
             }
             if (mainDeadlineDisp) {
                 mainDeadlineDisp.innerText = (deadline !== "chưa đặt" && deadline !== "Không có") 
@@ -646,22 +647,13 @@ function renderProjectListMain() {
                     : "Deadline: chưa đặt";
             }
 
-            // 3. Hiển thị nút "Add Task" và các tính năng nhập liệu
+            // Hiện nút Add Task
             const btnShowInput = document.getElementById('btnShowInput');
-            if (btnShowInput) btnShowInput.style.display = 'flex';
+            if (btnShowInput) {
+                btnShowInput.style.setProperty('display', 'flex', 'important');
+            }
 
-            // 4. Đồng bộ Sidebar: Làm cho item tương ứng bên sidebar nổi bật lên (Active)
-            document.querySelectorAll('.sidebar-item').forEach(item => {
-                const itemText = item.querySelector('.project-name-text')?.innerText.trim();
-                if (itemText === projectName.trim()) {
-                    item.classList.add('active-item');
-                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); // Tự cuộn sidebar đến chỗ đó
-                } else {
-                    item.classList.remove('active-item');
-                }
-            });
-
-            // 5. Gọi hàm openProject để load danh sách task và các tính năng khác
+            // Gọi hàm mở project
             openProject(projectName);
         };
     });
@@ -680,6 +672,22 @@ function showMainDashboard() {
     // Xóa project đang chọn và vẽ lại sidebar để mất màu active
     localStorage.removeItem('lastSelectedProject');
     renderSidebar(); 
+    renderProjectListMain();
+}
+
+function showMyProjectsTab() {
+    // 1. Ẩn ngay lập tức cái box nhập task và các nút liên quan
+    const taskBox = document.getElementById('taskInputBox');
+    const btnAdd = document.getElementById('btnShowInput');
+    
+    if (taskBox) taskBox.style.display = 'none';
+    if (btnAdd) btnAdd.style.display = 'none';
+
+    // 2. Quay về tiêu đề chính
+    const mainTitle = document.getElementById('mainProjectName');
+    if (mainTitle) mainTitle.innerText = "My Projects";
+
+    // 3. Gọi hàm vẽ lại danh sách project
     renderProjectListMain();
 }
 
@@ -711,4 +719,15 @@ function deleteProject(name) {
             location.reload(); 
         }
     }
+}
+
+function backToMain() {
+    // Ẩn tất cả các phần tử nhập liệu task
+    document.getElementById('taskInputBox').style.display = 'none';
+    document.getElementById('btnShowInput').style.display = 'none';
+    
+    // Reset tiêu đề về mặc định
+    document.getElementById('mainProjectName').innerText = "My Projects";
+    
+    renderProjectListMain();
 }
