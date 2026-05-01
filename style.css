@@ -522,5 +522,30 @@ body {
     opacity: 1;
 }
 
+/* Style cho nút chính */
+.btn-start {
+    background: #1d75ff; /* Màu xanh đậm giống hình */
+    color: white;
+    padding: 14px 32px;
+    border: 2px solid white; /* Viền trắng mảnh */
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 15px rgba(29, 117, 255, 0.4);
+    outline: none;
+}
 
+/* Hiệu ứng khi di chuột vào */
+.btn-start:hover {
+    background: #0056e0;
+    transform: scale(1.05); /* Phóng to nhẹ */
+    box-shadow: 0 0 25px rgba(29, 117, 255, 0.6);
+}
+
+/* Hiệu ứng khi nhấn */
+.btn-start:active {
+    transform: scale(0.98);
+}
 
