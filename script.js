@@ -119,7 +119,7 @@ window.addEventListener('resize', refreshIndicator);
 // Xử lý nút Back/Forward của trình duyệt
 window.onpopstate = () => location.reload();
 
-function switchTab(tabId) {
+function switchTab(tabId) {bvhhh
     // 1. Xóa class active cũ và thêm vào tab mới
     const navItems = document.querySelectorAll('.nav-item');
     const indicator = document.querySelector('.nav-indicator'); // Đây là cái hình tròn xanh
