@@ -118,3 +118,39 @@ window.addEventListener('resize', refreshIndicator);
 
 // Xử lý nút Back/Forward của trình duyệt
 window.onpopstate = () => location.reload();
+
+function switchTab(tabId) {
+    // 1. Xóa class active cũ và thêm vào tab mới
+    const navItems = document.querySelectorAll('.nav-item');
+    const indicator = document.querySelector('.nav-indicator'); // Đây là cái hình tròn xanh
+    
+    navItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.id === tabId) {
+            item.classList.add('active');
+            
+            // 2. TÍNH TOÁN VỊ TRÍ (Đây là phần quan trọng nhất)
+            // Lấy vị trí của icon so với thanh nav
+            const itemPos = item.offsetLeft;
+            const itemWidth = item.offsetWidth;
+            const indicatorWidth = indicator.offsetWidth;
+
+            // Di chuyển hình tròn đến chính giữa icon được chọn
+            const moveX = itemPos + (itemWidth / 2) - (indicatorWidth / 2);
+            indicator.style.transform = `translateX(${moveX}px)`;
+        }
+    });
+
+    // 3. Logic hiển thị màn hình
+    const homeSection = document.getElementById('home-section');
+    const mylistSection = document.getElementById('mylist-section');
+
+    if (tabId === 'tab-mylist') {
+        homeSection.style.display = 'none';
+        mylistSection.style.display = 'block';
+        renderProjectListMain(); // Gọi hàm vẽ danh sách project đã sửa ở các bước trước
+    } else {
+        homeSection.style.display = 'block';
+        mylistSection.style.display = 'none';
+    }
+}
