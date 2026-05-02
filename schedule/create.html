@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
+        /* ... toàn bộ CSS giữ nguyên như bản trước, không thay đổi ... */
         :root {
             --bg-color: #05070a;
             --card-bg: #0d1117;
@@ -27,7 +28,6 @@
             color: var(--text-white);
             overflow-x: hidden;
         }
-
         .navbar {
             width: 100%;
             position: fixed;
@@ -133,23 +133,10 @@
             background: var(--primary-blue);
             border-radius: 50%;
             border: 6px solid #05070a;
-            transition: 0.5s;
+            transition: 0.3s ease-out;
             z-index: 1;
-            left: 0;
         }
-        /* Bỏ các rule transform cứng, sẽ dùng JS để set vị trí */
-        /* Responsive */
-        @media (max-width: 900px) {
-            .navbar { height: 90px; }
-            .main-schedule { padding-top: 130px; }
-            .logo { font-size: 28px; }
-            .navigation { width: 280px; height: 55px; }
-            .navigation ul li { width: 56px; height: 55px; }
-            .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
-            .navigation ul li.active a .icon { transform: translateY(-28px); }
-            .indicator { width: 55px; height: 55px; top: -40%; }
-        }
-        /* Phần còn lại giữ nguyên */
+        /* Xóa các transform cứng, sẽ dùng JS để set */
         .main-schedule {
             padding-top: 160px;
             padding-bottom: 60px;
@@ -166,6 +153,7 @@
             border-radius: 32px;
             padding: 28px 30px;
             box-shadow: var(--white-glow);
+            transition: all 0.3s ease;
         }
         h1 {
             font-size: 2.2rem;
@@ -223,6 +211,11 @@
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
+            transition: 0.2s;
+        }
+        .subject-badge button:hover {
+            background: #ff1a1a;
+            transform: scale(1.05);
         }
         .add-subject-form {
             display: flex;
@@ -238,6 +231,7 @@
             color: white;
             font-size: 0.9rem;
             outline: none;
+            transition: 0.2s;
         }
         .add-subject-form input:focus {
             border-color: var(--primary-blue);
@@ -264,12 +258,15 @@
         }
         .ai-btn {
             background: linear-gradient(135deg, #007AFF, #5e2a84);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }
         .clear-btn {
             background: rgba(255, 77, 77, 0.9);
+            box-shadow: 0 4px 12px rgba(255, 77, 77, 0.2);
         }
         .clear-btn:hover {
             background: #ff4d4d;
+            box-shadow: 0 8px 20px rgba(255, 77, 77, 0.4);
         }
         .timetable-container {
             overflow-x: auto;
@@ -295,6 +292,7 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
+            transition: 0.2s;
         }
         .timetable th:hover {
             background: var(--primary-blue);
@@ -303,24 +301,27 @@
             background: #0d1117;
             color: var(--text-gray);
             cursor: pointer;
+            transition: 0.1s;
         }
         .timetable td:hover {
             background: #1a1f2a;
         }
         .timetable td.disabled-day {
             background: repeating-linear-gradient(45deg, #1e1e2a, #1e1e2a 12px, #15171f 12px, #15171f 24px);
+            color: #6c6f7e;
             cursor: not-allowed;
         }
         .timetable td.x-mark {
             background: #2a1215;
             position: relative;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ff6b6b;
         }
         .timetable td.x-mark::after {
             content: "✗";
             font-size: 1.4rem;
-            font-weight: bold;
             display: block;
-            color: #ff6b6b;
         }
         .timetable td.subject-cell {
             background: rgba(0, 122, 255, 0.2);
@@ -350,6 +351,17 @@
             margin-top: 24px;
             font-size: 0.9rem;
             border-left: 4px solid var(--primary-blue);
+        }
+        @media (max-width: 900px) {
+            .navbar { height: 90px; }
+            .main-schedule { padding-top: 130px; }
+            .logo { font-size: 28px; }
+            .navigation { width: 280px; height: 55px; }
+            .navigation ul li { width: 56px; height: 55px; }
+            .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
+            .navigation ul li.active a .icon { transform: translateY(-28px); }
+            .indicator { width: 55px; height: 55px; top: -40%; }
+            button { padding: 8px 20px; font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -427,20 +439,35 @@
 </main>
 
 <script>
-    // ---------- CĂN CHỈNH INDICATOR ĐỘNG ----------
-    function setIndicatorPosition() {
-        const activeItem = document.querySelector('.navigation ul li.active');
+    // ========== HIỆU ỨNG INDICATOR HOVER ==========
+    (function() {
+        const navItems = document.querySelectorAll('.navigation ul .list');
         const indicator = document.querySelector('.indicator');
-        if (activeItem && indicator) {
-            const leftPos = activeItem.offsetLeft;
-            indicator.style.transform = `translateX(${leftPos}px)`;
+        if (!indicator) return;
+        
+        function moveIndicatorToElement(element) {
+            const index = parseInt(element.getAttribute('data-index'));
+            const liRect = element.getBoundingClientRect();
+            const ulRect = element.parentElement.getBoundingClientRect();
+            const leftOffset = liRect.left - ulRect.left;
+            indicator.style.transform = `translateX(${leftOffset}px)`;
         }
-    }
-    window.addEventListener('load', setIndicatorPosition);
-    window.addEventListener('resize', setIndicatorPosition);
-    // Nếu có thay đổi active bằng JS (không có ở đây) nhưng vẫn an toàn
-
-    // ---------- TOÀN BỘ LOGIC LỊCH (GIỮ NGUYÊN) ----------
+        
+        // active ban đầu
+        let activeItem = document.querySelector('.navigation ul .list.active');
+        if (activeItem) moveIndicatorToElement(activeItem);
+        
+        navItems.forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                moveIndicatorToElement(this);
+            });
+            item.addEventListener('mouseleave', function() {
+                if (activeItem) moveIndicatorToElement(activeItem);
+            });
+        });
+    })();
+    
+    // ========== TOÀN BỘ LOGIC LỊCH (GIỮ NGUYÊN) ==========
     const lessonSlots = [
         "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
         "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
