@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        /* ... toàn bộ CSS giữ nguyên như bản trước, không thay đổi ... */
         :root {
             --bg-color: #05070a;
             --card-bg: #0d1117;
@@ -133,10 +132,10 @@
             background: var(--primary-blue);
             border-radius: 50%;
             border: 6px solid #05070a;
-            transition: 0.3s ease-out;
+            transition: transform 0.3s ease-out;
             z-index: 1;
         }
-        /* Xóa các transform cứng, sẽ dùng JS để set */
+        /* KHÔNG CÓ transform cứng nào ở đây, chỉ dùng JS để di chuyển */
         .main-schedule {
             padding-top: 160px;
             padding-bottom: 60px;
@@ -439,35 +438,34 @@
 </main>
 
 <script>
-    // ========== HIỆU ỨNG INDICATOR HOVER ==========
+    // ===== PHẦN XỬ LÝ INDICATOR SLIDING (CHỈ CHO TAB SCHEDULE) =====
     (function() {
         const navItems = document.querySelectorAll('.navigation ul .list');
         const indicator = document.querySelector('.indicator');
-        if (!indicator) return;
-        
-        function moveIndicatorToElement(element) {
-            const index = parseInt(element.getAttribute('data-index'));
-            const liRect = element.getBoundingClientRect();
-            const ulRect = element.parentElement.getBoundingClientRect();
-            const leftOffset = liRect.left - ulRect.left;
-            indicator.style.transform = `translateX(${leftOffset}px)`;
+        const navBar = document.querySelector('.navigation');
+        if (!indicator || !navItems.length) return;
+
+        function moveIndicatorTo(element) {
+            if (!element) return;
+            const leftPos = element.offsetLeft;
+            indicator.style.transition = 'transform 0.3s ease-out';
+            indicator.style.transform = `translateX(${leftPos}px)`;
         }
-        
-        // active ban đầu
-        let activeItem = document.querySelector('.navigation ul .list.active');
-        if (activeItem) moveIndicatorToElement(activeItem);
-        
+
+        function refreshIndicator() {
+            const activeItem = document.querySelector('.navigation ul .list.active');
+            if (activeItem) moveIndicatorTo(activeItem);
+        }
+
         navItems.forEach(item => {
-            item.addEventListener('mouseenter', function() {
-                moveIndicatorToElement(this);
-            });
-            item.addEventListener('mouseleave', function() {
-                if (activeItem) moveIndicatorToElement(activeItem);
-            });
+            item.addEventListener('mouseenter', () => moveIndicatorTo(item));
         });
+        if (navBar) navBar.addEventListener('mouseleave', refreshIndicator);
+        window.addEventListener('resize', refreshIndicator);
+        refreshIndicator(); // khởi tạo vị trí ban đầu
     })();
-    
-    // ========== TOÀN BỘ LOGIC LỊCH (GIỮ NGUYÊN) ==========
+
+    // ===== TOÀN BỘ LOGIC LỊCH HỌC (GIỮ NGUYÊN) =====
     const lessonSlots = [
         "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
         "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
