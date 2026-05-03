@@ -789,7 +789,73 @@
             updateStatus();
         }
     }
-
+    // Xử lý AI xếp lịch theo yêu cầu văn bản
+    document.getElementById('aiScheduleBtn').addEventListener('click', async function() {
+        const text = document.getElementById('aiRequest').value.trim();
+        if (!text) {
+            alert("Vui lòng nhập yêu cầu xếp lịch.");
+        return;
+        }
+        if (subjects.length === 0) {
+            alert("Bạn chưa thêm môn học nào. Hãy thêm môn trước.");
+            return;
+        }
+        const btn = this;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse"></i> AI đang phân tích...';
+        btn.disabled = true;
+        try {
+            const response = await fetch('/schedule/ai-schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    subjects: subjects,
+                    disabledDays: disabledDays,
+                    currentTimetable: timetableData
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+            // Xóa toàn bộ lịch cũ
+                for (let d = 0; d < days.length; d++) {
+                    for (let s = 0; s < lessonSlots.length; s++) {
+                        timetableData[d][s] = null;
+                    }
+                }
+            // Reset subjectCounts
+                for (let subj of subjects) {
+                    subjectCounts[subj.name] = 0;
+                }
+            // Áp dụng lịch mới
+                const newTimetable = data.timetable;
+                for (let dayName in newTimetable) {
+                    const dayIndex = days.indexOf(dayName);
+                    if (dayIndex === -1) continue;
+                    const dayLessons = newTimetable[dayName];
+                    for (let lesson of dayLessons) {
+                        const startTime = lesson.start;
+                        const slotIndex = lessonSlots.indexOf(startTime);
+                        if (slotIndex !== -1 && timetableData[dayIndex][slotIndex] === null) {
+                            timetableData[dayIndex][slotIndex] = { type: 'subject', name: lesson.subject };
+                        subjectCounts[lesson.subject] = (subjectCounts[lesson.subject] || 0) + 1;
+                        }
+                    }
+                }
+                renderTable();
+                renderSubjectList();
+                alert("AI đã xếp lịch thành công!");
+        } else {
+            alert("Lỗi: " + (data.error || "Không thể xếp lịch theo yêu cầu"));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Lỗi kết nối đến server AI.");
+    } finally {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+    }
+});
     initTimetable();
     document.getElementById('add-subject-btn').addEventListener('click', addSubject);
     document.getElementById('auto-schedule').addEventListener('click', autoSchedule);
