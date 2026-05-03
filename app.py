@@ -55,40 +55,52 @@ def ai_schedule():
     
     # Chuẩn bị danh sách môn và ngày nghỉ
     subject_list = ', '.join([f"{s['name']} ({s['sessions']} tiết)" for s in subjects])
-    disabled_names = [["Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7","Chủ nhật"][i] for i, d in enumerate(disabled_days) if d]
+    days_vn = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
+    disabled_names = [days_vn[i] for i, d in enumerate(disabled_days) if d]
     disabled_str = ', '.join(disabled_names) if disabled_names else "không có"
     
-    # Prompt cho Gemini
-    prompt = f"""Bạn là trợ lý xếp thời khóa biểu thông minh. Dựa vào yêu cầu sau:
-    "{user_text}"
+    # Các khung giờ có sẵn
+    time_slots = ["07:00", "07:45", "08:30", "09:15", "10:00", "10:45", "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"]
+    morning_slots = [t for t in time_slots if int(t[:2]) < 12]
+    afternoon_slots = [t for t in time_slots if int(t[:2]) >= 13]
     
-    Danh sách môn học: {subject_list}
-    Các ngày không được học (nghỉ): {disabled_str}
-    
-    Hãy xuất ra một lịch học hợp lý dưới dạng JSON duy nhất, không kèm giải thích, với cấu trúc:
-    {{
-      "timetable": {{
-        "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
-        "Thứ 3": [...],
-        "Thứ 4": [...],
-        "Thứ 5": [...],
-        "Thứ 6": [...],
-        "Thứ 7": [...],
-        "Chủ nhật": [...]
-      }}
-    }}
-    Quy tắc:
-    - Mỗi tiết học kéo dài 45 phút, bắt đầu lúc 7:00, 7:45, 8:30, 9:15, 10:00, 10:45, 13:00, 13:45, 14:30, 15:15, 16:00, 16:45.
-    - Chỉ xếp vào các khung giờ trên.
-    - Ưu tiên tuyệt đối theo yêu cầu của người dùng (ví dụ: "Tin học vào thứ 6 buổi sáng" thì phải xếp Tin học vào sáng thứ 6).
-    - Đảm bảo mỗi môn đủ số tiết theo danh sách.
-    - Nếu không thể đáp ứng chính xác, hãy cố gắng gần nhất và xếp các tiết còn lại vào các ngày khác.
-    """
+    prompt = f"""Bạn là trợ lý xếp thời khóa biểu chính xác. Yêu cầu: {user_text}
+
+Danh sách môn học và số tiết cần xếp:
+{subject_list}
+
+Các ngày bị cấm hoàn toàn (không được xếp bất kỳ môn nào): {disabled_str}
+
+Các khung giờ có sẵn mỗi ngày (nếu ngày không bị cấm):
+- Buổi sáng: {', '.join(morning_slots)}
+- Buổi chiều: {', '.join(afternoon_slots)}
+
+QUY TẮC TUÂN THỦ NGHIÊM NGẶT:
+1. Phải phân tích yêu cầu của người dùng: nếu yêu cầu "môn X vào ngày Y buổi Z" thì CHỈ xếp môn X vào đúng ngày Y và đúng buổi Z, không xếp môn X vào ngày khác.
+2. Ví dụ: "thứ 6 học tin vào buổi sáng" => chỉ xếp Tin học vào các khung giờ buổi sáng của Thứ 6, không xếp Tin vào Thứ 2,3,4,5,7,CN.
+3. Các môn còn lại (không có yêu cầu đặc biệt) có thể xếp vào bất kỳ ngày nào còn trống (ưu tiên buổi sáng trước, sau đó buổi chiều), miễn không trùng với ngày bị cấm.
+4. Mỗi tiết học chiếm một khung giờ. Đảm bảo tổng số tiết của mỗi môn bằng đúng số tiết yêu cầu.
+5. Xuất JSON theo đúng cấu trúc, không thêm giải thích.
+
+Cấu trúc JSON:
+{{
+  "timetable": {{
+    "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
+    "Thứ 3": [...],
+    "Thứ 4": [...],
+    "Thứ 5": [...],
+    "Thứ 6": [...],
+    "Thứ 7": [...],
+    "Chủ nhật": [...]
+  }}
+}}
+
+Hãy trả về JSON duy nhất."""
     
     try:
         response = model.generate_content(prompt)
         raw = response.text.strip()
-        # Lọc lấy phần JSON (bỏ markdown nếu có)
+        # Loại bỏ markdown
         if raw.startswith("```json"):
             raw = raw[7:]
         if raw.endswith("```"):
@@ -96,27 +108,12 @@ def ai_schedule():
         raw = raw.strip()
         result = json.loads(raw)
         timetable = result.get('timetable', {})
-        # Kiểm tra tính hợp lệ cơ bản
-        if not isinstance(timetable, dict):
-            raise ValueError("Invalid timetable format")
+        if not isinstance(timetable, dict) or len(timetable) == 0:
+            raise ValueError("Empty or invalid timetable")
         return jsonify({'success': True, 'timetable': timetable})
     except Exception as e:
-        # Fallback: dùng rule-based nếu Gemini lỗi
-        from schedule.schedule_utils import create_timetable_with_preferences
-        # Phân tích sơ bộ preferences từ user_text
-        preferences = extract_preferences_from_text(user_text, subjects)
-        availability = {}
-        default_slots = [{"start": "07:00", "end": "17:00"}]
-        for day in range(7):
-            if not disabled_days[day]:
-                availability[str(day)] = default_slots
-        try:
-            timetable = create_timetable_with_preferences(subjects, availability, [], preferences)
-        except:
-            # fallback cuối
-            from schedule.schedule_utils import create_timetable
-            timetable = create_timetable(subjects, availability, [])
-        return jsonify({'success': True, 'timetable': timetable, 'warning': f'Gemini lỗi, dùng rule-based: {str(e)}'})
+        # Không dùng fallback rule-based để tránh hiểu sai yêu cầu
+        return jsonify({'success': False, 'error': f'AI xử lý lỗi: {str(e)}. Vui lòng thử lại với câu lệnh rõ ràng hơn.'})
 
 def extract_preferences_from_text(text, subjects):
     """Hàm đơn giản trích xuất ưu tiên từ văn bản (fallback)"""
