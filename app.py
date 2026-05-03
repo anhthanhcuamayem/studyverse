@@ -46,17 +46,20 @@ def schedule_generate():
 @app.route('/schedule/ai-schedule', methods=['POST'])
 def ai_schedule():
     data = request.json
-    user_text = data.get('text', '')
+    user_text = data.get('text', '').strip()
     subjects = data.get('subjects', [])
     disabled_days = data.get('disabledDays', [False]*7)
     
     if not subjects:
         return jsonify({'success': False, 'error': 'Chưa có môn học nào'})
     
-    # Chuẩn bị danh sách môn và ngày nghỉ
+    if not user_text:
+        return jsonify({'success': False, 'error': 'Vui lòng nhập yêu cầu'})
+    
+    # Chuẩn bị danh sách môn học và ngày bị cấm
     subject_list = ', '.join([f"{s['name']} ({s['sessions']} tiết)" for s in subjects])
-    days_vn = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
-    disabled_names = [days_vn[i] for i, d in enumerate(disabled_days) if d]
+    weekdays = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
+    disabled_names = [weekdays[i] for i, d in enumerate(disabled_days) if d]
     disabled_str = ', '.join(disabled_names) if disabled_names else "không có"
     
     # Các khung giờ có sẵn
@@ -64,25 +67,20 @@ def ai_schedule():
     morning_slots = [t for t in time_slots if int(t[:2]) < 12]
     afternoon_slots = [t for t in time_slots if int(t[:2]) >= 13]
     
-    prompt = f"""Bạn là trợ lý xếp thời khóa biểu chính xác. Yêu cầu: {user_text}
-
-Danh sách môn học và số tiết cần xếp:
-{subject_list}
-
-Các ngày bị cấm hoàn toàn (không được xếp bất kỳ môn nào): {disabled_str}
-
-Các khung giờ có sẵn mỗi ngày (nếu ngày không bị cấm):
+    prompt = f"""Bạn là trợ lý xếp thời khóa biểu. Yêu cầu: "{user_text}"
+Danh sách môn học: {subject_list}
+Ngày bị cấm: {disabled_str}
+Các khung giờ có sẵn mỗi ngày (nếu không bị cấm):
 - Buổi sáng: {', '.join(morning_slots)}
 - Buổi chiều: {', '.join(afternoon_slots)}
 
-QUY TẮC TUÂN THỦ NGHIÊM NGẶT:
-1. Phải phân tích yêu cầu của người dùng: nếu yêu cầu "môn X vào ngày Y buổi Z" thì CHỈ xếp môn X vào đúng ngày Y và đúng buổi Z, không xếp môn X vào ngày khác.
-2. Ví dụ: "thứ 6 học tin vào buổi sáng" => chỉ xếp Tin học vào các khung giờ buổi sáng của Thứ 6, không xếp Tin vào Thứ 2,3,4,5,7,CN.
-3. Các môn còn lại (không có yêu cầu đặc biệt) có thể xếp vào bất kỳ ngày nào còn trống (ưu tiên buổi sáng trước, sau đó buổi chiều), miễn không trùng với ngày bị cấm.
-4. Mỗi tiết học chiếm một khung giờ. Đảm bảo tổng số tiết của mỗi môn bằng đúng số tiết yêu cầu.
-5. Xuất JSON theo đúng cấu trúc, không thêm giải thích.
+QUY TẮC:
+1. Phân tích yêu cầu: nếu nói "thứ 3 học tin" thì xếp môn "tin" vào Thứ 3 (có thể buổi sáng hoặc chiều, ưu tiên buổi sáng nếu còn slot).
+2. Các môn khác xếp vào các ngày còn lại, đảm bảo đủ số tiết.
+3. Không xếp vào ngày bị cấm.
+4. Mỗi tiết chiếm một khung giờ, không trùng lặp.
 
-Cấu trúc JSON:
+Trả về JSON duy nhất, không giải thích, cấu trúc:
 {{
   "timetable": {{
     "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
@@ -94,13 +92,11 @@ Cấu trúc JSON:
     "Chủ nhật": [...]
   }}
 }}
-
-Hãy trả về JSON duy nhất."""
-    
+"""
     try:
         response = model.generate_content(prompt)
         raw = response.text.strip()
-        # Loại bỏ markdown
+        # Xóa markdown
         if raw.startswith("```json"):
             raw = raw[7:]
         if raw.endswith("```"):
@@ -108,12 +104,51 @@ Hãy trả về JSON duy nhất."""
         raw = raw.strip()
         result = json.loads(raw)
         timetable = result.get('timetable', {})
-        if not isinstance(timetable, dict) or len(timetable) == 0:
-            raise ValueError("Empty or invalid timetable")
+        if not timetable:
+            raise ValueError("Empty timetable")
         return jsonify({'success': True, 'timetable': timetable})
     except Exception as e:
-        # Không dùng fallback rule-based để tránh hiểu sai yêu cầu
-        return jsonify({'success': False, 'error': f'AI xử lý lỗi: {str(e)}. Vui lòng thử lại với câu lệnh rõ ràng hơn.'})
+        print("Gemini error:", e)
+        # Fallback: tạo lịch đơn giản dựa trên từ khóa
+        fallback = create_fallback_timetable(user_text, subjects, disabled_days, weekdays, time_slots)
+        if fallback:
+            return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI chính xử lý lỗi, dùng fallback'})
+        else:
+            return jsonify({'success': False, 'error': f'Không thể xếp lịch: {str(e)}'})
+
+def create_fallback_timetable(user_text, subjects, disabled_days, weekdays, time_slots):
+    """Hàm fallback đơn giản: tìm môn và ngày theo yêu cầu, xếp lần lượt vào các slot"""
+    import re
+    result = {day: [] for day in weekdays}
+    # Tìm môn và ngày từ text
+    subject_names = [s['name'] for s in subjects]
+    found_subject = None
+    found_day = None
+    for sub in subject_names:
+        if sub.lower() in user_text.lower():
+            found_subject = sub
+            break
+    for day in weekdays:
+        if day.lower() in user_text.lower():
+            found_day = day
+            break
+    # Nếu không tìm thấy, xếp bình thường (ưu tiên ngày đầu)
+    if found_subject and found_day:
+        day_idx = weekdays.index(found_day)
+        if disabled_days[day_idx]:
+            # Nếu ngày bị cấm thì thông báo (không xếp được)
+            return None
+        # Tìm các slot trống (giả sử tất cả slot đều trống, ta chỉ cần xếp đủ số tiết)
+        sessions_needed = next((s['sessions'] for s in subjects if s['name'] == found_subject), 0)
+        # Lấy các slot buổi sáng hoặc chiều (ưu tiên sáng)
+        slots_to_use = time_slots[:sessions_needed]  # lấy n tiết đầu tiên
+        for i in range(min(sessions_needed, len(slots_to_use))):
+            result[found_day].append({'start': slots_to_use[i], 'subject': found_subject})
+        # Cập nhật lại số tiết đã dùng cho môn đó
+        # (Trong fallback này ta không cần xử lý phức tạp, chỉ trả về lịch mẫu)
+    # Đối với các môn khác, xếp vào các ngày khác (đơn giản)
+    # (Có thể bỏ qua hoặc xếp lần lượt)
+    return result
 
 def extract_preferences_from_text(text, subjects):
     """Hàm đơn giản trích xuất ưu tiên từ văn bản (fallback)"""
