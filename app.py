@@ -97,7 +97,62 @@ def ai_schedule():
     # Gọi hàm tạo lịch (có thể không hỗ trợ preferences)
     timetable = create_timetable_with_preferences(subjects, availability, [], preferences)
     return jsonify({'success': True, 'timetable': timetable})
-            
+# ========== AI SCHEDULE ENDPOINT ==========
+import google.generativeai as genai
+import re
+
+# Cấu hình Gemini (thay API_KEY của bạn)
+# genai.configure(api_key="YOUR_API_KEY")
+# model = genai.GenerativeModel('gemini-1.5-flash')
+
+@app.route('/schedule/ai-schedule', methods=['POST'])
+def ai_schedule():
+    data = request.json
+    text = data.get('text', '')
+    subjects = data.get('subjects', [])
+    disabled_days = data.get('disabledDays', [False]*7)
+    
+    # Tạo prompt cho AI
+    subject_list = ', '.join([f"{s['name']} ({s['sessions']} tiết)" for s in subjects])
+    prompt = f"""Bạn là trợ lý xếp thời khóa biểu. Dựa vào yêu cầu sau:
+    "{text}"
+    
+    Danh sách môn học: {subject_list}
+    Các ngày không học (disabled): {[i for i, d in enumerate(disabled_days) if d]}
+    
+    Hãy xuất ra một lịch học hợp lý dưới dạng JSON với cấu trúc:
+    {{
+      "timetable": {{
+        "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
+        "Thứ 3": [...],
+        ...
+      }}
+    }}
+    Chỉ xuất JSON, không giải thích. Ưu tiên sắp xếp theo yêu cầu, đảm bảo mỗi môn đủ số tiết."""
+    
+    # Gọi Gemini (bỏ comment nếu có key)
+    # response = model.generate_content(prompt)
+    # try:
+    #     result = json.loads(response.text)
+    #     timetable = result['timetable']
+    # except:
+    #     return jsonify({'success': False, 'error': 'AI không trả về định dạng hợp lệ'})
+    
+    # Tạm thời dùng rule-based giả lập
+    timetable = rule_based_schedule(subjects, disabled_days, text)
+    
+    return jsonify({'success': True, 'timetable': timetable})
+
+def rule_based_schedule(subjects, disabled_days, text):
+    # Hàm giả lập xếp lịch đơn giản theo từ khóa
+    # ... code xếp cơ bản (tạm thời)
+    from schedule.schedule_utils import create_timetable
+    availability = {}
+    for day in range(7):
+        if not disabled_days[day]:
+            availability[str(day)] = [{"start": "07:00", "end": "17:00"}]
+    # Gọi hàm xếp lịch mặc định
+    return create_timetable(subjects, availability, [])
 # ========== KẾT THÚC PHẦN THÊM ==========
 
 if __name__ == '__main__':
