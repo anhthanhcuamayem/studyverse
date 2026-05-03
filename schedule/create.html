@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        /* === ĐỒNG BỘ HOÀN TOÀN VỚI STYLE TRANG CHỦ === */
+        /* === GIỐNG TRANG CHỦ === */
         :root {
             --bg-color: #05070a;
             --card-bg: #0d1117;
@@ -28,7 +28,6 @@
             color: var(--text-white);
             overflow-x: hidden;
         }
-        /* Navbar hoàn toàn giống index.html */
         .navbar {
             width: 100%;
             position: fixed;
@@ -118,22 +117,12 @@
             transform: translateY(20px);
             z-index: 100;
         }
-        /* QUAN TRỌNG: THÊM HIỆU ỨNG HOVER (GIỐNG STYLE CSS CHÍNH) */
         .navigation ul li:hover a .icon,
         .navigation ul li.active a .icon {
             transform: translateY(-35px) !important;
             color: #fff !important;
         }
         .navigation ul li:hover a .text,
-        .navigation ul li.active a .text {
-            opacity: 1;
-            transform: translateY(10px);
-        }
-        /* Active giữ nguyên */
-        .navigation ul li.active a .icon {
-            transform: translateY(-35px);
-            color: #fff;
-        }
         .navigation ul li.active a .text {
             opacity: 1;
             transform: translateY(10px);
@@ -149,7 +138,6 @@
             transition: transform 0.5s ease-out;
             z-index: 1;
         }
-        /* Phần nội dung schedule giữ nguyên */
         .main-schedule {
             padding-top: 160px;
             padding-bottom: 60px;
@@ -166,7 +154,6 @@
             border-radius: 32px;
             padding: 28px 30px;
             box-shadow: var(--white-glow);
-            transition: all 0.3s ease;
         }
         h1 {
             font-size: 2.2rem;
@@ -224,11 +211,6 @@
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.2s;
-        }
-        .subject-badge button:hover {
-            background: #ff1a1a;
-            transform: scale(1.05);
         }
         .add-subject-form {
             display: flex;
@@ -244,7 +226,6 @@
             color: white;
             font-size: 0.9rem;
             outline: none;
-            transition: 0.2s;
         }
         .add-subject-form input:focus {
             border-color: var(--primary-blue);
@@ -264,22 +245,15 @@
             font-size: 0.9rem;
             box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
         }
-        button:hover, .btn-main:hover {
-            transform: translateY(-3px);
+        button:hover {
+            transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(0, 122, 255, 0.4);
-            filter: brightness(1.05);
         }
         .ai-btn {
             background: linear-gradient(135deg, #007AFF, #5e2a84);
-            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }
         .clear-btn {
             background: rgba(255, 77, 77, 0.9);
-            box-shadow: 0 4px 12px rgba(255, 77, 77, 0.2);
-        }
-        .clear-btn:hover {
-            background: #ff4d4d;
-            box-shadow: 0 8px 20px rgba(255, 77, 77, 0.4);
         }
         .timetable-container {
             overflow-x: auto;
@@ -305,7 +279,6 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
-            transition: 0.2s;
         }
         .timetable th:hover {
             background: var(--primary-blue);
@@ -314,26 +287,23 @@
             background: #0d1117;
             color: var(--text-gray);
             cursor: pointer;
-            transition: 0.1s;
         }
         .timetable td:hover {
             background: #1a1f2a;
         }
         .timetable td.disabled-day {
             background: repeating-linear-gradient(45deg, #1e1e2a, #1e1e2a 12px, #15171f 12px, #15171f 24px);
-            color: #6c6f7e;
             cursor: not-allowed;
         }
         .timetable td.x-mark {
             background: #2a1215;
             position: relative;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #ff6b6b;
         }
         .timetable td.x-mark::after {
             content: "✗";
             font-size: 1.4rem;
+            font-weight: bold;
+            color: #ff6b6b;
             display: block;
         }
         .timetable td.subject-cell {
@@ -365,6 +335,46 @@
             font-size: 0.9rem;
             border-left: 4px solid var(--primary-blue);
         }
+        /* Modal chọn môn (floating buttons) */
+        .subject-picker {
+            position: absolute;
+            background: #1e1e2f;
+            border: 1px solid var(--border-soft);
+            border-radius: 20px;
+            padding: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            z-index: 2000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            min-width: 180px;
+        }
+        .subject-picker button {
+            background: rgba(0, 122, 255, 0.2);
+            border: 1px solid rgba(0, 122, 255, 0.5);
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: none;
+        }
+        .subject-picker button:hover {
+            background: var(--primary-blue);
+            transform: scale(1.02);
+        }
+        .subject-picker .x-btn {
+            background: rgba(255, 77, 77, 0.2);
+            border-color: #ff4d4d;
+            color: #ff9999;
+        }
+        .subject-picker .x-btn:hover {
+            background: #ff4d4d;
+            color: white;
+        }
         @media (max-width: 900px) {
             .navbar { height: 90px; }
             .main-schedule { padding-top: 130px; }
@@ -375,7 +385,7 @@
             .navigation ul li.active a .icon,
             .navigation ul li:hover a .icon { transform: translateY(-28px) !important; }
             .indicator { width: 55px; height: 55px; top: -40%; }
-            button { padding: 8px 20px; font-size: 0.8rem; }
+            button { padding: 8px 20px; }
         }
     </style>
 </head>
@@ -415,9 +425,9 @@
         <div class="schedule-card">
             <h1><i class="fa-regular fa-calendar-alt"></i> Lịch học tương tác</h1>
             <div class="intro-text">
-                👉 Click vào <strong>cột ngày (Thứ...)</strong> để bật/tắt nghỉ cả ngày.<br>
-                👉 Click vào <strong>ô tiết học</strong> để chọn môn hoặc đánh dấu ✗ (không học).<br>
-                👉 Mỗi môn có giới hạn số tiết, hệ thống tự kiểm soát.
+                👉 Click vào <strong>cột ngày</strong> để bật/tắt nghỉ cả ngày.<br>
+                👉 Click vào <strong>ô tiết học</strong> → chọn môn từ danh sách nút hiện ra.<br>
+                👉 Mỗi môn có giới hạn số tiết, nút môn sẽ chỉ xuất hiện nếu còn tiết.
             </div>
 
             <div class="subjects-panel" id="subjects-panel">
@@ -433,7 +443,7 @@
                 <table class="timetable" id="timetable">
                     <thead id="table-header"></thead>
                     <tbody id="table-body"></tbody>
-                <tr>
+                </table>
             </div>
 
             <div class="legend">
@@ -453,34 +463,31 @@
 </main>
 
 <script>
-    // ===== XỬ LÝ INDICATOR SLIDING (GIỐNG HỆT CÁC TRANG KHÁC) =====
+    // ===== INDICATOR SLIDING =====
     (function() {
         const navItems = document.querySelectorAll('.navigation ul .list');
         const indicator = document.querySelector('.indicator');
         const navBar = document.querySelector('.navigation');
         if (!indicator || !navItems.length) return;
-
         function moveIndicatorTo(element) {
             if (!element) return;
             const leftPos = element.offsetLeft;
             indicator.style.transition = 'transform 0.5s ease-out';
             indicator.style.transform = `translateX(${leftPos}px)`;
         }
-
         function refreshIndicator() {
             const activeItem = document.querySelector('.navigation ul .list.active');
             if (activeItem) moveIndicatorTo(activeItem);
         }
-
         navItems.forEach(item => {
             item.addEventListener('mouseenter', () => moveIndicatorTo(item));
         });
         if (navBar) navBar.addEventListener('mouseleave', refreshIndicator);
         window.addEventListener('resize', refreshIndicator);
-        refreshIndicator(); // đặt vị trí ban đầu cho indicator
+        refreshIndicator();
     })();
 
-    // ===== TOÀN BỘ LOGIC LỊCH HỌC (GIỮ NGUYÊN) =====
+    // ===== LOGIC LỊCH HỌC =====
     const lessonSlots = [
         "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
         "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
@@ -491,6 +498,15 @@
     let disabledDays = new Array(7).fill(false);
     let subjects = [];
     let subjectCounts = {};
+
+    let currentPicker = null; // để đóng picker cũ
+
+    function closePicker() {
+        if (currentPicker) {
+            currentPicker.remove();
+            currentPicker = null;
+        }
+    }
 
     function getEndTime(startTime) {
         let [h, m] = startTime.split(':').map(Number);
@@ -515,7 +531,7 @@
         for (let i = 0; i < days.length; i++) {
             headerRow += `<th data-day="${i}">${days[i]}</th>`;
         }
-        headerRow += `</tr>`;
+        headerRow += `</table>`;
         thead.innerHTML = headerRow;
 
         let bodyHtml = '';
@@ -547,6 +563,7 @@
         }
         tbody.innerHTML = bodyHtml;
 
+        // Gắn sự kiện
         document.querySelectorAll('th[data-day]').forEach(th => {
             th.style.cursor = 'pointer';
             th.addEventListener('click', (e) => {
@@ -560,7 +577,7 @@
                 const day = parseInt(td.dataset.day);
                 const slot = parseInt(td.dataset.slot);
                 if (disabledDays[day]) return;
-                handleCellClick(day, slot);
+                handleCellClick(day, slot, td);
             });
             td.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
@@ -586,10 +603,12 @@
             }
         }
         renderTable();
+        closePicker();
     }
 
-    function handleCellClick(day, slot) {
+    function handleCellClick(day, slot, tdElement) {
         const current = timetableData[day][slot];
+        // Nếu có môn -> xóa môn
         if (current && current.type === 'subject') {
             const subjName = current.name;
             if (subjectCounts[subjName] > 0) subjectCounts[subjName]--;
@@ -597,44 +616,14 @@
             renderTable();
             return;
         }
+        // Nếu có X -> xóa X
         if (current && current.type === 'x') {
             timetableData[day][slot] = null;
             renderTable();
             return;
         }
-        showSubjectPicker(day, slot);
-    }
-
-    function showSubjectPicker(day, slot) {
-        if (subjects.length === 0) {
-            alert("Vui lòng thêm môn học trước!");
-            return;
-        }
-        let options = subjects.map(s => `${s.name} (${subjectCounts[s.name] || 0}/${s.sessions} tiết)`);
-        options.push("Đánh dấu X (không học)");
-        const choice = prompt("Chọn môn học (hoặc X):\n" + options.map((opt, idx) => `${idx+1}. ${opt}`).join("\n") + "\n\nNhập số:");
-        if (choice === null) return;
-        const idx = parseInt(choice) - 1;
-        if (isNaN(idx)) return;
-        if (idx === subjects.length) {
-            toggleXMark(day, slot);
-            return;
-        }
-        if (idx >= 0 && idx < subjects.length) {
-            const selectedSubj = subjects[idx];
-            const currentCount = subjectCounts[selectedSubj.name] || 0;
-            if (currentCount >= selectedSubj.sessions) {
-                alert(`Môn ${selectedSubj.name} đã đủ ${selectedSubj.sessions} tiết! Không thể thêm.`);
-                return;
-            }
-            if (timetableData[day][slot] !== null) {
-                alert("Ô này đã có nội dung, hãy xóa trước.");
-                return;
-            }
-            timetableData[day][slot] = { type: 'subject', name: selectedSubj.name };
-            subjectCounts[selectedSubj.name] = (subjectCounts[selectedSubj.name] || 0) + 1;
-            renderTable();
-        }
+        // Nếu trống -> hiện picker
+        showSubjectPicker(day, slot, tdElement);
     }
 
     function toggleXMark(day, slot) {
@@ -649,6 +638,82 @@
             timetableData[day][slot] = { type: 'x' };
         }
         renderTable();
+    }
+
+    function showSubjectPicker(day, slot, tdElement) {
+        if (subjects.length === 0) {
+            alert("Vui lòng thêm môn học trước!");
+            return;
+        }
+        closePicker(); // đóng picker cũ
+
+        // Lọc các môn còn tiết
+        const availableSubjects = subjects.filter(subj => (subjectCounts[subj.name] || 0) < subj.sessions);
+        if (availableSubjects.length === 0 && subjects.length > 0) {
+            alert("Tất cả các môn đã đủ số tiết! Không thể thêm môn mới.");
+            return;
+        }
+
+        const pickerDiv = document.createElement('div');
+        pickerDiv.className = 'subject-picker';
+
+        // Thêm nút cho từng môn còn tiết
+        availableSubjects.forEach(subj => {
+            const btn = document.createElement('button');
+            const remaining = subj.sessions - (subjectCounts[subj.name] || 0);
+            btn.textContent = `${subj.name} (còn ${remaining} tiết)`;
+            btn.style.background = 'rgba(0, 122, 255, 0.2)';
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                if (timetableData[day][slot] !== null) {
+                    alert("Ô này đã có nội dung, hãy xóa trước.");
+                    closePicker();
+                    return;
+                }
+                timetableData[day][slot] = { type: 'subject', name: subj.name };
+                subjectCounts[subj.name] = (subjectCounts[subj.name] || 0) + 1;
+                renderTable();
+                closePicker();
+            };
+            pickerDiv.appendChild(btn);
+        });
+
+        // Nút X
+        const xBtn = document.createElement('button');
+        xBtn.textContent = "✗ Không học";
+        xBtn.className = 'x-btn';
+        xBtn.onclick = (e) => {
+            e.stopPropagation();
+            toggleXMark(day, slot);
+            closePicker();
+        };
+        pickerDiv.appendChild(xBtn);
+
+        // Nút đóng (hủy)
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = "Hủy";
+        cancelBtn.style.background = 'rgba(255,255,255,0.1)';
+        cancelBtn.onclick = () => closePicker();
+        pickerDiv.appendChild(cancelBtn);
+
+        // Vị trí: đặt gần ô được click
+        const rect = tdElement.getBoundingClientRect();
+        pickerDiv.style.position = 'fixed';
+        pickerDiv.style.left = `${rect.left + window.scrollX}px`;
+        pickerDiv.style.top = `${rect.bottom + window.scrollY + 5}px`;
+        document.body.appendChild(pickerDiv);
+        currentPicker = pickerDiv;
+
+        // Click ra ngoài để đóng
+        const outsideClick = (e) => {
+            if (!pickerDiv.contains(e.target)) {
+                closePicker();
+                document.removeEventListener('click', outsideClick);
+            }
+        };
+        setTimeout(() => {
+            document.addEventListener('click', outsideClick);
+        }, 10);
     }
 
     function updateStatus() {
