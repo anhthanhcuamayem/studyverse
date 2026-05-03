@@ -118,6 +118,18 @@
             transform: translateY(20px);
             z-index: 100;
         }
+        /* QUAN TRỌNG: THÊM HIỆU ỨNG HOVER (GIỐNG STYLE CSS CHÍNH) */
+        .navigation ul li:hover a .icon,
+        .navigation ul li.active a .icon {
+            transform: translateY(-35px) !important;
+            color: #fff !important;
+        }
+        .navigation ul li:hover a .text,
+        .navigation ul li.active a .text {
+            opacity: 1;
+            transform: translateY(10px);
+        }
+        /* Active giữ nguyên */
         .navigation ul li.active a .icon {
             transform: translateY(-35px);
             color: #fff;
@@ -360,7 +372,8 @@
             .navigation { width: 280px; height: 55px; }
             .navigation ul li { width: 56px; height: 55px; }
             .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
-            .navigation ul li.active a .icon { transform: translateY(-28px); }
+            .navigation ul li.active a .icon,
+            .navigation ul li:hover a .icon { transform: translateY(-28px) !important; }
             .indicator { width: 55px; height: 55px; top: -40%; }
             button { padding: 8px 20px; font-size: 0.8rem; }
         }
@@ -420,7 +433,7 @@
                 <table class="timetable" id="timetable">
                     <thead id="table-header"></thead>
                     <tbody id="table-body"></tbody>
-                </table>
+                <tr>
             </div>
 
             <div class="legend">
@@ -498,7 +511,7 @@
     function renderTable() {
         const thead = document.getElementById('table-header');
         const tbody = document.getElementById('table-body');
-        let headerRow = `</tr><th>Giờ / Ngày</th>`;
+        let headerRow = `<tr><th>Giờ / Ngày</th>`;
         for (let i = 0; i < days.length; i++) {
             headerRow += `<th data-day="${i}">${days[i]}</th>`;
         }
