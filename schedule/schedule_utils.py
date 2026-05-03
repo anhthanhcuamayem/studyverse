@@ -71,3 +71,11 @@ def create_timetable(subjects, availability, breaks, special_req=""):
     for day in range(7):
         result[days_map[day]] = [{'start': format_time(l['start']), 'end': format_time(l['end']), 'subject': l['subject']} for l in timetable[day]]
     return result
+def create_timetable_with_preferences(subjects, availability, breaks, preferences):
+    """
+    preferences: dict với các key:
+        - preferred_slots: list ['morning', 'afternoon']
+        - avoid_days: list [0,1,...] chỉ số thứ cần tránh
+        - subject_preferences: dict {'Toán': 'morning', ...}
+    """
+    # ... code xếp lịch ưu tiên theo yêu cầu
