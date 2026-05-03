@@ -1,11 +1,22 @@
 from flask import Flask, render_template, request, jsonify, send_file
 import json
 import random
+import google.generativeai as genai
+import os
 
-app = Flask(__name__, 
-            template_folder='.',      # Chỉ định thư mục gốc là nơi chứa HTML
-            static_folder='.',        # Chỉ định thư mục gốc là nơi chứa CSS/JS
-            static_url_path='/')      # Đường dẫn tĩnh là gốc
+app = Flask(__name__,
+            template_folder='.',
+            static_folder='.',
+            static_url_path='/')
+
+# Cấu hình Gemini API (lấy key từ biến môi trường)
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'YOUR_API_KEY_HERE')
+if GEMINI_API_KEY != 'YOUR_API_KEY_HERE':
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    model = None
+    print("Warning: GEMINI_API_KEY not set. AI scheduling will use fallback.")
 
 @app.route('/')
 def home():
@@ -13,98 +24,29 @@ def home():
 
 @app.route('/mylist')
 def mylist():
-    return render_template('index.html')  # Tạm thời trỏ về index
+    return render_template('index.html')
 
 @app.route('/create')
 def create():
-    return render_template('index.html')  # Tạm thời trỏ về index
+    return render_template('index.html')
 
-# ========== THÊM PHẦN NÀY CHO SCHEDULE ==========
-
+# ========== SCHEDULE ==========
 @app.route('/schedule/create')
 def schedule_create():
-    """Trang tạo thời khóa biểu"""
     return send_file('schedule/create.html')
 
 @app.route('/schedule/generate', methods=['POST'])
 def schedule_generate():
-    """API xếp lịch học"""
     from schedule.schedule_utils import create_timetable
-    
     data = request.json
-    
     subjects = data.get('subjects', [])
     availability = data.get('availability', {})
     breaks = data.get('breaks', [])
     special_req = data.get('special_requirements', '')
-    
-    # Gọi hàm xếp lịch từ file schedule_utils.py
     timetable = create_timetable(subjects, availability, breaks, special_req)
-    
     return jsonify({'success': True, 'timetable': timetable})
-@app.route('/schedule/ai-schedule', methods=['POST'])
-def ai_schedule():
-    data = request.json
-    text = data.get('text', '')
-    subjects = data.get('subjects', [])
-    disabled_days = data.get('disabledDays', [False]*7)
-    current_timetable = data.get('currentTimetable', [])  # có thể dùng hoặc không
-    # Phân tích text bằng AI (ở đây tôi giả lập bằng cách tìm từ khóa)
-    # Thực tế bạn có thể gọi Gemini, GPT, hoặc xây dựng rule-based.
-    # Tôi sẽ tạo một bản phân tích đơn giản: tìm các môn và ưu tiên buổi sáng/chiều, tránh thứ
-    import re
-    preferences = {
-        'preferred_slots': [],  # danh sách khoảng giờ ưu tiên: 'morning', 'afternoon'
-        'avoid_days': [],       # danh sách chỉ số thứ cần tránh (0-6)
-        'subject_preferences': {}  # {'Toán': 'morning', 'Lý': 'afternoon'}
-    }
-    text_lower = text.lower()
-    # Phát hiện buổi sáng / chiều
-    if 'buổi sáng' in text_lower or 'sáng' in text_lower:
-        preferences['preferred_slots'].append('morning')
-    if 'buổi chiều' in text_lower or 'chiều' in text_lower:
-        preferences['preferred_slots'].append('afternoon')
-    # Tránh thứ
-    for i, day in enumerate(['thứ 2', 'thứ 3', 'thứ 4', 'thứ 5', 'thứ 6', 'thứ 7', 'chủ nhật']):
-        if f'tránh {day}' in text_lower or f'không học {day}' in text_lower:
-            preferences['avoid_days'].append(i)
-    # Ưu tiên môn theo buổi
-    # Tìm các cụm "môn X vào buổi sáng/chiều"
-    import re
-    morning_pattern = re.compile(r'môn\s+(\w+)\s+vào\s+buổi\s+sáng', re.IGNORECASE)
-    afternoon_pattern = re.compile(r'môn\s+(\w+)\s+vào\s+buổi\s+chiều', re.IGNORECASE)
-    for match in morning_pattern.finditer(text):
-        subj = match.group(1)
-        preferences['subject_preferences'][subj] = 'morning'
-    for match in afternoon_pattern.finditer(text):
-        subj = match.group(1)
-        preferences['subject_preferences'][subj] = 'afternoon'
-    
-    # Gọi hàm xếp lịch từ schedule_utils, truyền thêm preferences
-    from schedule.schedule_utils import create_timetable_with_preferences
-    # Tạo availability dựa trên disabled_days và preferences
-    # Hàm create_timetable_with_preferences cần được viết trong schedule_utils.py
-    # Để đơn giản, tôi sẽ gọi lại create_timetable cũ và bỏ qua preferences, nhưng sẽ viết một wrapper.
-    # Thực tế bạn cần mở rộng schedule_utils. Tuy nhiên, vì thời gian, tôi sẽ tạo một bảng tạm:
-    # Tạo một timetable trống dựa trên subjects và xếp bằng logic ưu tiên.
-    # Ở đây tôi sẽ gọi lại create_timetable với availability mặc định
-    availability = {}
-    # Giả sử tất cả các ngày không bị disable đều có sẵn khung giờ từ 7h đến 17h
-    default_available = [{"start": "07:00", "end": "17:00"}]
-    for day in range(7):
-        if not disabled_days[day]:
-            availability[str(day)] = default_available
-    # Gọi hàm tạo lịch (có thể không hỗ trợ preferences)
-    timetable = create_timetable_with_preferences(subjects, availability, [], preferences)
-    return jsonify({'success': True, 'timetable': timetable})
-# ========== AI SCHEDULE ENDPOINT ==========
-import google.generativeai as genai
-import re
 
-# Cấu hình Gemini (thay API_KEY của bạn)
-# genai.configure(api_key="YOUR_API_KEY")
-# model = genai.GenerativeModel('gemini-1.5-flash')
-
+# ========== AI SCHEDULE ENDPOINT (CHỈ MỘT LẦN) ==========
 @app.route('/schedule/ai-schedule', methods=['POST'])
 def ai_schedule():
     data = request.json
@@ -112,48 +54,59 @@ def ai_schedule():
     subjects = data.get('subjects', [])
     disabled_days = data.get('disabledDays', [False]*7)
     
-    # Tạo prompt cho AI
+    # Chuẩn bị danh sách môn học
     subject_list = ', '.join([f"{s['name']} ({s['sessions']} tiết)" for s in subjects])
+    disabled_list = [i for i, d in enumerate(disabled_days) if d]
+    
+    if model is None:
+        # Fallback: xếp lịch ngẫu nhiên
+        from schedule.schedule_utils import create_timetable
+        availability = {}
+        for day in range(7):
+            if not disabled_days[day]:
+                availability[str(day)] = [{"start": "07:00", "end": "17:00"}]
+        timetable = create_timetable(subjects, availability, [])
+        return jsonify({'success': True, 'timetable': timetable})
+    
     prompt = f"""Bạn là trợ lý xếp thời khóa biểu. Dựa vào yêu cầu sau:
-    "{text}"
+"{text}"
+Danh sách môn học: {subject_list}
+Các ngày không học (disabled): {disabled_list} (0=Thứ2,1=Thứ3,...6=Chủ nhật)
+Hãy xuất ra một lịch học hợp lý dưới dạng JSON với cấu trúc:
+{{
+  "timetable": {{
+    "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
+    "Thứ 3": [...],
+    "Thứ 4": [...],
+    "Thứ 5": [...],
+    "Thứ 6": [...],
+    "Thứ 7": [...],
+    "Chủ nhật": [...]
+  }}
+}}
+Chỉ xuất JSON, không giải thích. Mỗi tiết học kéo dài 45 phút, bắt đầu từ 7:00, 7:45, 8:30, 9:15, 10:00, 10:45, 13:00, 13:45, 14:30, 15:15, 16:00, 16:45. Đảm bảo mỗi môn đủ số tiết, ưu tiên sắp xếp theo yêu cầu."""
     
-    Danh sách môn học: {subject_list}
-    Các ngày không học (disabled): {[i for i, d in enumerate(disabled_days) if d]}
-    
-    Hãy xuất ra một lịch học hợp lý dưới dạng JSON với cấu trúc:
-    {{
-      "timetable": {{
-        "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
-        "Thứ 3": [...],
-        ...
-      }}
-    }}
-    Chỉ xuất JSON, không giải thích. Ưu tiên sắp xếp theo yêu cầu, đảm bảo mỗi môn đủ số tiết."""
-    
-    # Gọi Gemini (bỏ comment nếu có key)
-    # response = model.generate_content(prompt)
-    # try:
-    #     result = json.loads(response.text)
-    #     timetable = result['timetable']
-    # except:
-    #     return jsonify({'success': False, 'error': 'AI không trả về định dạng hợp lệ'})
-    
-    # Tạm thời dùng rule-based giả lập
-    timetable = rule_based_schedule(subjects, disabled_days, text)
-    
-    return jsonify({'success': True, 'timetable': timetable})
-
-def rule_based_schedule(subjects, disabled_days, text):
-    # Hàm giả lập xếp lịch đơn giản theo từ khóa
-    # ... code xếp cơ bản (tạm thời)
-    from schedule.schedule_utils import create_timetable
-    availability = {}
-    for day in range(7):
-        if not disabled_days[day]:
-            availability[str(day)] = [{"start": "07:00", "end": "17:00"}]
-    # Gọi hàm xếp lịch mặc định
-    return create_timetable(subjects, availability, [])
-# ========== KẾT THÚC PHẦN THÊM ==========
+    try:
+        response = model.generate_content(prompt)
+        result_text = response.text.strip()
+        # Loại bỏ markdown json nếu có
+        if result_text.startswith('```json'):
+            result_text = result_text[7:]
+        if result_text.endswith('```'):
+            result_text = result_text[:-3]
+        result = json.loads(result_text)
+        timetable = result.get('timetable', {})
+        return jsonify({'success': True, 'timetable': timetable})
+    except Exception as e:
+        print("AI error:", e)
+        # Fallback nếu AI lỗi
+        from schedule.schedule_utils import create_timetable
+        availability = {}
+        for day in range(7):
+            if not disabled_days[day]:
+                availability[str(day)] = [{"start": "07:00", "end": "17:00"}]
+        timetable = create_timetable(subjects, availability, [])
+        return jsonify({'success': True, 'timetable': timetable, 'warning': 'AI failed, used random schedule'})
 
 if __name__ == '__main__':
     app.run(debug=True)
