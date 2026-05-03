@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        /* === GIỐNG TRANG CHỦ === */
         :root {
             --bg-color: #05070a;
             --card-bg: #0d1117;
@@ -28,6 +27,7 @@
             color: var(--text-white);
             overflow-x: hidden;
         }
+
         .navbar {
             width: 100%;
             position: fixed;
@@ -117,15 +117,17 @@
             transform: translateY(20px);
             z-index: 100;
         }
-        .navigation ul li:hover a .icon,
-        .navigation ul li.active a .icon {
-            transform: translateY(-35px) !important;
-            color: #fff !important;
+        /* Gộp chung active và hover-effect để icon/chữ hiện lên */
+        .navigation ul li.active a .icon,
+        .navigation ul li.hover-effect a .icon {
+            color: #fff;
+            transform: translateY(-35px); /* Đẩy icon lên nếu menu bạn có hiệu ứng này */
         }
-        .navigation ul li:hover a .text,
-        .navigation ul li.active a .text {
+
+        .navigation ul li.active a .text,
+        .navigation ul li.hover-effect a .text {
             opacity: 1;
-            transform: translateY(10px);
+            transform: translateY(10px); /* Hiện chữ bên dưới */
         }
         .indicator {
             position: absolute;
@@ -135,9 +137,23 @@
             background: var(--primary-blue);
             border-radius: 50%;
             border: 6px solid #05070a;
-            transition: transform 0.5s ease-out;
+            transition: 0.5s;
             z-index: 1;
+            left: 0;
         }
+        /* Bỏ các rule transform cứng, sẽ dùng JS để set vị trí */
+        /* Responsive */
+        @media (max-width: 900px) {
+            .navbar { height: 90px; }
+            .main-schedule { padding-top: 130px; }
+            .logo { font-size: 28px; }
+            .navigation { width: 280px; height: 55px; }
+            .navigation ul li { width: 56px; height: 55px; }
+            .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
+            .navigation ul li.active a .icon { transform: translateY(-28px); }
+            .indicator { width: 55px; height: 55px; top: -40%; }
+        }
+        /* Phần còn lại giữ nguyên */
         .main-schedule {
             padding-top: 160px;
             padding-bottom: 60px;
@@ -245,15 +261,19 @@
             font-size: 0.9rem;
             box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
         }
-        button:hover {
-            transform: translateY(-2px);
+        button:hover, .btn-main:hover {
+            transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(0, 122, 255, 0.4);
+            filter: brightness(1.05);
         }
         .ai-btn {
             background: linear-gradient(135deg, #007AFF, #5e2a84);
         }
         .clear-btn {
             background: rgba(255, 77, 77, 0.9);
+        }
+        .clear-btn:hover {
+            background: #ff4d4d;
         }
         .timetable-container {
             overflow-x: auto;
@@ -303,8 +323,8 @@
             content: "✗";
             font-size: 1.4rem;
             font-weight: bold;
-            color: #ff6b6b;
             display: block;
+            color: #ff6b6b;
         }
         .timetable td.subject-cell {
             background: rgba(0, 122, 255, 0.2);
@@ -335,61 +355,6 @@
             font-size: 0.9rem;
             border-left: 4px solid var(--primary-blue);
         }
-        /* Subject picker floating */
-        .subject-picker {
-            position: absolute;
-            background: #1e1e2f;
-            border: 1px solid var(--border-soft);
-            border-radius: 20px;
-            padding: 12px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            z-index: 2000;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            backdrop-filter: blur(10px);
-            min-width: 180px;
-        }
-        .subject-picker button {
-            background: rgba(0, 122, 255, 0.2);
-            border: 1px solid rgba(0, 122, 255, 0.5);
-            padding: 6px 12px;
-            border-radius: 30px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: white;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: none;
-        }
-        .subject-picker button:hover {
-            background: var(--primary-blue);
-            transform: scale(1.02);
-        }
-        .subject-picker .x-btn {
-            background: rgba(255, 77, 77, 0.2);
-            border-color: #ff4d4d;
-            color: #ff9999;
-        }
-        .subject-picker .x-btn:hover {
-            background: #ff4d4d;
-            color: white;
-        }
-        textarea {
-            resize: vertical;
-        }
-        @media (max-width: 900px) {
-            .navbar { height: 90px; }
-            .main-schedule { padding-top: 130px; }
-            .logo { font-size: 28px; }
-            .navigation { width: 280px; height: 55px; }
-            .navigation ul li { width: 56px; height: 55px; }
-            .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
-            .navigation ul li.active a .icon,
-            .navigation ul li:hover a .icon { transform: translateY(-28px) !important; }
-            .indicator { width: 55px; height: 55px; top: -40%; }
-            button { padding: 8px 20px; }
-        }
     </style>
 </head>
 <body>
@@ -399,19 +364,19 @@
         <a href="/" class="logo">Study<span>verse</span></a>
         <nav class="navigation">
             <ul>
-                <li class="list" data-index="0">
+                <li class="list" id="li-create" data-index="0">
                     <a href="/index.html">
                         <span class="icon"><i class="fa-solid fa-house"></i></span>
                         <span class="text">Home</span>
                     </a>
                 </li>
-                <li class="list" data-index="1">
+                <li class="list" id="li-create" data-index="1">
                     <a href="/todo/mylist.html">
                         <span class="icon"><i class="fa-solid fa-list-check"></i></span>
                         <span class="text">My project</span>
                     </a>
                 </li>
-                <li class="list active" data-index="2">
+                <li class="list active" id="li-create" data-index="2">
                     <a href="#">
                         <span class="icon"><i class="fa-regular fa-calendar"></i></span>
                         <span class="text">Schedule</span>
@@ -428,9 +393,9 @@
         <div class="schedule-card">
             <h1><i class="fa-regular fa-calendar-alt"></i> Lịch học tương tác</h1>
             <div class="intro-text">
-                👉 Click vào <strong>cột ngày</strong> để bật/tắt nghỉ cả ngày.<br>
-                👉 Click vào <strong>ô tiết học</strong> → chọn môn từ danh sách nút hiện ra.<br>
-                👉 Mỗi môn có giới hạn số tiết, nút môn sẽ chỉ xuất hiện nếu còn tiết.
+                👉 Click vào <strong>cột ngày (Thứ...)</strong> để bật/tắt nghỉ cả ngày.<br>
+                👉 Click vào <strong>ô tiết học</strong> để chọn môn hoặc đánh dấu ✗ (không học).<br>
+                👉 Mỗi môn có giới hạn số tiết, hệ thống tự kiểm soát.
             </div>
 
             <div class="subjects-panel" id="subjects-panel">
@@ -456,15 +421,8 @@
             </div>
 
             <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px;">
-                <button class="ai-btn" id="auto-schedule"><i class="fa-solid fa-robot"></i> AI tự động xếp lịch (ngẫu nhiên)</button>
+                <button class="ai-btn" id="auto-schedule"><i class="fa-solid fa-robot"></i> AI tự động xếp lịch</button>
                 <button class="clear-btn" id="clear-all"><i class="fa-solid fa-trash-can"></i> Xóa toàn bộ</button>
-            </div>
-
-            <!-- Ô nhập yêu cầu văn bản cho AI -->
-            <div style="margin-top: 24px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 500;">✍️ Yêu cầu xếp lịch bằng tiếng Việt (AI sẽ phân tích):</label>
-                <textarea id="aiRequest" rows="2" placeholder="Ví dụ: Hãy sắp xếp môn Toán vào buổi sáng, ưu tiên thứ 2 và thứ 4, tránh thứ 6. Môn Lý xếp buổi chiều. Môn Hóa ưu tiên thứ 3, thứ 5." style="width: 100%; background: #1e1e2f; border: 1px solid var(--border-soft); border-radius: 16px; padding: 12px; color: white; font-family: inherit; resize: vertical;"></textarea>
-                <button id="aiScheduleBtn" style="margin-top: 12px; background: linear-gradient(135deg, #8a2be2, #007AFF);"><i class="fa-solid fa-brain"></i> AI xếp lịch theo yêu cầu</button>
             </div>
 
             <div id="status" class="status"></div>
@@ -473,31 +431,76 @@
 </main>
 
 <script>
-    // ===== INDICATOR SLIDING =====
-    (function() {
-        const navItems = document.querySelectorAll('.navigation ul .list');
+    const list = document.querySelectorAll('.list');
+    const indicator = document.querySelector('.indicator');
+
+    // --- 1. HÀM CẬP NHẬT VỊ TRÍ (Dùng chung) ---
+    function moveIndicator(element, speed = '0.5s') {
+        if (!element || !indicator) return;
+        indicator.style.transition = speed;
+        indicator.style.transform = `translateX(${element.offsetLeft}px)`;
+    }
+
+    // --- 2. XỬ LÝ KHI LOAD TRANG (Chống chạy từ Home sang Create) ---
+    window.addEventListener('DOMContentLoaded', () => {
+        const activeItem = document.querySelector('.list.active');
+        if (activeItem) {
+            // Nhảy ngay lập tức đến mục active, không trượt
+            moveIndicator(activeItem, 'none');
+            
+            // Bật lại hiệu ứng sau khi đã nằm đúng chỗ
+            setTimeout(() => {
+                indicator.style.transition = '0.5s';
+            }, 50);
+        }
+    });
+
+    // --- 3. XỬ LÝ DI CHUỘT (HOVER & CLICK) ---
+    list.forEach((item) => {
+        // KHI RÀ CHUỘT VÀO: Hiện icon/chữ của mục đó
+        item.addEventListener('mouseenter', function() {
+            // Hình tròn trượt theo
+            moveIndicator(this, '0.5s');
+
+            // THÊM CLASS ĐỂ HIỆN ICON/CHỮ (Sửa lỗi bạn đang gặp)
+            // Ta tạm thời coi mục đang hover như là mục active
+            list.forEach(li => li.classList.remove('hover-effect'));
+            this.classList.add('hover-effect');
+        });
+
+        // KHI CLICK: Chuyển trang
+        item.addEventListener('click', function() {
+            list.forEach(li => li.classList.remove('active'));
+            this.classList.add('active');
+            moveIndicator(this, '0.5s');
+        });
+    });
+
+    // KHI RỜI CHUỘT KHỎI MENU: Quay về mục Active chính
+    const navigation = document.querySelector('.navigation');
+    if (navigation) {
+        navigation.addEventListener('mouseleave', () => {
+            const activeItem = document.querySelector('.list.active');
+            moveIndicator(activeItem, '0.5s');
+            
+            // Xóa hết hiệu ứng hover để trả về trạng thái chỉ mục active sáng
+            list.forEach(li => li.classList.remove('hover-effect'));
+        });
+    }
+    // ---------- CĂN CHỈNH INDICATOR ĐỘNG ----------
+    function setIndicatorPosition() {
+        const activeItem = document.querySelector('.navigation ul li.active');
         const indicator = document.querySelector('.indicator');
-        const navBar = document.querySelector('.navigation');
-        if (!indicator || !navItems.length) return;
-        function moveIndicatorTo(element) {
-            if (!element) return;
-            const leftPos = element.offsetLeft;
-            indicator.style.transition = 'transform 0.5s ease-out';
+        if (activeItem && indicator) {
+            const leftPos = activeItem.offsetLeft;
             indicator.style.transform = `translateX(${leftPos}px)`;
         }
-        function refreshIndicator() {
-            const activeItem = document.querySelector('.navigation ul .list.active');
-            if (activeItem) moveIndicatorTo(activeItem);
-        }
-        navItems.forEach(item => {
-            item.addEventListener('mouseenter', () => moveIndicatorTo(item));
-        });
-        if (navBar) navBar.addEventListener('mouseleave', refreshIndicator);
-        window.addEventListener('resize', refreshIndicator);
-        refreshIndicator();
-    })();
+    }
+    window.addEventListener('load', setIndicatorPosition);
+    window.addEventListener('resize', setIndicatorPosition);
+    // Nếu có thay đổi active bằng JS (không có ở đây) nhưng vẫn an toàn
 
-    // ===== LOGIC LỊCH HỌC =====
+    // ---------- TOÀN BỘ LOGIC LỊCH (GIỮ NGUYÊN) ----------
     const lessonSlots = [
         "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
         "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
@@ -508,15 +511,6 @@
     let disabledDays = new Array(7).fill(false);
     let subjects = [];
     let subjectCounts = {};
-
-    let currentPicker = null;
-
-    function closePicker() {
-        if (currentPicker) {
-            currentPicker.remove();
-            currentPicker = null;
-        }
-    }
 
     function getEndTime(startTime) {
         let [h, m] = startTime.split(':').map(Number);
@@ -586,7 +580,7 @@
                 const day = parseInt(td.dataset.day);
                 const slot = parseInt(td.dataset.slot);
                 if (disabledDays[day]) return;
-                handleCellClick(day, slot, td);
+                handleCellClick(day, slot);
             });
             td.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
@@ -612,10 +606,9 @@
             }
         }
         renderTable();
-        closePicker();
     }
 
-    function handleCellClick(day, slot, tdElement) {
+    function handleCellClick(day, slot) {
         const current = timetableData[day][slot];
         if (current && current.type === 'subject') {
             const subjName = current.name;
@@ -629,7 +622,39 @@
             renderTable();
             return;
         }
-        showSubjectPicker(day, slot, tdElement);
+        showSubjectPicker(day, slot);
+    }
+
+    function showSubjectPicker(day, slot) {
+        if (subjects.length === 0) {
+            alert("Vui lòng thêm môn học trước!");
+            return;
+        }
+        let options = subjects.map(s => `${s.name} (${subjectCounts[s.name] || 0}/${s.sessions} tiết)`);
+        options.push("Đánh dấu X (không học)");
+        const choice = prompt("Chọn môn học (hoặc X):\n" + options.map((opt, idx) => `${idx+1}. ${opt}`).join("\n") + "\n\nNhập số:");
+        if (choice === null) return;
+        const idx = parseInt(choice) - 1;
+        if (isNaN(idx)) return;
+        if (idx === subjects.length) {
+            toggleXMark(day, slot);
+            return;
+        }
+        if (idx >= 0 && idx < subjects.length) {
+            const selectedSubj = subjects[idx];
+            const currentCount = subjectCounts[selectedSubj.name] || 0;
+            if (currentCount >= selectedSubj.sessions) {
+                alert(`Môn ${selectedSubj.name} đã đủ ${selectedSubj.sessions} tiết! Không thể thêm.`);
+                return;
+            }
+            if (timetableData[day][slot] !== null) {
+                alert("Ô này đã có nội dung, hãy xóa trước.");
+                return;
+            }
+            timetableData[day][slot] = { type: 'subject', name: selectedSubj.name };
+            subjectCounts[selectedSubj.name] = (subjectCounts[selectedSubj.name] || 0) + 1;
+            renderTable();
+        }
     }
 
     function toggleXMark(day, slot) {
@@ -644,85 +669,6 @@
             timetableData[day][slot] = { type: 'x' };
         }
         renderTable();
-    }
-
-    function showSubjectPicker(day, slot, tdElement) {
-        if (subjects.length === 0) {
-            alert("Vui lòng thêm môn học trước!");
-            return;
-        }
-        closePicker();
-        const availableSubjects = subjects.filter(subj => (subjectCounts[subj.name] || 0) < subj.sessions);
-        if (availableSubjects.length === 0 && subjects.length > 0) {
-            alert("Tất cả các môn đã đủ số tiết! Không thể thêm môn mới.");
-            return;
-        }
-
-        const pickerDiv = document.createElement('div');
-        pickerDiv.className = 'subject-picker';
-
-        availableSubjects.forEach(subj => {
-            const btn = document.createElement('button');
-            const remaining = subj.sessions - (subjectCounts[subj.name] || 0);
-            btn.textContent = `${subj.name} (còn ${remaining} tiết)`;
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                if (timetableData[day][slot] !== null) {
-                    alert("Ô này đã có nội dung, hãy xóa trước.");
-                    closePicker();
-                    return;
-                }
-                timetableData[day][slot] = { type: 'subject', name: subj.name };
-                subjectCounts[subj.name] = (subjectCounts[subj.name] || 0) + 1;
-                renderTable();
-                closePicker();
-            };
-            pickerDiv.appendChild(btn);
-        });
-
-        const xBtn = document.createElement('button');
-        xBtn.textContent = "✗ Không học";
-        xBtn.className = 'x-btn';
-        xBtn.onclick = (e) => {
-            e.stopPropagation();
-            toggleXMark(day, slot);
-            closePicker();
-        };
-        pickerDiv.appendChild(xBtn);
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = "Hủy";
-        cancelBtn.onclick = () => closePicker();
-        pickerDiv.appendChild(cancelBtn);
-
-        const rect = tdElement.getBoundingClientRect();
-        let left = rect.left + window.scrollX;
-        let top = rect.bottom + window.scrollY + 5;
-        // Kiểm tra va chạm cạnh phải màn hình
-        const pickerWidth = 200; // ước lượng
-        if (left + pickerWidth > window.innerWidth + window.scrollX) {
-            left = rect.right + window.scrollX - pickerWidth;
-            if (left < window.scrollX) left = rect.left + window.scrollX;
-        }
-        // Nếu bên dưới không đủ chỗ, đặt lên trên
-        if (top + 150 > window.innerHeight + window.scrollY) {
-            top = rect.top + window.scrollY - 150;
-        }
-        pickerDiv.style.position = 'fixed';
-        pickerDiv.style.left = `${left}px`;
-        pickerDiv.style.top = `${top}px`;
-        document.body.appendChild(pickerDiv);
-        currentPicker = pickerDiv;
-
-        const outsideClick = (e) => {
-            if (!pickerDiv.contains(e.target)) {
-                closePicker();
-                document.removeEventListener('click', outsideClick);
-            }
-        };
-        setTimeout(() => {
-            document.addEventListener('click', outsideClick);
-        }, 10);
     }
 
     function updateStatus() {
@@ -839,77 +785,11 @@
         }
     }
 
-    // ===== GỌI AI XẾP LỊCH THEO YÊU CẦU VĂN BẢN =====
-    document.getElementById('aiScheduleBtn').addEventListener('click', async () => {
-        const text = document.getElementById('aiRequest').value.trim();
-        if (!text) {
-            alert("Vui lòng nhập yêu cầu xếp lịch.");
-            return;
-        }
-        if (subjects.length === 0) {
-            alert("Bạn chưa thêm môn học nào. Hãy thêm môn trước.");
-            return;
-        }
-        const btn = document.getElementById('aiScheduleBtn');
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse"></i> AI đang phân tích...';
-        btn.disabled = true;
-        try {
-            const response = await fetch('/schedule/ai-schedule', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: text,
-                    subjects: subjects,
-                    disabledDays: disabledDays,
-                    currentTimetable: timetableData
-                })
-            });
-            const data = await response.json();
-            if (data.success) {
-                // Xóa toàn bộ lịch cũ (giữ lại môn và disabledDays? AI sẽ trả về timetable mới)
-                for (let d = 0; d < days.length; d++) {
-                    for (let s = 0; s < lessonSlots.length; s++) {
-                        timetableData[d][s] = null;
-                    }
-                }
-                // Reset subjectCounts
-                for (let subj of subjects) {
-                    subjectCounts[subj.name] = 0;
-                }
-                // Cập nhật từ data.timetable (cấu trúc: { "Thứ 2": [ {start, end, subject}, ... ] })
-                const newTimetable = data.timetable;
-                for (let dayName in newTimetable) {
-                    const dayIndex = days.indexOf(dayName);
-                    if (dayIndex === -1) continue;
-                    const dayLessons = newTimetable[dayName];
-                    for (let lesson of dayLessons) {
-                        const startTime = lesson.start;
-                        const slotIndex = lessonSlots.findIndex(slot => slot === startTime);
-                        if (slotIndex !== -1) {
-                            timetableData[dayIndex][slotIndex] = { type: 'subject', name: lesson.subject };
-                            subjectCounts[lesson.subject] = (subjectCounts[lesson.subject] || 0) + 1;
-                        }
-                    }
-                }
-                renderTable();
-                alert("AI đã xếp lịch thành công!");
-            } else {
-                alert("Lỗi: " + (data.error || "Không thể xếp lịch theo yêu cầu"));
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Lỗi kết nối đến server AI.");
-        } finally {
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-        }
-    });
-
     initTimetable();
     document.getElementById('add-subject-btn').addEventListener('click', addSubject);
     document.getElementById('auto-schedule').addEventListener('click', autoSchedule);
     document.getElementById('clear-all').addEventListener('click', clearAll);
 </script>
+<script src="create.js"></script>   
 </body>
 </html>
