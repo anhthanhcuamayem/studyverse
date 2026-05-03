@@ -79,3 +79,58 @@ def create_timetable_with_preferences(subjects, availability, breaks, preference
         - subject_preferences: dict {'Toán': 'morning', ...}
     """
     # ... code xếp lịch ưu tiên theo yêu cầu
+def create_timetable_with_preferences(subjects, availability, breaks, preferences):
+    """
+    Xếp lịch dựa trên preferences (fallback khi AI lỗi)
+    preferences: {'preferred_slots': ['morning','afternoon'], 'avoid_days': [0,3], 'subject_preferences': {'Toán':'morning'}}
+    """
+    from datetime import datetime
+    # Tạo danh sách tất cả các slot giờ
+    all_slots = []
+    for day in range(7):
+        if str(day) in availability:
+            slots = generate_slots(availability[str(day)], breaks)
+            all_slots.extend([(day, start, end) for (start, end) in slots])
+    
+    # Sắp xếp slot ưu tiên: buổi sáng (start < 12:00) trước, chiều sau
+def slot_key(slot):
+    day, start, end = slot
+    morning = start < 12*60
+    if 'morning' in preferences.get('preferred_slots', []) and morning:
+        return (0, day, start)
+    elif 'afternoon' in preferences.get('preferred_slots', []) and not morning:
+        return (1, day, start)
+    else:
+        return (2, day, start)
+    
+    # Lọc bỏ các ngày tránh
+    avoid_days = preferences.get('avoid_days', [])
+    filtered_slots = [s for s in all_slots if s[0] not in avoid_days]
+    filtered_slots.sort(key=slot_key)
+    
+    # Tạo danh sách bài học cần xếp (lặp lại môn theo số tiết)
+    lessons = []
+    for subj in subjects:
+        for _ in range(subj['sessions']):
+            lessons.append(subj['name'])
+    random.shuffle(lessons)
+    
+    # Ưu tiên xếp các môn có subject_preferences trước
+    subject_pref = preferences.get('subject_preferences', {})
+    lessons.sort(key=lambda name: 0 if name in subject_pref else 1)
+    
+    timetable = {day: [] for day in range(7)}
+    slot_index = 0
+    for lesson in lessons:
+        if slot_index >= len(filtered_slots):
+            break
+        day, start, end = filtered_slots[slot_index]
+        timetable[day].append({'start': start, 'end': end, 'subject': lesson})
+        slot_index += 1
+    
+    # Format lại kết quả
+    days_map = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật']
+    result = {}
+    for day in range(7):
+        result[days_map[day]] = [{'start': format_time(l['start']), 'end': format_time(l['end']), 'subject': l['subject']} for l in timetable[day]]
+    return result
