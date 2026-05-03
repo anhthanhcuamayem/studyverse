@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
+        /* === ĐỒNG BỘ HOÀN TOÀN VỚI STYLE TRANG CHỦ === */
         :root {
             --bg-color: #05070a;
             --card-bg: #0d1117;
@@ -27,6 +28,7 @@
             color: var(--text-white);
             overflow-x: hidden;
         }
+        /* Navbar hoàn toàn giống index.html */
         .navbar {
             width: 100%;
             position: fixed;
@@ -132,10 +134,10 @@
             background: var(--primary-blue);
             border-radius: 50%;
             border: 6px solid #05070a;
-            transition: transform 0.3s ease-out;
+            transition: transform 0.5s ease-out;
             z-index: 1;
         }
-        /* KHÔNG CÓ transform cứng nào ở đây, chỉ dùng JS để di chuyển */
+        /* Phần nội dung schedule giữ nguyên */
         .main-schedule {
             padding-top: 160px;
             padding-bottom: 60px;
@@ -438,7 +440,7 @@
 </main>
 
 <script>
-    // ===== PHẦN XỬ LÝ INDICATOR SLIDING (CHỈ CHO TAB SCHEDULE) =====
+    // ===== XỬ LÝ INDICATOR SLIDING (GIỐNG HỆT CÁC TRANG KHÁC) =====
     (function() {
         const navItems = document.querySelectorAll('.navigation ul .list');
         const indicator = document.querySelector('.indicator');
@@ -448,7 +450,7 @@
         function moveIndicatorTo(element) {
             if (!element) return;
             const leftPos = element.offsetLeft;
-            indicator.style.transition = 'transform 0.3s ease-out';
+            indicator.style.transition = 'transform 0.5s ease-out';
             indicator.style.transform = `translateX(${leftPos}px)`;
         }
 
@@ -462,7 +464,7 @@
         });
         if (navBar) navBar.addEventListener('mouseleave', refreshIndicator);
         window.addEventListener('resize', refreshIndicator);
-        refreshIndicator(); // khởi tạo vị trí ban đầu
+        refreshIndicator(); // đặt vị trí ban đầu cho indicator
     })();
 
     // ===== TOÀN BỘ LOGIC LỊCH HỌC (GIỮ NGUYÊN) =====
@@ -496,7 +498,7 @@
     function renderTable() {
         const thead = document.getElementById('table-header');
         const tbody = document.getElementById('table-body');
-        let headerRow = `<tr><th>Giờ / Ngày</th>`;
+        let headerRow = `</tr><th>Giờ / Ngày</th>`;
         for (let i = 0; i < days.length; i++) {
             headerRow += `<th data-day="${i}">${days[i]}</th>`;
         }
