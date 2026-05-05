@@ -1,3 +1,20 @@
+.big-illustration-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 100px; /* Khoảng cách với nút phía trên */
+    padding-bottom: 50px; /* Khoảng cách với mép dưới màn hình */
+}
+
+.img-large {
+    width: 100%;           /* Ảnh chiếm 85% chiều rộng màn hình */
+    max-width: 1200px;    /* Giới hạn để ảnh không bị quá to trên màn hình cực lớn */
+    height: auto;         /* Giữ nguyên tỷ lệ hình ảnh, không bị méo */
+    display: block;
+    object-fit: contain;
+    mix-blend-mode: screen;
+}
 main {
     animation: fadeIn 0.5s ease;
 }
