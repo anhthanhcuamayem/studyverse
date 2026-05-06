@@ -109,8 +109,8 @@ body {
 }
 .navigation ul li.active a .icon,
 .navigation ul li.hover-effect a .icon {
-    color: #fff;
     transform: translateY(-35px);
+    color: #fff;
 }
 .navigation ul li.active a .text,
 .navigation ul li.hover-effect a .text {
@@ -202,6 +202,11 @@ h1 {
     font-size: 12px;
     font-weight: bold;
     cursor: pointer;
+    transition: 0.2s;
+}
+.subject-badge button:hover {
+    background: #ff1a1a;
+    transform: scale(1.05);
 }
 .add-subject-form {
     display: flex;
@@ -217,6 +222,7 @@ h1 {
     color: white;
     font-size: 0.9rem;
     outline: none;
+    transition: 0.2s;
 }
 .add-subject-form input:focus {
     border-color: var(--primary-blue);
@@ -339,14 +345,4 @@ button:hover, .btn-main:hover {
     .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
     .navigation ul li.active a .icon { transform: translateY(-28px); }
     .indicator { width: 55px; height: 55px; top: -40%; }
-}
-
-/* === FIX LỆCH CỘT === */
-.timetable {
-    table-layout: fixed;
-    width: 100%;
-}
-.timetable th:first-child,
-.timetable td:first-child {
-    width: 120px;
 }
