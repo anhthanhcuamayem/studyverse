@@ -1,3 +1,4 @@
+
 :root {
     --bg-color: #05070a;
     --card-bg: #0d1117;
@@ -18,6 +19,7 @@ body {
     color: var(--text-white);
     overflow-x: hidden;
 }
+
 .navbar {
     width: 100%;
     position: fixed;
@@ -107,15 +109,17 @@ body {
     transform: translateY(20px);
     z-index: 100;
 }
-.navigation ul li:hover a .icon,
-.navigation ul li.active a .icon {
-    transform: translateY(-35px) !important;
-    color: #fff !important;
+/* Gộp chung active và hover-effect để icon/chữ hiện lên */
+.navigation ul li.active a .icon,
+.navigation ul li.hover-effect a .icon {
+    color: #fff;
+    transform: translateY(-35px); /* Đẩy icon lên nếu menu bạn có hiệu ứng này */
 }
-.navigation ul li:hover a .text,
-.navigation ul li.active a .text {
+
+.navigation ul li.active a .text,
+.navigation ul li.hover-effect a .text {
     opacity: 1;
-    transform: translateY(10px);
+    transform: translateY(10px); /* Hiện chữ bên dưới */
 }
 .indicator {
     position: absolute;
@@ -125,9 +129,23 @@ body {
     background: var(--primary-blue);
     border-radius: 50%;
     border: 6px solid #05070a;
-    transition: transform 0.5s ease-out;
+    transition: 0.5s;
     z-index: 1;
+    left: 0;
 }
+/* Bỏ các rule transform cứng, sẽ dùng JS để set vị trí */
+/* Responsive */
+@media (max-width: 900px) {
+    .navbar { height: 90px; }
+    .main-schedule { padding-top: 130px; }
+    .logo { font-size: 28px; }
+    .navigation { width: 280px; height: 55px; }
+    .navigation ul li { width: 56px; height: 55px; }
+    .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
+    .navigation ul li.active a .icon { transform: translateY(-28px); }
+    .indicator { width: 55px; height: 55px; top: -40%; }
+}
+/* Phần còn lại giữ nguyên */
 .main-schedule {
     padding-top: 160px;
     padding-bottom: 60px;
@@ -256,10 +274,8 @@ button:hover, .btn-main:hover {
     border: 1px solid var(--border-soft);
     background: #0a0e14;
 }
-/* FIX LỆCH CỘT - ĐẢM BẢO CỘT GIỜ Ở ĐẦU, CÁC CỘT NGÀY ĐỀU */
 .timetable {
     width: 100%;
-    table-layout: auto;
     border-collapse: collapse;
     font-size: 0.85rem;
     min-width: 800px;
@@ -269,16 +285,6 @@ button:hover, .btn-main:hover {
     padding: 12px 8px;
     text-align: center;
     vertical-align: middle;
-}
-.timetable th:first-child,
-.timetable td:first-child {
-    background: #0f131c;
-    font-weight: 500;
-    width: 130px;
-}
-.timetable th:not(:first-child),
-.timetable td:not(:first-child) {
-    width: calc((100% - 130px) / 7);
 }
 .timetable th {
     background: #0f131c;
@@ -340,24 +346,4 @@ button:hover, .btn-main:hover {
     margin-top: 24px;
     font-size: 0.9rem;
     border-left: 4px solid var(--primary-blue);
-}
-@media (max-width: 900px) {
-    .navbar { height: 90px; }
-    .main-schedule { padding-top: 130px; }
-    .logo { font-size: 28px; }
-    .navigation { width: 280px; height: 55px; }
-    .navigation ul li { width: 56px; height: 55px; }
-    .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
-    .navigation ul li.active a .icon,
-    .navigation ul li:hover a .icon { transform: translateY(-28px) !important; }
-    .indicator { width: 55px; height: 55px; top: -40%; }
-    button { padding: 8px 20px; }
-    .timetable th:first-child,
-    .timetable td:first-child {
-        width: 100px;
-    }
-    .timetable th:not(:first-child),
-    .timetable td:not(:first-child) {
-        width: calc((100% - 100px) / 7);
-    }
 }
