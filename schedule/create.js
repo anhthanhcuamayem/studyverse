@@ -1,29 +1,41 @@
-// ========== INDICATOR & NAVIGATION ==========
 const list = document.querySelectorAll('.list');
 const indicator = document.querySelector('.indicator');
 
+// --- 1. HÀM CẬP NHẬT VỊ TRÍ (Dùng chung) ---
 function moveIndicator(element, speed = '0.5s') {
     if (!element || !indicator) return;
     indicator.style.transition = speed;
     indicator.style.transform = `translateX(${element.offsetLeft}px)`;
 }
 
+// --- 2. XỬ LÝ KHI LOAD TRANG (Chống chạy từ Home sang Create) ---
 window.addEventListener('DOMContentLoaded', () => {
     const activeItem = document.querySelector('.list.active');
     if (activeItem) {
+        // Nhảy ngay lập tức đến mục active, không trượt
         moveIndicator(activeItem, 'none');
+        
+        // Bật lại hiệu ứng sau khi đã nằm đúng chỗ
         setTimeout(() => {
             indicator.style.transition = '0.5s';
         }, 50);
     }
 });
 
+// --- 3. XỬ LÝ DI CHUỘT (HOVER & CLICK) ---
 list.forEach((item) => {
+    // KHI RÀ CHUỘT VÀO: Hiện icon/chữ của mục đó
     item.addEventListener('mouseenter', function() {
+        // Hình tròn trượt theo
         moveIndicator(this, '0.5s');
+
+        // THÊM CLASS ĐỂ HIỆN ICON/CHỮ (Sửa lỗi bạn đang gặp)
+        // Ta tạm thời coi mục đang hover như là mục active
         list.forEach(li => li.classList.remove('hover-effect'));
         this.classList.add('hover-effect');
     });
+
+    // KHI CLICK: Chuyển trang
     item.addEventListener('click', function() {
         list.forEach(li => li.classList.remove('active'));
         this.classList.add('active');
@@ -31,15 +43,18 @@ list.forEach((item) => {
     });
 });
 
+// KHI RỜI CHUỘT KHỎI MENU: Quay về mục Active chính
 const navigation = document.querySelector('.navigation');
 if (navigation) {
     navigation.addEventListener('mouseleave', () => {
         const activeItem = document.querySelector('.list.active');
         moveIndicator(activeItem, '0.5s');
+        
+        // Xóa hết hiệu ứng hover để trả về trạng thái chỉ mục active sáng
         list.forEach(li => li.classList.remove('hover-effect'));
     });
 }
-
+// ---------- CĂN CHỈNH INDICATOR ĐỘNG ----------
 function setIndicatorPosition() {
     const activeItem = document.querySelector('.navigation ul li.active');
     const indicator = document.querySelector('.indicator');
@@ -50,8 +65,9 @@ function setIndicatorPosition() {
 }
 window.addEventListener('load', setIndicatorPosition);
 window.addEventListener('resize', setIndicatorPosition);
+// Nếu có thay đổi active bằng JS (không có ở đây) nhưng vẫn an toàn
 
-// ========== LOGIC LỊCH HỌC ==========
+// ---------- TOÀN BỘ LOGIC LỊCH (GIỮ NGUYÊN) ----------
 const lessonSlots = [
     "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
     "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
@@ -82,7 +98,7 @@ function initTimetable() {
 function renderTable() {
     const thead = document.getElementById('table-header');
     const tbody = document.getElementById('table-body');
-    let headerRow = `<td><th>Giờ / Ngày</th>`;
+    let headerRow = `<tr><th>Giờ / Ngày</th>`;
     for (let i = 0; i < days.length; i++) {
         headerRow += `<th data-day="${i}">${days[i]}</th>`;
     }
