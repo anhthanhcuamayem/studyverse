@@ -18,6 +18,7 @@ body {
     color: var(--text-white);
     overflow-x: hidden;
 }
+
 .navbar {
     width: 100%;
     position: fixed;
@@ -107,13 +108,13 @@ body {
     transform: translateY(20px);
     z-index: 100;
 }
-.navigation ul li:hover a .icon,
-.navigation ul li.active a .icon {
-    transform: translateY(-35px) !important;
-    color: #fff !important;
+.navigation ul li.active a .icon,
+.navigation ul li.hover-effect a .icon {
+    color: #fff;
+    transform: translateY(-35px);
 }
-.navigation ul li:hover a .text,
-.navigation ul li.active a .text {
+.navigation ul li.active a .text,
+.navigation ul li.hover-effect a .text {
     opacity: 1;
     transform: translateY(10px);
 }
@@ -125,9 +126,11 @@ body {
     background: var(--primary-blue);
     border-radius: 50%;
     border: 6px solid #05070a;
-    transition: transform 0.5s ease-out;
+    transition: 0.5s;
     z-index: 1;
+    left: 0;
 }
+
 .main-schedule {
     padding-top: 160px;
     padding-bottom: 60px;
@@ -329,6 +332,7 @@ button:hover, .btn-main:hover {
     font-size: 0.9rem;
     border-left: 4px solid var(--primary-blue);
 }
+
 @media (max-width: 900px) {
     .navbar { height: 90px; }
     .main-schedule { padding-top: 130px; }
@@ -336,8 +340,6 @@ button:hover, .btn-main:hover {
     .navigation { width: 280px; height: 55px; }
     .navigation ul li { width: 56px; height: 55px; }
     .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
-    .navigation ul li.active a .icon,
-    .navigation ul li:hover a .icon { transform: translateY(-28px) !important; }
+    .navigation ul li.active a .icon { transform: translateY(-28px); }
     .indicator { width: 55px; height: 55px; top: -40%; }
-    button { padding: 8px 20px; }
 }
