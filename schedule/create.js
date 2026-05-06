@@ -1,4 +1,4 @@
-// ===== XỬ LÝ INDICATOR =====
+// ========== INDICATOR & NAVIGATION ==========
 const list = document.querySelectorAll('.list');
 const indicator = document.querySelector('.indicator');
 
@@ -12,7 +12,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const activeItem = document.querySelector('.list.active');
     if (activeItem) {
         moveIndicator(activeItem, 'none');
-        setTimeout(() => { indicator.style.transition = '0.5s'; }, 50);
+        setTimeout(() => {
+            indicator.style.transition = '0.5s';
+        }, 50);
     }
 });
 
@@ -40,14 +42,16 @@ if (navigation) {
 
 function setIndicatorPosition() {
     const activeItem = document.querySelector('.navigation ul li.active');
+    const indicator = document.querySelector('.indicator');
     if (activeItem && indicator) {
-        indicator.style.transform = `translateX(${activeItem.offsetLeft}px)`;
+        const leftPos = activeItem.offsetLeft;
+        indicator.style.transform = `translateX(${leftPos}px)`;
     }
 }
 window.addEventListener('load', setIndicatorPosition);
 window.addEventListener('resize', setIndicatorPosition);
 
-// ===== LOGIC LỊCH =====
+// ========== LOGIC LỊCH HỌC ==========
 const lessonSlots = [
     "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
     "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
@@ -78,7 +82,7 @@ function initTimetable() {
 function renderTable() {
     const thead = document.getElementById('table-header');
     const tbody = document.getElementById('table-body');
-    let headerRow = `<tr><th>Giờ / Ngày</th>`;
+    let headerRow = `<td><th>Giờ / Ngày</th>`;
     for (let i = 0; i < days.length; i++) {
         headerRow += `<th data-day="${i}">${days[i]}</th>`;
     }
