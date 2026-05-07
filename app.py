@@ -3,6 +3,7 @@ import json
 import random
 import google.generativeai as genai
 import os
+import re
 
 app = Flask(__name__,
             template_folder='.',
@@ -10,11 +11,11 @@ app = Flask(__name__,
             static_url_path='/')
 
 # Cấu hình Gemini API (thay bằng API key của bạn)
-# Lấy key từ biến môi trường hoặc điền trực tiếp (không khuyến khích)
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_API_KEY_HERE")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "0131a804a44be5434dbbdf218fab5fbe")
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
+# ========== ROUTES CŨ ==========
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -46,41 +47,46 @@ def schedule_generate():
 @app.route('/schedule/ai-schedule', methods=['POST'])
 def ai_schedule():
     data = request.json
-    user_text = data.get('text', '').strip()
+    user_text = data.get('text', '')
     subjects = data.get('subjects', [])
     disabled_days = data.get('disabledDays', [False]*7)
-    
+
     if not subjects:
         return jsonify({'success': False, 'error': 'Chưa có môn học nào'})
-    
-    if not user_text:
-        return jsonify({'success': False, 'error': 'Vui lòng nhập yêu cầu'})
-    
-    # Chuẩn bị danh sách môn học và ngày bị cấm
+
+    # Chuẩn bị danh sách môn và ngày nghỉ
     subject_list = ', '.join([f"{s['name']} ({s['sessions']} tiết)" for s in subjects])
-    weekdays = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
-    disabled_names = [weekdays[i] for i, d in enumerate(disabled_days) if d]
+    days_vn = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
+    disabled_names = [days_vn[i] for i, d in enumerate(disabled_days) if d]
     disabled_str = ', '.join(disabled_names) if disabled_names else "không có"
-    
+
     # Các khung giờ có sẵn
-    time_slots = ["07:00", "07:45", "08:30", "09:15", "10:00", "10:45", "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"]
+    time_slots = ["07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
+                  "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"]
     morning_slots = [t for t in time_slots if int(t[:2]) < 12]
     afternoon_slots = [t for t in time_slots if int(t[:2]) >= 13]
-    
-    prompt = f"""Bạn là trợ lý xếp thời khóa biểu. Yêu cầu: "{user_text}"
-Danh sách môn học: {subject_list}
-Ngày bị cấm: {disabled_str}
-Các khung giờ có sẵn mỗi ngày (nếu không bị cấm):
+
+    prompt = f"""Bạn là trợ lý xếp thời khóa biểu chính xác. Yêu cầu:
+{user_text}
+
+Danh sách môn học và số tiết cần xếp:
+{subject_list}
+
+Các ngày bị cấm hoàn toàn (không được xếp bất kỳ môn nào):
+{disabled_str}
+
+Các khung giờ có sẵn mỗi ngày (nếu ngày không bị cấm):
 - Buổi sáng: {', '.join(morning_slots)}
 - Buổi chiều: {', '.join(afternoon_slots)}
 
-QUY TẮC:
-1. Phân tích yêu cầu: nếu nói "thứ 3 học tin" thì xếp môn "tin" vào Thứ 3 (có thể buổi sáng hoặc chiều, ưu tiên buổi sáng nếu còn slot).
-2. Các môn khác xếp vào các ngày còn lại, đảm bảo đủ số tiết.
-3. Không xếp vào ngày bị cấm.
-4. Mỗi tiết chiếm một khung giờ, không trùng lặp.
+QUY TẮC TUÂN THỦ NGHIÊM NGẶT:
+1. Phải phân tích yêu cầu của người dùng: nếu yêu cầu "môn X vào ngày Y buổi Z" thì CHỈ xếp môn X vào đúng ngày Y và đúng buổi Z, không xếp môn X vào ngày khác.
+2. Ví dụ: "thứ 6 học tin vào buổi sáng" => chỉ xếp Tin học vào các khung giờ buổi sáng của Thứ 6, không xếp Tin vào Thứ 2,3,4,5,7,CN.
+3. Các môn còn lại (không có yêu cầu đặc biệt) có thể xếp vào bất kỳ ngày nào còn trống (ưu tiên buổi sáng trước, sau đó buổi chiều), miễn không trùng với ngày bị cấm.
+4. Mỗi tiết học chiếm một khung giờ. Đảm bảo tổng số tiết của mỗi môn bằng đúng số tiết yêu cầu.
+5. Xuất JSON theo đúng cấu trúc, không thêm giải thích.
 
-Trả về JSON duy nhất, không giải thích, cấu trúc:
+Cấu trúc JSON:
 {{
   "timetable": {{
     "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
@@ -92,11 +98,13 @@ Trả về JSON duy nhất, không giải thích, cấu trúc:
     "Chủ nhật": [...]
   }}
 }}
-"""
+
+Hãy trả về JSON duy nhất."""
+
     try:
         response = model.generate_content(prompt)
         raw = response.text.strip()
-        # Xóa markdown
+        # Loại bỏ markdown
         if raw.startswith("```json"):
             raw = raw[7:]
         if raw.endswith("```"):
@@ -104,52 +112,38 @@ Trả về JSON duy nhất, không giải thích, cấu trúc:
         raw = raw.strip()
         result = json.loads(raw)
         timetable = result.get('timetable', {})
-        if not timetable:
-            raise ValueError("Empty timetable")
+        if not isinstance(timetable, dict) or len(timetable) == 0:
+            raise ValueError("Empty or invalid timetable")
         return jsonify({'success': True, 'timetable': timetable})
     except Exception as e:
-        print("Gemini error:", e)
-        # Fallback: tạo lịch đơn giản dựa trên từ khóa
-        fallback = create_fallback_timetable(user_text, subjects, disabled_days, weekdays, time_slots)
-        if fallback:
-            return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI chính xử lý lỗi, dùng fallback'})
-        else:
-            return jsonify({'success': False, 'error': f'Không thể xếp lịch: {str(e)}'})
+        # Không dùng fallback rule-based để tránh hiểu sai yêu cầu
+        return jsonify({'success': False, 'error': f'AI xử lý lỗi: {str(e)}. Vui lòng thử lại với câu lệnh rõ ràng hơn.'})
 
-def create_fallback_timetable(user_text, subjects, disabled_days, weekdays, time_slots):
-    """Hàm fallback đơn giản: tìm môn và ngày theo yêu cầu, xếp lần lượt vào các slot"""
-    import re
-    result = {day: [] for day in weekdays}
-    # Tìm môn và ngày từ text
-    subject_names = [s['name'] for s in subjects]
-    found_subject = None
-    found_day = None
-    for sub in subject_names:
-        if sub.lower() in user_text.lower():
-            found_subject = sub
-            break
-    for day in weekdays:
-        if day.lower() in user_text.lower():
-            found_day = day
-            break
-    # Nếu không tìm thấy, xếp bình thường (ưu tiên ngày đầu)
-    if found_subject and found_day:
-        day_idx = weekdays.index(found_day)
-        if disabled_days[day_idx]:
-            # Nếu ngày bị cấm thì thông báo (không xếp được)
-            return None
-        # Tìm các slot trống (giả sử tất cả slot đều trống, ta chỉ cần xếp đủ số tiết)
-        sessions_needed = next((s['sessions'] for s in subjects if s['name'] == found_subject), 0)
-        # Lấy các slot buổi sáng hoặc chiều (ưu tiên sáng)
-        slots_to_use = time_slots[:sessions_needed]  # lấy n tiết đầu tiên
-        for i in range(min(sessions_needed, len(slots_to_use))):
-            result[found_day].append({'start': slots_to_use[i], 'subject': found_subject})
-        # Cập nhật lại số tiết đã dùng cho môn đó
-        # (Trong fallback này ta không cần xử lý phức tạp, chỉ trả về lịch mẫu)
-    # Đối với các môn khác, xếp vào các ngày khác (đơn giản)
-    # (Có thể bỏ qua hoặc xếp lần lượt)
-    return result
+# ========== CAREER AI (TUYỂN SINH) ==========
+@app.route('/career')
+def career_page():
+    """Trang chat tư vấn nghề nghiệp"""
+    return send_file('career/chat.html')
 
+@app.route('/api/career-ai', methods=['POST'])
+def career_ai():
+    try:
+        data = request.json
+        user_message = data.get('message', '')
+        if not user_message:
+            return jsonify({'success': False, 'error': 'Tin nhắn trống'})
+
+        # Sử dụng model với system instruction cho career
+        career_model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction="Bạn là chuyên gia tuyển sinh StudyVerse. Tư vấn chọn ngành, chọn trường và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết."
+        )
+        response = career_model.generate_content(user_message)
+        return jsonify({'success': True, 'reply': response.text})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# ========== HÀM PHỤ TRỢ ==========
 def extract_preferences_from_text(text, subjects):
     """Hàm đơn giản trích xuất ưu tiên từ văn bản (fallback)"""
     preferences = {'preferred_slots': [], 'avoid_days': [], 'subject_preferences': {}}
@@ -162,7 +156,6 @@ def extract_preferences_from_text(text, subjects):
     for day_vn, idx in day_map.items():
         if f'tránh {day_vn}' in text_lower or f'không học {day_vn}' in text_lower:
             preferences['avoid_days'].append(idx)
-    # Ưu tiên môn theo buổi
     import re
     for subj in subjects:
         name = subj['name'].lower()
