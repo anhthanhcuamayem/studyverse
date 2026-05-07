@@ -639,3 +639,50 @@ function backToMain() {
     document.getElementById('mainProjectName').innerText = "My Projects";
     renderProjectListMain();
 }
+// ===== TÍCH HỢP AI XẾP LỊCH (DÙNG CHUNG VỚI SCHEDULE) =====
+// Hàm này gửi yêu cầu tới endpoint AI xếp lịch (đã có trong app.py)
+// Có thể gọi từ giao diện nếu muốn (ví dụ thêm nút "AI xếp lịch" trong mylist)
+window.askScheduleAI = async function() {
+    // Lấy nội dung từ ô nhập (có thể tạo thêm input với id="ai-prompt")
+    const userPrompt = document.getElementById('ai-prompt')?.value;
+    if (!userPrompt) {
+        alert("Hãy nhập yêu cầu xếp lịch!");
+        return;
+    }
+
+    // Lấy danh sách môn học từ biến toàn cục (nếu có trong trang mylist)
+    // Nếu chưa có, bạn có thể khởi tạo hoặc lấy từ localStorage
+    let subjects = [];
+    if (typeof allSubjects !== 'undefined') {
+        subjects = allSubjects;
+    } else {
+        // Thử lấy từ localStorage nếu đã lưu subjects từ schedule
+        const saved = localStorage.getItem('studyverse_subjects');
+        if (saved) subjects = JSON.parse(saved);
+    }
+
+    if (subjects.length === 0) {
+        alert("Chưa có môn học nào. Vui lòng thêm môn trước (trong trang Schedule).");
+        return;
+    }
+
+    try {
+        const res = await fetch('/schedule/ai-schedule', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: userPrompt, subjects: subjects })
+        });
+        const data = await res.json();
+        if (data.success) {
+            console.log("Đã nhận lịch từ AI:", data.timetable);
+            alert("AI đã xếp lịch thành công! Kiểm tra console để xem kết quả.");
+            // Nếu muốn hiển thị lịch ngay trong mylist, bạn cần tự viết hàm renderTimetable()
+            // Ví dụ: renderTimetable(data.timetable);
+        } else {
+            alert("Lỗi từ AI: " + (data.error || "Không rõ nguyên nhân"));
+        }
+    } catch (err) {
+        console.error("Lỗi khi gọi AI xếp lịch:", err);
+        alert("Lỗi kết nối đến server.");
+    }
+};
