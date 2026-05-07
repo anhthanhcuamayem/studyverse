@@ -10,10 +10,22 @@ app = Flask(__name__,
             static_folder='.',
             static_url_path='/')
 
-# Cấu hình Gemini API (thay bằng API key của bạn)
+# ========== CẤU HÌNH GEMINI API ==========
+# Ưu tiên lấy từ biến môi trường (Render), nếu không có dùng key mặc định (nên thay bằng key thật)
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyD7ykdqIuSGVA43RLQp_vZsxfAz7ZbfIP0")
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+
+def get_model(model_name="gemini-1.5-flash", instruction=None):
+    """Khởi tạo model với cơ chế xử lý lỗi tên model hoặc phiên bản thư viện cũ"""
+    try:
+        full_model_name = f"models/{model_name}" if not model_name.startswith("models/") else model_name
+        return genai.GenerativeModel(
+            model_name=full_model_name,
+            system_instruction=instruction
+        )
+    except Exception:
+        # Fallback về gemini-pro nếu bản flash không tồn tại
+        return genai.GenerativeModel(model_name="models/gemini-pro")
 
 # ========== ROUTES CŨ ==========
 @app.route('/')
@@ -43,7 +55,7 @@ def schedule_generate():
     timetable = create_timetable(subjects, availability, breaks, special_req)
     return jsonify({'success': True, 'timetable': timetable})
 
-# ========== AI SCHEDULE ENDPOINT (GEMINI) ==========
+# ========== AI SCHEDULE ENDPOINT (GEMINI) - GIỮ NGUYÊN PROMPT CHI TIẾT ==========
 @app.route('/schedule/ai-schedule', methods=['POST'])
 def ai_schedule():
     data = request.json
@@ -102,6 +114,7 @@ Cấu trúc JSON:
 Hãy trả về JSON duy nhất."""
 
     try:
+        model = get_model("gemini-1.5-flash")
         response = model.generate_content(prompt)
         raw = response.text.strip()
         # Loại bỏ markdown
@@ -133,12 +146,18 @@ def career_ai():
         if not user_message:
             return jsonify({'success': False, 'error': 'Tin nhắn trống'})
 
-        # Sử dụng model với system instruction cho career
-        career_model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction="Bạn là chuyên gia tuyển sinh StudyVerse. Tư vấn chọn ngành, chọn trường và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết."
+        instruction = (
+            "Bạn là chuyên gia tuyển sinh StudyVerse. Tư vấn chọn ngành, chọn trường "
+            "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, "
+            "phù hợp với học sinh trung học."
         )
-        response = career_model.generate_content(user_message)
+        model = get_model("gemini-1.5-flash", instruction=instruction)
+        try:
+            response = model.generate_content(user_message)
+        except:
+            # Fallback nếu system_instruction không được hỗ trợ
+            model = get_model("gemini-1.5-flash")
+            response = model.generate_content(f"{instruction}\n\nNgười dùng: {user_message}")
         return jsonify({'success': True, 'reply': response.text})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -164,6 +183,7 @@ def extract_preferences_from_text(text, subjects):
         elif re.search(rf'{name}.*chiều', text_lower):
             preferences['subject_preferences'][subj['name']] = 'afternoon'
     return preferences
+
 
 if __name__ == '__main__':
     app.run(debug=True)
