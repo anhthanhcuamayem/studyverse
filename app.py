@@ -9,33 +9,33 @@ app = Flask(__name__,
             static_folder='.',
             static_url_path='/')
 
-# ========== CẤU HÌNH AI (GEMINI) ==========
+# ========== CẤU HÌNH API KEY ==========
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyD7ykdqIuSGVA43RLQp_vZsxfAz7ZbfIP0")
 genai.configure(api_key=GEMINI_API_KEY)
 
 def call_gemini_safe(prompt, system_instruction=None):
-    """Hàm gọi AI an toàn, tự động thử các tên model khác nhau để tránh lỗi 404"""
-    # Thử danh sách model theo thứ tự ưu tiên
-    model_names = ['models/gemini-1.5-flash', 'models/gemini-pro', 'gemini-1.5-flash']
+    """Hàm gọi AI an toàn, tự sửa lỗi 404 và hỗ trợ fallback model"""
+    # Thử danh sách tên model có khả năng chạy cao nhất (có prefix models/)
+    models_to_try = ['models/gemini-1.5-flash', 'models/gemini-pro']
     
-    for name in model_names:
+    for model_name in models_to_try:
         try:
-            # Thử khởi tạo model
-            model = genai.GenerativeModel(model_name=name, system_instruction=system_instruction)
+            # Thử khởi tạo với system_instruction (chỉ bản mới hỗ trợ)
+            model = genai.GenerativeModel(model_name=model_name, system_instruction=system_instruction)
             response = model.generate_content(prompt)
             return response.text
-        except Exception as e:
-            # Nếu lỗi system_instruction (bản cũ), thử gộp vào prompt
+        except Exception:
             try:
-                model = genai.GenerativeModel(model_name=name)
+                # Nếu lỗi (có thể do bản cũ không hỗ trợ system_instruction), gộp vào prompt
+                model = genai.GenerativeModel(model_name=model_name)
                 full_prompt = f"{system_instruction}\n\n{prompt}" if system_instruction else prompt
                 response = model.generate_content(full_prompt)
                 return response.text
             except:
                 continue # Thử model tiếp theo
-    return "Lỗi: Không thể kết nối với AI sau nhiều lần thử."
+    return "Lỗi: Không thể kết nối với AI. Vui lòng kiểm tra lại thư viện google-generativeai."
 
-# ========== CÁC ROUTE GIAO DIỆN (GIỮ NGUYÊN ĐỂ KHÔNG LỖI TRANG) ==========
+# ========== ROUTES GIAO DIỆN (GIỮ ĐÚNG CẤU TRÚC FILE CỦA ÔNG) ==========
 @app.route('/')
 @app.route('/mylist')
 @app.route('/create')
@@ -44,14 +44,14 @@ def home():
 
 @app.route('/career')
 def career_page():
-    # Route này cực kỳ quan trọng để vào trang Career AI
+    # Giữ nguyên đường dẫn file chat.html của ông
     return send_file('career/chat.html')
 
 @app.route('/schedule/create')
 def schedule_create():
     return send_file('schedule/create.html')
 
-# ========== API XỬ LÝ (BACKEND) ==========
+# ========== API XỬ LÝ ==========
 
 # AI Xếp thời khóa biểu
 @app.route('/schedule/ai-schedule', methods=['POST'])
@@ -61,32 +61,33 @@ def ai_schedule():
         user_text = data.get('text', '')
         subjects = data.get('subjects', [])
         
-        prompt = f"Xếp lịch từ yêu cầu: {user_text}. Môn: {json.dumps(subjects)}. Trả về JSON: {{'timetable': {{...}}}}"
-        res = call_gemini_safe(prompt)
+        prompt = f"Xếp lịch từ: {user_text}. Môn: {json.dumps(subjects)}. Trả về JSON: {{'timetable': {{'Thứ 2': [...]}}}}"
+        res_text = call_gemini_safe(prompt)
         
-        # Lấy phần JSON trong kết quả AI
-        match = re.search(r'\{.*\}', res, re.DOTALL)
+        # Trích xuất JSON bằng regex để tránh rác từ AI
+        match = re.search(r'\{.*\}', res_text, re.DOTALL)
         if match:
-            return jsonify({'success': True, 'timetable': json.loads(match.group()).get('timetable', {})})
+            result = json.loads(match.group())
+            return jsonify({'success': True, 'timetable': result.get('timetable', {})})
         return jsonify({'success': False, 'error': 'AI không trả về JSON hợp lệ'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# AI Tư vấn nghề nghiệp (Career AI)
+# AI Tư vấn nghề nghiệp (Career)
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
     try:
         data = request.json
         user_message = data.get('message', '')
         
-        instruction = "Bạn là chuyên gia tư vấn hướng nghiệp StudyVerse Việt Nam. Hãy trả lời thân thiện, chi tiết bằng tiếng Việt."
+        instruction = "Bạn là chuyên gia tư vấn hướng nghiệp StudyVerse. Hãy trả lời thân thiện bằng tiếng Việt."
         reply = call_gemini_safe(user_message, system_instruction=instruction)
         
         return jsonify({'success': True, 'reply': reply})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Xếp lịch thủ công (nếu cần)
+# Xếp lịch thủ công (fallback)
 @app.route('/schedule/generate', methods=['POST'])
 def schedule_generate():
     try:
