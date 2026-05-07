@@ -11,7 +11,7 @@ app = Flask(__name__,
             static_url_path='/')
 
 # Cấu hình Gemini API (thay bằng API key của bạn)
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "0131a804a44be5434dbbdf218fab5fbe")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyD7ykdqIuSGVA43RLQp_vZsxfAz7ZbfIP0")
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
