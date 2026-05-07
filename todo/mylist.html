@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>My Project</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <!-- SỬA LẠI ĐƯỜNG DẪN CSS -->
@@ -66,12 +66,12 @@
                 <div class="detail-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <h2 id="mainProjectName" style="margin: 0;">My Projects</h2>
-                        <i class="fa-solid fa-pen btn-edit-name" style="cursor: pointer; font-size: 14px; color: rgba(255,255,255,0.3); display: none;" title="Sửa tên"></i>
+                        <i class="fa-solid fa-pen btn-edit-name" style="cursor: pointer; font-size: 14px; color: rgba(255,255,255,0.3); display: none;" title="Edit name"></i>
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: rgba(255,255,255,0.5); font-weight: 500;">
                         <span id="mainProjectDeadline"></span>
-                        <i class="fa-solid fa-pen btn-edit-deadline" style="cursor: pointer; font-size: 13px; color: rgba(255,255,255,0.3); display: none;" title="Sửa hạn chót"></i>
+                        <i class="fa-solid fa-pen btn-edit-deadline" style="cursor: pointer; font-size: 13px; color: rgba(255,255,255,0.3); display: none;" title="Edit deadline"></i>
                     </div>
                 </div> 
                 
@@ -87,15 +87,15 @@
 
                     <div id="taskInputCard" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; margin-top: 5px;">
     
-                        <input type="text" id="taskNameInput" placeholder="Tên công việc..." style="width: 100%; background: transparent; border: none; color: white; font-size: 15px; outline: none; margin-bottom: 8px;">
+                        <input type="text" id="taskNameInput" placeholder="Task name..." style="width: 100%; background: transparent; border: none; color: white; font-size: 15px; outline: none; margin-bottom: 8px;">
                         
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                             <i class="fa-regular fa-clock" style="color: #ffffff; font-size: 17px;"></i>
-                            <input type="text" id="taskDeadlineInput" placeholder="Deadline (VD: 20/10 hoặc Thứ 2)..." style="background: transparent; border: none; color: #ffffff; font-size: 13px; outline: none; width: 100%;">
+                            <input type="text" id="taskDeadlineInput" placeholder="Deadline (EX: 20/10 or Monday)..." style="background: transparent; border: none; color: #ffffff; font-size: 13px; outline: none; width: 100%;">
                         </div>
 
                         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                            <button id="btnCancelTask" style="background: transparent; color: #808080; border: none; padding: 5px 10px; cursor: pointer; font-size: 13px;">Hủy</button>
+                            <button id="btnCancelTask" style="background: transparent; color: #808080; border: none; padding: 5px 10px; cursor: pointer; font-size: 13px;">Cancel</button>
                             <button id="btnSaveTask" style="background: #db4c3f; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: 600;">Add task</button>
                         </div>
                     </div>
@@ -113,19 +113,19 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>New Project</h3>
-                <p>Tạo một không gian học tập mới</p>
+                
             </div>
             <div class="input-group">
-                <label for="projectNameInput">Tên dự án</label>
-                <input type="text" id="projectNameInput" placeholder="Ví dụ: Học Tiếng Anh,...">
+                <label for="projectNameInput">Project name</label>
+                <input type="text" id="projectNameInput" placeholder="EX: learn Endlish,...">
             </div>
             <div class="input-group" style="margin-top: 15px;">
-                <label for="projectDeadlineInput">Hạn chót (Deadline)</label>
+                <label for="projectDeadlineInput">Deadline</label>
                 <input type="date" id="projectDeadlineInput" style="font : 20px; width: 100%; padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: white;">
             </div>
             <div class="modal-footer">
-                <button class="btn-modal btn-cancel" id="btnCancel">Hủy</button>
-                <button class="btn-modal btn-confirm" id="btnConfirm">Tạo ngay</button>
+                <button class="btn-modal btn-cancel" id="btnCancel">Cancel</button>
+                <button class="btn-modal btn-confirm" id="btnConfirm">create</button>
             </div>
             
         </div>
