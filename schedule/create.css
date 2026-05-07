@@ -1,3 +1,352 @@
+
+:root {
+    --bg-color: #05070a;
+    --card-bg: #0d1117;
+    --primary-blue: #007AFF;
+    --text-white: #ffffff;
+    --text-gray: rgba(255, 255, 255, 0.6);
+    --border-soft: rgba(255, 255, 255, 0.08);
+    --white-glow: 0 10px 30px -5px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.03);
+}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+body {
+    background-color: var(--bg-color);
+    color: var(--text-white);
+    overflow-x: hidden;
+}
+
+.navbar {
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 115px;
+    background: rgba(5, 7, 10, 0.85);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--border-soft);
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 10px;
+    z-index: 1000;
+}
+.nav-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.logo {
+    font-size: 40px;
+    font-weight: 800;
+    text-decoration: none;
+    color: var(--text-white);
+}
+.logo span {
+    color: var(--primary-blue);
+}
+.navigation {
+    position: relative;
+    width: 350px;
+    height: 70px;
+    background: var(--card-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 14px;
+    border: 1px solid var(--border-soft);
+}
+.navigation ul {
+    display: flex;
+    position: relative;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+.navigation ul li {
+    position: relative;
+    list-style: none;
+    width: 70px;
+    height: 70px;
+    z-index: 10;
+}
+.navigation ul li a {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 100%;
+    text-align: center;
+    font-weight: 500;
+    color: #fff;
+    text-decoration: none;
+}
+.navigation ul li a .icon {
+    position: relative;
+    display: block;
+    line-height: 75px;
+    font-size: 1.5em;
+    text-align: center;
+    transition: 0.5s;
+    color: #fff;
+    z-index: 1000;
+}
+.navigation ul li a .text {
+    position: absolute;
+    font-weight: 400;
+    font-size: 0.75em;
+    letter-spacing: 0.05em;
+    transition: 0.5s;
+    opacity: 0;
+    transform: translateY(20px);
+    z-index: 100;
+}
+/* Gộp chung active và hover-effect để icon/chữ hiện lên */
+.navigation ul li.active a .icon,
+.navigation ul li.hover-effect a .icon {
+    color: #fff;
+    transform: translateY(-35px); /* Đẩy icon lên nếu menu bạn có hiệu ứng này */
+}
+
+.navigation ul li.active a .text,
+.navigation ul li.hover-effect a .text {
+    opacity: 1;
+    transform: translateY(10px); /* Hiện chữ bên dưới */
+}
+.indicator {
+    position: absolute;
+    top: -50%;
+    width: 70px;
+    height: 70px;
+    background: var(--primary-blue);
+    border-radius: 50%;
+    border: 6px solid #05070a;
+    transition: 0.5s;
+    z-index: 1;
+    left: 0;
+}
+/* Bỏ các rule transform cứng, sẽ dùng JS để set vị trí */
+/* Responsive */
+@media (max-width: 900px) {
+    .navbar { height: 90px; }
+    .main-schedule { padding-top: 130px; }
+    .logo { font-size: 28px; }
+    .navigation { width: 280px; height: 55px; }
+    .navigation ul li { width: 56px; height: 55px; }
+    .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
+    .navigation ul li.active a .icon { transform: translateY(-28px); }
+    .indicator { width: 55px; height: 55px; top: -40%; }
+}
+/* Phần còn lại giữ nguyên */
+.main-schedule {
+    padding-top: 160px;
+    padding-bottom: 60px;
+    min-height: 100vh;
+}
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+.schedule-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-soft);
+    border-radius: 32px;
+    padding: 28px 30px;
+    box-shadow: var(--white-glow);
+}
+h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #fff, var(--primary-blue));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+.intro-text {
+    color: var(--text-gray);
+    margin-bottom: 28px;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-left: 3px solid var(--primary-blue);
+    padding-left: 16px;
+}
+.subjects-panel {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 24px;
+    padding: 20px;
+    margin-bottom: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+.subjects-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+.subject-badge {
+    background: rgba(0, 122, 255, 0.2);
+    border: 1px solid rgba(0, 122, 255, 0.5);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+.subject-badge button {
+    background: #ff4d4d;
+    border: none;
+    color: white;
+    border-radius: 30px;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.add-subject-form {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.add-subject-form input {
+    background: #1e1e2f;
+    border: 1px solid var(--border-soft);
+    padding: 10px 14px;
+    border-radius: 16px;
+    color: white;
+    font-size: 0.9rem;
+    outline: none;
+}
+.add-subject-form input:focus {
+    border-color: var(--primary-blue);
+}
+button, .btn-main {
+    background: var(--primary-blue);
+    border: none;
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+}
+button:hover, .btn-main:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 122, 255, 0.4);
+    filter: brightness(1.05);
+}
+.ai-btn {
+    background: linear-gradient(135deg, #007AFF, #5e2a84);
+}
+.clear-btn {
+    background: rgba(255, 77, 77, 0.9);
+}
+.clear-btn:hover {
+    background: #ff4d4d;
+}
+.timetable-container {
+    overflow-x: auto;
+    margin: 28px 0 20px;
+    border-radius: 24px;
+    border: 1px solid var(--border-soft);
+    background: #0a0e14;
+}
+.timetable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 800px;
+}
+.timetable th, .timetable td {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 12px 8px;
+    text-align: center;
+    vertical-align: middle;
+}
+.timetable th {
+    background: #0f131c;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+.timetable th:hover {
+    background: var(--primary-blue);
+}
+.timetable td {
+    background: #0d1117;
+    color: var(--text-gray);
+    cursor: pointer;
+}
+.timetable td:hover {
+    background: #1a1f2a;
+}
+.timetable td.disabled-day {
+    background: repeating-linear-gradient(45deg, #1e1e2a, #1e1e2a 12px, #15171f 12px, #15171f 24px);
+    cursor: not-allowed;
+}
+.timetable td.x-mark {
+    background: #2a1215;
+    position: relative;
+}
+.timetable td.x-mark::after {
+    content: "✗";
+    font-size: 1.4rem;
+    font-weight: bold;
+    display: block;
+    color: #ff6b6b;
+}
+.timetable td.subject-cell {
+    background: rgba(0, 122, 255, 0.2);
+    font-weight: 600;
+    color: white;
+}
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin: 16px 0 20px;
+    font-size: 0.8rem;
+    color: var(--text-gray);
+}
+.legend span {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+.status {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 20px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 0.9rem;
+    border-left: 4px solid var(--primary-blue);
+}
 /* Subject picker floating */
 .subject-picker {
     position: absolute;
