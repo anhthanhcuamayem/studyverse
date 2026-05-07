@@ -1,73 +1,50 @@
 const list = document.querySelectorAll('.list');
 const indicator = document.querySelector('.indicator');
 
-// --- 1. HÀM CẬP NHẬT VỊ TRÍ (Dùng chung) ---
 function moveIndicator(element, speed = '0.5s') {
     if (!element || !indicator) return;
     indicator.style.transition = speed;
     indicator.style.transform = `translateX(${element.offsetLeft}px)`;
 }
 
-// --- 2. XỬ LÝ KHI LOAD TRANG (Chống chạy từ Home sang Create) ---
 window.addEventListener('DOMContentLoaded', () => {
     const activeItem = document.querySelector('.list.active');
     if (activeItem) {
-        // Nhảy ngay lập tức đến mục active, không trượt
         moveIndicator(activeItem, 'none');
-        
-        // Bật lại hiệu ứng sau khi đã nằm đúng chỗ
-        setTimeout(() => {
-            indicator.style.transition = '0.5s';
-        }, 50);
+        setTimeout(() => { indicator.style.transition = '0.5s'; }, 50);
     }
 });
 
-// --- 3. XỬ LÝ DI CHUỘT (HOVER & CLICK) ---
 list.forEach((item) => {
-    // KHI RÀ CHUỘT VÀO: Hiện icon/chữ của mục đó
     item.addEventListener('mouseenter', function() {
-        // Hình tròn trượt theo
         moveIndicator(this, '0.5s');
-
-        // THÊM CLASS ĐỂ HIỆN ICON/CHỮ (Sửa lỗi bạn đang gặp)
-        // Ta tạm thời coi mục đang hover như là mục active
         list.forEach(li => li.classList.remove('hover-effect'));
         this.classList.add('hover-effect');
     });
-
-    // KHI CLICK: Chuyển trang
     item.addEventListener('click', function() {
         list.forEach(li => li.classList.remove('active'));
         this.classList.add('active');
         moveIndicator(this, '0.5s');
     });
 });
-
-// KHI RỜI CHUỘT KHỎI MENU: Quay về mục Active chính
 const navigation = document.querySelector('.navigation');
 if (navigation) {
     navigation.addEventListener('mouseleave', () => {
         const activeItem = document.querySelector('.list.active');
         moveIndicator(activeItem, '0.5s');
-        
-        // Xóa hết hiệu ứng hover để trả về trạng thái chỉ mục active sáng
         list.forEach(li => li.classList.remove('hover-effect'));
     });
 }
-// ---------- CĂN CHỈNH INDICATOR ĐỘNG ----------
 function setIndicatorPosition() {
     const activeItem = document.querySelector('.navigation ul li.active');
-    const indicator = document.querySelector('.indicator');
     if (activeItem && indicator) {
-        const leftPos = activeItem.offsetLeft;
-        indicator.style.transform = `translateX(${leftPos}px)`;
+        indicator.style.transform = `translateX(${activeItem.offsetLeft}px)`;
     }
 }
 window.addEventListener('load', setIndicatorPosition);
 window.addEventListener('resize', setIndicatorPosition);
-// Nếu có thay đổi active bằng JS (không có ở đây) nhưng vẫn an toàn
 
-// ---------- TOÀN BỘ LOGIC LỊCH (GIỮ NGUYÊN) ----------
+// ========== LOGIC LỊCH ==========
 const lessonSlots = [
     "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
     "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
@@ -78,6 +55,14 @@ let timetableData = [];
 let disabledDays = new Array(7).fill(false);
 let subjects = [];
 let subjectCounts = {};
+let currentPicker = null;
+
+function closePicker() {
+    if (currentPicker) {
+        currentPicker.remove();
+        currentPicker = null;
+    }
+}
 
 function getEndTime(startTime) {
     let [h, m] = startTime.split(':').map(Number);
@@ -147,7 +132,7 @@ function renderTable() {
             const day = parseInt(td.dataset.day);
             const slot = parseInt(td.dataset.slot);
             if (disabledDays[day]) return;
-            handleCellClick(day, slot);
+            handleCellClick(day, slot, td);
         });
         td.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -173,9 +158,10 @@ function toggleDisableDay(day) {
         }
     }
     renderTable();
+    closePicker();
 }
 
-function handleCellClick(day, slot) {
+function handleCellClick(day, slot, tdElement) {
     const current = timetableData[day][slot];
     if (current && current.type === 'subject') {
         const subjName = current.name;
@@ -189,39 +175,7 @@ function handleCellClick(day, slot) {
         renderTable();
         return;
     }
-    showSubjectPicker(day, slot);
-}
-
-function showSubjectPicker(day, slot) {
-    if (subjects.length === 0) {
-        alert("Vui lòng thêm môn học trước!");
-        return;
-    }
-    let options = subjects.map(s => `${s.name} (${subjectCounts[s.name] || 0}/${s.sessions} tiết)`);
-    options.push("Đánh dấu X (không học)");
-    const choice = prompt("Chọn môn học (hoặc X):\n" + options.map((opt, idx) => `${idx+1}. ${opt}`).join("\n") + "\n\nNhập số:");
-    if (choice === null) return;
-    const idx = parseInt(choice) - 1;
-    if (isNaN(idx)) return;
-    if (idx === subjects.length) {
-        toggleXMark(day, slot);
-        return;
-    }
-    if (idx >= 0 && idx < subjects.length) {
-        const selectedSubj = subjects[idx];
-        const currentCount = subjectCounts[selectedSubj.name] || 0;
-        if (currentCount >= selectedSubj.sessions) {
-            alert(`Môn ${selectedSubj.name} đã đủ ${selectedSubj.sessions} tiết! Không thể thêm.`);
-            return;
-        }
-        if (timetableData[day][slot] !== null) {
-            alert("Ô này đã có nội dung, hãy xóa trước.");
-            return;
-        }
-        timetableData[day][slot] = { type: 'subject', name: selectedSubj.name };
-        subjectCounts[selectedSubj.name] = (subjectCounts[selectedSubj.name] || 0) + 1;
-        renderTable();
-    }
+    showSubjectPicker(day, slot, tdElement);
 }
 
 function toggleXMark(day, slot) {
@@ -238,6 +192,75 @@ function toggleXMark(day, slot) {
     renderTable();
 }
 
+function showSubjectPicker(day, slot, tdElement) {
+    if (subjects.length === 0) {
+        alert("Vui lòng thêm môn học trước!");
+        return;
+    }
+    closePicker();
+    const availableSubjects = subjects.filter(subj => (subjectCounts[subj.name] || 0) < subj.sessions);
+    if (availableSubjects.length === 0 && subjects.length > 0) {
+        alert("Tất cả các môn đã đủ số tiết! Không thể thêm.");
+        return;
+    }
+    const pickerDiv = document.createElement('div');
+    pickerDiv.className = 'subject-picker';
+    availableSubjects.forEach(subj => {
+        const btn = document.createElement('button');
+        const remaining = subj.sessions - (subjectCounts[subj.name] || 0);
+        btn.textContent = `${subj.name} (còn ${remaining} tiết)`;
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            if (timetableData[day][slot] !== null) {
+                alert("Ô này đã có nội dung, hãy xóa trước.");
+                closePicker();
+                return;
+            }
+            timetableData[day][slot] = { type: 'subject', name: subj.name };
+            subjectCounts[subj.name] = (subjectCounts[subj.name] || 0) + 1;
+            renderTable();
+            closePicker();
+        };
+        pickerDiv.appendChild(btn);
+    });
+    const xBtn = document.createElement('button');
+    xBtn.textContent = "✗ Không học";
+    xBtn.className = 'x-btn';
+    xBtn.onclick = (e) => {
+        e.stopPropagation();
+        toggleXMark(day, slot);
+        closePicker();
+    };
+    pickerDiv.appendChild(xBtn);
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = "Hủy";
+    cancelBtn.onclick = () => closePicker();
+    pickerDiv.appendChild(cancelBtn);
+    const rect = tdElement.getBoundingClientRect();
+    let left = rect.left + window.scrollX;
+    let top = rect.bottom + window.scrollY + 5;
+    const pickerWidth = 200;
+    if (left + pickerWidth > window.innerWidth + window.scrollX) {
+        left = rect.right + window.scrollX - pickerWidth;
+        if (left < window.scrollX) left = rect.left + window.scrollX;
+    }
+    if (top + 150 > window.innerHeight + window.scrollY) {
+        top = rect.top + window.scrollY - 150;
+    }
+    pickerDiv.style.position = 'fixed';
+    pickerDiv.style.left = `${left}px`;
+    pickerDiv.style.top = `${top}px`;
+    document.body.appendChild(pickerDiv);
+    currentPicker = pickerDiv;
+    const outsideClick = (e) => {
+        if (!pickerDiv.contains(e.target)) {
+            closePicker();
+            document.removeEventListener('click', outsideClick);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', outsideClick), 10);
+}
+
 function updateStatus() {
     let totalPlanned = 0, totalScheduled = 0;
     subjects.forEach(s => {
@@ -248,9 +271,9 @@ function updateStatus() {
     const statusDiv = document.getElementById('status');
     statusDiv.innerHTML = `<strong>📊 Tiến độ:</strong> Đã xếp ${totalScheduled}/${totalPlanned} tiết. `;
     if (totalScheduled < totalPlanned) {
-        statusDiv.innerHTML += `<span style="color:#ffaa33;">Còn thiếu ${totalPlanned - totalScheduled} tiết. Dùng AI để xếp tự động hoặc chọn thêm.</span>`;
+        statusDiv.innerHTML += `<span style="color:#ffaa33;">Còn thiếu ${totalPlanned - totalScheduled} tiết.</span>`;
     } else if (totalScheduled === totalPlanned && totalPlanned > 0) {
-        statusDiv.innerHTML += `<span style="color:#2ecc71;">✅ Tuyệt vời! Bạn đã xếp đủ số tiết cho tất cả môn.</span>`;
+        statusDiv.innerHTML += `<span style="color:#2ecc71;">✅ Tuyệt vời! Bạn đã xếp đủ số tiết.</span>`;
     }
     subjects.forEach(s => {
         statusDiv.innerHTML += `<br> - ${s.name}: ${subjectCounts[s.name] || 0}/${s.sessions}`;
