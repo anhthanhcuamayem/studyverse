@@ -11,34 +11,61 @@ app = Flask(__name__,
             static_url_path='/')
 
 # ========== CẤU HÌNH GEMINI API ==========
-# Ưu tiên lấy từ biến môi trường (Render), nếu không có dùng key mặc định (nên thay bằng key thật)
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyD7ykdqIuSGVA43RLQp_vZsxfAz7ZbfIP0")
 genai.configure(api_key=GEMINI_API_KEY)
 
-def get_model(model_name="gemini-1.5-flash", instruction=None):
-    """Khởi tạo model với cơ chế xử lý lỗi tên model hoặc phiên bản thư viện cũ"""
+def get_available_model():
+    """Trả về tên model khả dụng, ưu tiên gemini-1.5-flash, nếu không thì gemini-pro"""
     try:
-        full_model_name = f"models/{model_name}" if not model_name.startswith("models/") else model_name
-        return genai.GenerativeModel(
-            model_name=full_model_name,
-            system_instruction=instruction
-        )
+        # Thử tạo model gemini-1.5-flash để kiểm tra
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Nếu không lỗi, trả về tên đó
+        return 'gemini-1.5-flash'
     except Exception:
-        # Fallback về gemini-pro nếu bản flash không tồn tại
-        return genai.GenerativeModel(model_name="models/gemini-pro")
+        try:
+            # Thử gemini-pro
+            model = genai.GenerativeModel('gemini-pro')
+            return 'gemini-pro'
+        except:
+            return None
 
-# ========== ROUTES CŨ ==========
+def generate_with_fallback(prompt, system_instruction=None):
+    """Gọi Gemini với fallback model nếu lỗi"""
+    model_name = get_available_model()
+    if not model_name:
+        raise Exception("No available Gemini model")
+    try:
+        if system_instruction:
+            model = genai.GenerativeModel(model_name, system_instruction=system_instruction)
+        else:
+            model = genai.GenerativeModel(model_name)
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        # Nếu lỗi và model là flash, thử lại với pro
+        if model_name == 'gemini-1.5-flash':
+            try:
+                model = genai.GenerativeModel('gemini-pro')
+                if system_instruction:
+                    # system_instruction không được hỗ trợ trong pro, nên gộp vào prompt
+                    prompt = f"{system_instruction}\n\n{prompt}"
+                response = model.generate_content(prompt)
+                return response.text
+            except:
+                raise e
+        else:
+            raise e
+
+# ========== ROUTES ==========
 @app.route('/')
+@app.route('/mylist')
+@app.route('/create')
 def home():
     return render_template('index.html')
 
-@app.route('/mylist')
-def mylist():
-    return render_template('index.html')
-
-@app.route('/create')
-def create():
-    return render_template('index.html')
+@app.route('/career')
+def career_page():
+    return send_file('career/chat.html')
 
 @app.route('/schedule/create')
 def schedule_create():
@@ -55,7 +82,7 @@ def schedule_generate():
     timetable = create_timetable(subjects, availability, breaks, special_req)
     return jsonify({'success': True, 'timetable': timetable})
 
-# ========== AI SCHEDULE ENDPOINT (GEMINI) - GIỮ NGUYÊN PROMPT CHI TIẾT ==========
+# ========== AI SCHEDULE ==========
 @app.route('/schedule/ai-schedule', methods=['POST'])
 def ai_schedule():
     data = request.json
@@ -66,13 +93,11 @@ def ai_schedule():
     if not subjects:
         return jsonify({'success': False, 'error': 'Chưa có môn học nào'})
 
-    # Chuẩn bị danh sách môn và ngày nghỉ
     subject_list = ', '.join([f"{s['name']} ({s['sessions']} tiết)" for s in subjects])
     days_vn = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
     disabled_names = [days_vn[i] for i, d in enumerate(disabled_days) if d]
     disabled_str = ', '.join(disabled_names) if disabled_names else "không có"
 
-    # Các khung giờ có sẵn
     time_slots = ["07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
                   "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"]
     morning_slots = [t for t in time_slots if int(t[:2]) < 12]
@@ -114,10 +139,8 @@ Cấu trúc JSON:
 Hãy trả về JSON duy nhất."""
 
     try:
-        model = get_model("gemini-1.5-flash")
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
-        # Loại bỏ markdown
+        raw = generate_with_fallback(prompt)
+        # Làm sạch JSON
         if raw.startswith("```json"):
             raw = raw[7:]
         if raw.endswith("```"):
@@ -126,18 +149,12 @@ Hãy trả về JSON duy nhất."""
         result = json.loads(raw)
         timetable = result.get('timetable', {})
         if not isinstance(timetable, dict) or len(timetable) == 0:
-            raise ValueError("Empty or invalid timetable")
+            raise ValueError("Empty timetable")
         return jsonify({'success': True, 'timetable': timetable})
     except Exception as e:
-        # Không dùng fallback rule-based để tránh hiểu sai yêu cầu
-        return jsonify({'success': False, 'error': f'AI xử lý lỗi: {str(e)}. Vui lòng thử lại với câu lệnh rõ ràng hơn.'})
+        return jsonify({'success': False, 'error': f'AI xử lý lỗi: {str(e)}. Vui lòng thử lại.'})
 
-# ========== CAREER AI (TUYỂN SINH) ==========
-@app.route('/career')
-def career_page():
-    """Trang chat tư vấn nghề nghiệp"""
-    return send_file('career/chat.html')
-
+# ========== CAREER AI ==========
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
     try:
@@ -151,20 +168,15 @@ def career_ai():
             "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, "
             "phù hợp với học sinh trung học."
         )
-        model = get_model("gemini-1.5-flash", instruction=instruction)
-        try:
-            response = model.generate_content(user_message)
-        except:
-            # Fallback nếu system_instruction không được hỗ trợ
-            model = get_model("gemini-1.5-flash")
-            response = model.generate_content(f"{instruction}\n\nNgười dùng: {user_message}")
-        return jsonify({'success': True, 'reply': response.text})
+        # Gộp instruction vào prompt vì system_instruction có thể không được hỗ trợ
+        full_prompt = f"{instruction}\n\nNgười dùng: {user_message}"
+        reply = generate_with_fallback(full_prompt)
+        return jsonify({'success': True, 'reply': reply})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ========== HÀM PHỤ TRỢ ==========
+# ========== HÀM PHỤ ==========
 def extract_preferences_from_text(text, subjects):
-    """Hàm đơn giản trích xuất ưu tiên từ văn bản (fallback)"""
     preferences = {'preferred_slots': [], 'avoid_days': [], 'subject_preferences': {}}
     text_lower = text.lower()
     if 'sáng' in text_lower or 'buổi sáng' in text_lower:
@@ -184,6 +196,6 @@ def extract_preferences_from_text(text, subjects):
             preferences['subject_preferences'][subj['name']] = 'afternoon'
     return preferences
 
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
