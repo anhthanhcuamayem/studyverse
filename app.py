@@ -18,18 +18,14 @@ if not GROQ_API_KEY:
 else:
     groq_client = Groq(api_key=GROQ_API_KEY)
 
-def generate_with_groq(prompt, system_instruction=None):
+def generate_with_groq(messages):
+    """Gửi danh sách messages (đã có system + user + assistant) lên Groq."""
     if not groq_client:
         return "Xin lỗi, tính năng AI chưa được cấu hình. Vui lòng thử lại sau."
     try:
-        messages = []
-        if system_instruction:
-            messages.append({"role": "system", "content": system_instruction})
-        messages.append({"role": "user", "content": prompt})
-        # Sử dụng model mới được hỗ trợ (thay thế mixtral-8x7b-32768)
         chat_completion = groq_client.chat.completions.create(
             messages=messages,
-            model="llama-3.3-70b-versatile",  # hoặc "llama-3.1-8b-instant"
+            model="llama-3.3-70b-versatile",  # ổn định, mới nhất
             temperature=0.7,
             max_tokens=1024,
         )
@@ -132,7 +128,8 @@ Xuất JSON duy nhất:
   }}
 }}"""
     try:
-        raw = generate_with_groq(prompt)
+        messages = [{"role": "user", "content": prompt}]
+        raw = generate_with_groq(messages)
         if raw.startswith("```json"): raw = raw[7:]
         if raw.endswith("```"): raw = raw[:-3]
         raw = raw.strip()
@@ -160,48 +157,34 @@ Xuất JSON duy nhất:
                 fallback[day] = items
         return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI tạm thời không khả dụng, dùng lịch mẫu'})
 
-# ========== CAREER AI ==========
+# ========== CAREER AI (CÓ NHỚ LỊCH SỬ) ==========
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
     data = request.json
     user_message = data.get('message', '')
-    history = data.get('history', [])  # lịch sử từ frontend
-    
+    history = data.get('history', [])  # lịch sử từ frontend (không bao gồm tin nhắn user vừa gửi)
+
     if not user_message:
         return jsonify({'success': False, 'error': 'Tin nhắn trống'})
 
     system_instruction = (
-        "Bạn là chuyên gia tuyển sinh StudyVerse - một trang web do học sinh và vì học sinh. Tư vấn chọn ngành, chọn trường "
-        "có thể đặt các câu hỏi về môn học yêu thích, điểm mạnh về môn nào, sở thích đặc biệt, có năng khiếu gì không, có thành tích nào nổi trội như hsg không? "
-        "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, "
-        "ngắn gọn nhưng đầy đủ thông tin. "
-        "hãy cư xử giống 1 con người với các lập luận và số liệu nếu có. "
-        "hãy hỏi người dùng thêm nếu còn khá mong lung với các quyết định. "
-        "phân tích thị trường hiện nay và các trường và điểm chuẩn nếu người dùng cần biết về ngành và nhóm ngành gần nơi họ(có thể hỏi về tỉnh thành). "
-        "muốn giống con người thì hỏi từ tốn thôi, khuyến khích 1 đến 2 câu hỏi 1 lần. "
-        "hãy tâm sự như một người bạn, ghi nhớ những gì đã được biết và đừng vội kết thúc cuộc trò chuyện mà quay lại từ đầu."
+        "Bạn là chuyên gia tuyển sinh StudyVerse - một trang web do học sinh và vì học sinh. Tư vấn chọn ngành, chọn trường. "
+        "Có thể đặt các câu hỏi về môn học yêu thích, điểm mạnh, sở thích, năng khiếu, thành tích (HSG...). "
+        "Hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, ngắn gọn nhưng đầy đủ. "
+        "Cư xử như con người với lập luận và số liệu nếu có. Hỏi thêm nếu còn mơ hồ. Phân tích thị trường, trường, điểm chuẩn theo yêu cầu. "
+        "Hỏi từ tốn, khuyến khích 1-2 câu hỏi mỗi lần. Tâm sự như bạn bè, ghi nhớ những gì đã biết, không vội kết thúc."
     )
-    
+
+    # Xây dựng messages: system + lịch sử + tin nhắn mới
+    messages = [{"role": "system", "content": system_instruction}]
+    for msg in history:
+        messages.append({"role": msg['role'], "content": msg['content']})
+    messages.append({"role": "user", "content": user_message})
+
     try:
-        if not groq_client:
-            return jsonify({'success': False, 'error': 'Chưa cấu hình API key Groq'})
-        
-        # Xây dựng messages: system + lịch sử + tin nhắn mới
-        messages = [{"role": "system", "content": system_instruction}]
-        for msg in history:
-            messages.append({"role": msg['role'], "content": msg['content']})
-        messages.append({"role": "user", "content": user_message})
-        
-        chat_completion = groq_client.chat.completions.create(
-            messages=messages,
-            model="llama-3.3-70b-versatile",
-            temperature=0.7,
-            max_tokens=1024,
-        )
-        reply = chat_completion.choices[0].message.content
+        reply = generate_with_groq(messages)
         return jsonify({'success': True, 'reply': reply})
     except Exception as e:
-        print("Career AI error:", e)
         return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
