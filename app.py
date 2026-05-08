@@ -26,10 +26,10 @@ def generate_with_groq(prompt, system_instruction=None):
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
         messages.append({"role": "user", "content": prompt})
-        # Dùng model ổn định, được hỗ trợ rộng rãi
+        # Sử dụng model mới được hỗ trợ (thay thế mixtral-8x7b-32768)
         chat_completion = groq_client.chat.completions.create(
             messages=messages,
-            model=llama-3.3-70b-versatile",  # Hoặc "llama3-8b-8192"
+            model="llama-3.3-70b-versatile",  # hoặc "llama-3.1-8b-instant"
             temperature=0.7,
             max_tokens=1024,
         )
@@ -160,7 +160,7 @@ Xuất JSON duy nhất:
                 fallback[day] = items
         return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI tạm thời không khả dụng, dùng lịch mẫu'})
 
-# ========== CAREER AI (DÙNG GROQ) ==========
+# ========== CAREER AI ==========
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
     data = request.json
