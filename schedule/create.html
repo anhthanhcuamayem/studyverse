@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>StudyVerse - Lịch học thông minh</title>
+    <title>Schedule</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="create.css">
@@ -48,19 +48,19 @@
 <main class="main-schedule">
     <div class="container">
         <div class="schedule-card">
-            <h1><i class="fa-regular fa-calendar-alt"></i> Lịch học tương tác</h1>
+            <h1><i class="fa-regular fa-calendar-alt"></i> Interactive Schedule</h1>
             <div class="intro-text">
-                👉 Click vào <strong>cột ngày (Thứ...)</strong> để bật/tắt nghỉ cả ngày.<br>
-                👉 Click vào <strong>ô tiết học</strong> để chọn môn hoặc đánh dấu ✗ (không học).<br>
-                👉 Mỗi môn có giới hạn số tiết, hệ thống tự kiểm soát.
+                👉 Click <strong>a day (Mon, Tue...)</strong> to turn the whole day on/off.<br>
+                👉 Click <strong>a box</strong> to choose a subject or mark X (no class).<br>
+                👉 Each subject has a limited number of periods.
             </div>
 
             <div class="subjects-panel" id="subjects-panel">
                 <div class="subjects-list" id="subjects-list"></div>
                 <div class="add-subject-form">
-                    <input type="text" id="new-subject-name" placeholder="Tên môn học" autocomplete="off">
-                    <input type="number" id="new-subject-sessions" placeholder="Số tiết" min="1" value="2" style="width: 100px;">
-                    <button id="add-subject-btn"><i class="fa-solid fa-plus-circle"></i> Thêm môn</button>
+                    <input type="text" id="new-subject-name" placeholder=" Subjects name" autocomplete="off">
+                    <input type="number" id="new-subject-sessions" placeholder="Periods" min="1" value="2" style="width: 100px;">
+                    <button id="add-subject-btn"><i class="fa-solid fa-plus-circle"></i> Add subjects</button>
                 </div>
             </div>
 
@@ -72,14 +72,14 @@
             </div>
 
             <div class="legend">
-                <div><span style="background:#007AFF33; border:1px solid #007AFF;"></span> Đã xếp môn</div>
-                <div><span style="background:#2a1215;"></span> Đánh dấu ✗ (không học)</div>
-                <div><span style="background: repeating-linear-gradient(45deg, #1e1e2a, #1e1e2a 12px, #15171f 12px, #15171f 24px);"></span> Cả ngày nghỉ</div>
+                <div><span style="background:#007AFF33; border:1px solid #007AFF;"></span> Subject assigned</div>
+                <div><span style="background:#2a1215;"></span> Marked X (No class)</div>
+                <div><span style="background: repeating-linear-gradient(45deg, #1e1e2a, #1e1e2a 12px, #15171f 12px, #15171f 24px);"></span> Full day off</div>
             </div>
 
             <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px;">
-                <button class="ai-btn" id="auto-schedule"><i class="fa-solid fa-robot"></i> AI tự động xếp lịch</button>
-                <button class="clear-btn" id="clear-all"><i class="fa-solid fa-trash-can"></i> Xóa toàn bộ</button>
+                <button class="ai-btn" id="auto-schedule"><i class="fa-solid fa-robot"></i> Auto Schedule</button>
+                <button class="clear-btn" id="clear-all"><i class="fa-solid fa-trash-can"></i> Delete all</button>
             </div>
 
             <div id="status" class="status"></div>
