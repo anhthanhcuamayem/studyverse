@@ -1,9 +1,11 @@
-// career/chat.js
+// career/chat.js - CÓ LƯU LỊCH SỬ
 document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('sendBtn');
     const userInput = document.getElementById('userInput');
     const chatMessages = document.getElementById('chatMessages');
     const resetBtn = document.getElementById('resetChatBtn');
+
+    let conversationHistory = []; // Lưu lịch sử chat
 
     function addMessage(text, isUser = false) {
         const messageDiv = document.createElement('div');
@@ -20,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.appendChild(contentDiv);
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Lưu vào lịch sử
+        conversationHistory.push({ role: isUser ? 'user' : 'assistant', content: text });
     }
 
     async function sendToAI(message) {
@@ -34,7 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/career-ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ 
+                    message: message,
+                    history: conversationHistory.slice(0, -1) // gửi lịch sử (trừ tin nhắn vừa thêm)
+                })
             });
             const data = await response.json();
             typingDiv.remove();
@@ -72,37 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     resetBtn.addEventListener('click', () => {
-        if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử chat?')) {
+        if (confirm('Xóa toàn bộ lịch sử chat?')) {
             chatMessages.innerHTML = '';
+            conversationHistory = [];
             addMessage("Chào bạn! Tôi là AI Career Advisor. Hãy cho tôi biết sở thích, điểm mạnh, hoặc ngành học bạn quan tâm, tôi sẽ gợi ý các nghề nghiệp phù hợp. Ví dụ: \"Tôi thích toán và lập trình\", \"Em mê vẽ và thiết kế\", \"Làm sao để trở thành bác sĩ?\"...", false);
         }
     });
 
-    // Tin nhắn chào mừng ban đầu
+    // Tin nhắn chào
     addMessage("Chào bạn! Tôi là AI Career Advisor. Hãy cho tôi biết sở thích, điểm mạnh, hoặc ngành học bạn quan tâm, tôi sẽ gợi ý các nghề nghiệp phù hợp. Ví dụ: \"Tôi thích toán và lập trình\", \"Em mê vẽ và thiết kế\", \"Làm sao để trở thành bác sĩ?\"...", false);
 });
-// ===== XỬ LÝ INDICATOR RIÊNG CHO TRANG CAREER =====
-(function() {
-    const list = document.querySelectorAll('.list');
-    const indicator = document.querySelector('.indicator');
-    const navBar = document.querySelector('.navigation');
-    if (!indicator || !list.length) return;
-    
-    function moveTo(el, transition = '0.3s') {
-        if (!el) return;
-        indicator.style.transition = `transform ${transition} ease-out`;
-        indicator.style.transform = `translateX(${el.offsetLeft}px)`;
-    }
-    
-    function resetToActive() {
-        const active = document.querySelector('.list.active');
-        if (active) moveTo(active, '0.3s');
-    }
-    
-    list.forEach(item => {
-        item.addEventListener('mouseenter', () => moveTo(item, '0.2s'));
-    });
-    if (navBar) navBar.addEventListener('mouseleave', resetToActive);
-    window.addEventListener('resize', resetToActive);
-    resetToActive(); // đặt vị trí ban đầu
-})();
