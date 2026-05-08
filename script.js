@@ -1,53 +1,56 @@
-// 1. KHỞI TẠO
-const list = document.querySelectorAll('.list');
-const indicator = document.querySelector('.indicator');
-const nav = document.querySelector('.navigation');
-
-// Hàm di chuyển indicator đến một phần tử (dùng offsetLeft)
-function moveIndicatorTo(element) {
-    if (!indicator || !element) return;
-    const leftPos = element.offsetLeft;
-    indicator.style.transition = 'transform 0.3s ease-out';
-    indicator.style.transform = `translateX(${leftPos}px)`;
-}
-
-// Hàm làm mới về vị trí active
-function refreshIndicator() {
-    const activeItem = document.querySelector('.list.active');
-    if (activeItem) {
-        moveIndicatorTo(activeItem);
+// ========== INDICATOR SLIDING (FIXED) ==========
+document.addEventListener('DOMContentLoaded', () => {
+    const list = document.querySelectorAll('.list');
+    const indicator = document.querySelector('.indicator');
+    if (!indicator) return;
+    
+    function moveTo(element, transition = '0.3s ease-out') {
+        if (!element) return;
+        indicator.style.transition = `transform ${transition}`;
+        indicator.style.transform = `translateX(${element.offsetLeft}px)`;
     }
-}
-
-// Gán sự kiện hover cho từng tab
-list.forEach(item => {
-    item.addEventListener('mouseenter', () => {
-        moveIndicatorTo(item);
+    
+    function getActive() {
+        return document.querySelector('.list.active');
+    }
+    
+    // Hover: di chuyển đến tab được trỏ
+    list.forEach(item => {
+        item.addEventListener('mouseenter', () => moveTo(item, '0.2s ease-out'));
     });
-});
-
-// Khi chuột rời khỏi vùng navbar, trả về vị trí active
-if (nav) {
-    nav.addEventListener('mouseleave', refreshIndicator);
-}
-
-// Khởi tạo vị trí ban đầu khi trang load
-window.addEventListener('DOMContentLoaded', () => {
-    refreshIndicator();
-    // Đảm bảo icon và text active đúng
-    const activePath = window.location.pathname;
+    
+    // Khi chuột rời khỏi toàn bộ thanh navbar, trả về active
+    const navbar = document.querySelector('.navbar');
+    if (navbar) {
+        navbar.addEventListener('mouseleave', () => {
+            const active = getActive();
+            if (active) moveTo(active, '0.3s ease-out');
+        });
+    }
+    
+    // Đặt vị trí ban đầu
+    const active = getActive();
+    if (active) moveTo(active, '0s');
+    
+    // Xử lý click để chuyển trang
     list.forEach((item, idx) => {
         const link = item.querySelector('a');
-        if (link && activePath.includes(link.getAttribute('href'))) {
-            item.classList.add('active');
-        } else if (idx === 0 && (activePath === '/' || activePath === '/index.html')) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
+        if (link && link.getAttribute('href') !== '#') {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                list.forEach(l => l.classList.remove('active'));
+                item.classList.add('active');
+                moveTo(item, '0.2s');
+                setTimeout(() => {
+                    window.location.href = link.getAttribute('href');
+                }, 120);
+            });
         }
     });
-    refreshIndicator();
+    
+    // Khi resize cửa sổ
+    window.addEventListener('resize', () => {
+        const active = getActive();
+        if (active) moveTo(active, '0s');
+    });
 });
-
-// Khi resize trình duyệt, cập nhật lại vị trí active
-window.addEventListener('resize', refreshIndicator);
