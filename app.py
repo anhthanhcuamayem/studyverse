@@ -26,16 +26,17 @@ def generate_with_groq(prompt, system_instruction=None):
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
         messages.append({"role": "user", "content": prompt})
+        # Dùng model ổn định, được hỗ trợ rộng rãi
         chat_completion = groq_client.chat.completions.create(
             messages=messages,
-            model="llama-3.1-70b-versatile",
+            model="mixtral-8x7b-32768",  # Hoặc "llama3-8b-8192"
             temperature=0.7,
             max_tokens=1024,
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
         print("Groq API error:", e)
-        return "Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau."
+        return f"Xin lỗi, tôi đang gặp sự cố kỹ thuật. Chi tiết: {str(e)}"
 
 # ========== ROUTES ==========
 @app.route('/')
@@ -159,7 +160,7 @@ Xuất JSON duy nhất:
                 fallback[day] = items
         return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI tạm thời không khả dụng, dùng lịch mẫu'})
 
-# ========== CAREER AI ==========
+# ========== CAREER AI (DÙNG GROQ) ==========
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
     data = request.json
@@ -169,13 +170,14 @@ def career_ai():
 
     system_instruction = (
         "Bạn là chuyên gia tuyển sinh StudyVerse. Tư vấn chọn ngành, chọn trường "
-        "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết."
+        "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, "
+        "ngắn gọn nhưng đầy đủ thông tin."
     )
     try:
         reply = generate_with_groq(user_message, system_instruction=system_instruction)
         return jsonify({'success': True, 'reply': reply})
     except Exception as e:
-        return jsonify({'success': True, 'reply': f"Cảm ơn bạn! Hiện tại tôi đang cập nhật. Vui lòng thử lại sau. (Lỗi: {str(e)})"})
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
