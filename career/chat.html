@@ -67,135 +67,135 @@
         </div>
     </div>
 </main>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyVerse - AI Career</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="/style.css">
-    <style>
-        .main-career { padding-top: 160px; padding-bottom: 60px; min-height: 100vh; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
-        .chat-card { background: #0d1117; border-radius: 32px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; display: flex; flex-direction: column; height: calc(100vh - 220px); min-height: 500px; }
-        .chat-header { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; }
-        .header-info { display: flex; gap: 16px; align-items: center; }
-        .header-info h2 { color: white; font-size: 1.5rem; }
-        .header-info p { color: #aaa; }
-        .btn-reset { background: rgba(255,77,77,0.2); border: 1px solid #ff4d4d; color: #ff9999; padding: 8px 16px; border-radius: 30px; cursor: pointer; }
-        .btn-reset:hover { background: #ff4d4d; color: white; }
-        .chat-messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-        .message { display: flex; gap: 12px; max-width: 85%; }
-        .message.user { align-self: flex-end; flex-direction: row-reverse; }
-        .avatar { width: 36px; height: 36px; background: #007AFF; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; }
-        .user .avatar { background: #2c3e66; }
-        .content { background: rgba(255,255,255,0.05); border-radius: 18px; padding: 12px 18px; color: white; }
-        .user .content { background: #007AFF; }
-        .chat-input-area { padding: 20px 24px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 12px; background: #0d1117; }
-        .chat-input-area textarea { flex: 1; background: #1e1e2f; border: none; border-radius: 24px; padding: 12px 18px; color: white; resize: none; font-family: inherit; }
-        .btn-send { background: #007AFF; border: none; border-radius: 40px; padding: 0 24px; color: white; cursor: pointer; }
-        @media (max-width: 768px) { .main-career { padding-top: 130px; } .chat-card { height: calc(100vh - 170px); } }
-    </style>
-</head>
-<body>
-<header class="navbar">
-    <div class="nav-container">
-        <a href="/" class="logo">Study<span>verse</span></a>
-        <nav class="navigation">
-            <ul>
-                <li class="list" data-index="0"><a href="/index.html"><span class="icon"><i class="fa-solid fa-house"></i></span><span class="text">Home</span></a></li>
-                <li class="list" data-index="1"><a href="/todo/mylist.html"><span class="icon"><i class="fa-solid fa-list-check"></i></span><span class="text">My project</span></a></li>
-                <li class="list" data-index="2"><a href="/schedule/create.html"><span class="icon"><i class="fa-regular fa-calendar"></i></span><span class="text">Schedule</span></a></li>
-                <li class="list active" data-index="3"><a href="#"><span class="icon"><i class="fa-regular fa-comment-dots"></i></span><span class="text">AI Career</span></a></li>
-                <div class="indicator"></div>
-            </ul>
-        </nav>
-    </div>
-</header>
-<main class="main-career">
-    <div class="container">
-        <div class="chat-card">
-            <div class="chat-header">
-                <div class="header-info"><i class="fa-solid fa-robot" style="font-size:28px;color:#007AFF"></i><div><h2>AI Career Advisor</h2><p>Trợ lý tư vấn nghề nghiệp</p></div></div>
-                <button class="btn-reset" id="resetChatBtn"><i class="fa-regular fa-trash-can"></i> Xóa lịch sử</button>
-            </div>
-            <div class="chat-messages" id="chatMessages"></div>
-            <div class="chat-input-area">
-                <textarea id="userInput" rows="1" placeholder="Nhập câu hỏi (Enter để gửi)..."></textarea>
-                <button id="sendBtn" class="btn-send"><i class="fa-regular fa-paper-plane"></i> Gửi</button>
-            </div>
-        </div>
-    </div>
-</main>
+
+<script src="/script.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded',()=>{
-    const sendBtn=document.getElementById('sendBtn');
-    const userInput=document.getElementById('userInput');
-    const chatMessages=document.getElementById('chatMessages');
-    const resetBtn=document.getElementById('resetChatBtn');
-    const addMessage=(text,isUser)=>{
-        const div=document.createElement('div');
-        div.className=`message ${isUser?'user':''}`;
-        div.innerHTML=`<div class="avatar"><i class="fa-regular ${isUser?'fa-user':'fa-brain'}"></i></div><div class="content"><p>${escapeHtml(text)}</p></div>`;
-        chatMessages.appendChild(div);
-        chatMessages.scrollTop=chatMessages.scrollHeight;
-    };
-    const escapeHtml=(s)=>s.replace(/[&<>]/g,function(m){if(m==='&')return '&amp;';if(m==='<')return '&lt;';if(m==='>')return '&gt;';return m;});
-    const sendMessage=async()=>{
-        const txt=userInput.value.trim();
-        if(!txt)return;
-        addMessage(txt,true);
-        userInput.value='';
-        const typing=document.createElement('div');
-        typing.className='message';
-        typing.innerHTML='<div class="avatar"><i class="fa-solid fa-brain"></i></div><div class="content"><p><i class="fa-regular fa-spinner fa-pulse"></i> AI đang suy nghĩ...</p></div>';
-        chatMessages.appendChild(typing);
-        chatMessages.scrollTop=chatMessages.scrollHeight;
-        try{
-            const res=await fetch('/api/career-ai',{
-                method:'POST',headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({message:txt})
+// Ghi đè indicator cho trang career để đảm bảo hoạt động đúng
+(function() {
+    const list = document.querySelectorAll('.list');
+    const indicator = document.querySelector('.indicator');
+    const nav = document.querySelector('.navigation');
+    if (!indicator) return;
+
+    function moveTo(el, transition = '0.3s') {
+        if (!el) return;
+        indicator.style.transition = `transform ${transition} ease-out`;
+        indicator.style.transform = `translateX(${el.offsetLeft}px)`;
+    }
+
+    function resetToActive() {
+        const active = document.querySelector('.list.active');
+        if (active) moveTo(active, '0.3s');
+    }
+
+    // Gắn sự kiện hover
+    list.forEach(item => {
+        item.addEventListener('mouseenter', () => moveTo(item, '0.2s'));
+    });
+    if (nav) nav.addEventListener('mouseleave', resetToActive);
+
+    // Xử lý khi click để cập nhật active (hỗ trợ chuyển trang)
+    list.forEach(item => {
+        const link = item.querySelector('a');
+        if (link && link.getAttribute('href') !== '#') {
+            link.addEventListener('click', (e) => {
+                // Không preventDefault để trình duyệt chuyển trang bình thường
+                // Nhưng cần cập nhật active trước khi chuyển
+                list.forEach(l => l.classList.remove('active'));
+                item.classList.add('active');
+                moveTo(item, '0.2s');
+                // Để trang kịp chuyển, không cần setTimeout vì sẽ load lại trang mới
             });
-            const data=await res.json();
-            typing.remove();
-            if(data.success) addMessage(data.reply,false);
-            else addMessage("Lỗi: "+data.error,false);
-        }catch(e){
-            typing.remove();
-            addMessage("Lỗi kết nối server.",false);
-        }
-    };
-    sendBtn.onclick=sendMessage;
-    userInput.addEventListener('keypress',(e)=>{
-        if(e.key==='Enter' && !e.shiftKey){
-            e.preventDefault();
-            sendMessage();
         }
     });
-    resetBtn.onclick=()=>{
-        if(confirm('Xóa lịch sử chat?')){
-            chatMessages.innerHTML='';
-            addMessage("Chào bạn! Hãy hỏi tôi về ngành học, trường đại học, hướng nghiệp...",false);
-        }
-    };
-    addMessage("Chào bạn! Hãy hỏi tôi về ngành học, trường đại học, hướng nghiệp...",false);
-    // Indicator
-    const list=document.querySelectorAll('.list'),ind=document.querySelector('.indicator'),nav=document.querySelector('.navigation');
-    if(ind){
-        const moveTo=(el,transition='0.3s')=>{if(!el)return;ind.style.transition=`transform ${transition} ease-out`;ind.style.transform=`translateX(${el.offsetLeft}px)`;};
-        const reset=()=>{const a=document.querySelector('.list.active');if(a)moveTo(a);};
-        list.forEach(i=>i.addEventListener('mouseenter',()=>moveTo(i,'0.2s')));
-        if(nav)nav.addEventListener('mouseleave',reset);
-        window.addEventListener('resize',reset);
-        reset();
+
+    // Khởi tạo vị trí ban đầu
+    resetToActive();
+    window.addEventListener('resize', resetToActive);
+})();
+
+// Chat logic
+document.addEventListener('DOMContentLoaded', () => {
+    const sendBtn = document.getElementById('sendBtn');
+    const userInput = document.getElementById('userInput');
+    const chatMessages = document.getElementById('chatMessages');
+    const resetBtn = document.getElementById('resetChatBtn');
+
+    function addMessage(text, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.innerHTML = isUser ? '<i class="fa-regular fa-user"></i>' : '<i class="fa-solid fa-brain"></i>';
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'content';
+        const p = document.createElement('p');
+        p.textContent = text;
+        contentDiv.appendChild(p);
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(contentDiv);
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+
+    async function sendToAI(message) {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot';
+        typingDiv.id = 'typingIndicator';
+        typingDiv.innerHTML = `<div class="avatar"><i class="fa-solid fa-brain"></i></div><div class="content"><p><i class="fa-regular fa-spinner fa-pulse"></i> AI đang suy nghĩ...</p></div>`;
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+            const response = await fetch('/api/career-ai', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+            const data = await response.json();
+            typingDiv.remove();
+            if (data.success) {
+                addMessage(data.reply, false);
+            } else {
+                addMessage("Xin lỗi, tôi gặp lỗi: " + (data.error || "Không xác định"), false);
+            }
+        } catch (error) {
+            typingDiv.remove();
+            console.error(error);
+            addMessage("Lỗi kết nối đến server. Vui lòng thử lại sau.", false);
+        }
+    }
+
+    async function handleSend() {
+        const text = userInput.value.trim();
+        if (!text) return;
+        addMessage(text, true);
+        userInput.value = '';
+        userInput.style.height = 'auto';
+        await sendToAI(text);
+    }
+
+    sendBtn.addEventListener('click', handleSend);
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    });
+    userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    resetBtn.addEventListener('click', () => {
+        if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử chat?')) {
+            chatMessages.innerHTML = '';
+            addMessage("Chào bạn! Tôi là AI Career Advisor. Hãy cho tôi biết sở thích, điểm mạnh, hoặc ngành học bạn quan tâm, tôi sẽ gợi ý các nghề nghiệp phù hợp. Ví dụ: \"Tôi thích toán và lập trình\", \"Em mê vẽ và thiết kế\", \"Làm sao để trở thành bác sĩ?\"...", false);
+        }
+    });
+
+    addMessage("Chào bạn! Tôi là AI Career Advisor. Hãy cho tôi biết sở thích, điểm mạnh, hoặc ngành học bạn quan tâm, tôi sẽ gợi ý các nghề nghiệp phù hợp. Ví dụ: \"Tôi thích toán và lập trình\", \"Em mê vẽ và thiết kế\", \"Làm sao để trở thành bác sĩ?\"...", false);
 });
 </script>
-</body>
-</html>
-<script src="/script.js"></script>
-<script src="/career/chat.js"></script>
 </body>
 </html>
