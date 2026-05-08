@@ -301,6 +301,7 @@ document.addEventListener('click', function (event) {
                 mainDeadlineDisp.innerText = projects[pIdx].deadline === "Not set" 
                     ? "Deadline: Not set" 
                     : `Deadline: ${projects[pIdx].deadline}`;
+                renderSidebar();
             }
         }
     }
