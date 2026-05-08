@@ -1,56 +1,39 @@
 from flask import Flask, render_template, request, jsonify, send_file
 import json
 import random
-import google.generativeai as genai
 import os
 import re
+from groq import Groq
 
-app = Flask(__name__, template_folder='.', static_folder='.', static_url_path='')
+app = Flask(__name__,
+            template_folder='.',
+            static_folder='.',
+            static_url_path='')
 
-# ========== CẤU HÌNH GEMINI API ==========
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyD7ykdqIuSGVA43RLQp_vZsxfAz7ZbfIP0")  # <-- THAY KEY THẬT
-genai.configure(api_key=GEMINI_API_KEY)
+# ========== CẤU HÌNH GROQ API ==========
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
+groq_client = Groq(api_key=GROQ_API_KEY)
 
-def get_working_model():
-    """Thử các tên model khác nhau, trả về model đầu tiên hoạt động"""
-    model_names = [
-        'models/gemini-1.5-flash',
-        'models/gemini-1.5-pro',
-        'models/gemini-pro',
-        'gemini-1.5-flash',
-        'gemini-1.5-pro'
-    ]
-    for name in model_names:
-        try:
-            model = genai.GenerativeModel(name)
-            # Thử generate một câu đơn giản để kiểm tra
-            model.generate_content("test")
-            print(f"✅ Model hoạt động: {name}")
-            return name
-        except Exception as e:
-            print(f"❌ Model {name} lỗi: {e}")
-    # Nếu không có model nào, dùng gemini-pro với fallback
-    print("⚠️ Không tìm thấy model Gemini, sẽ dùng fallback rule-based")
-    return None
-
-WORKING_MODEL_NAME = get_working_model()
-
-def generate_with_fallback(prompt, system_instruction=None):
-    """Gọi Gemini nếu có model, không thì trả về phản hồi mẫu"""
-    if WORKING_MODEL_NAME is None:
-        return "Xin lỗi, tính năng AI đang được cập nhật. Vui lòng thử lại sau."
+def generate_with_groq(prompt, system_instruction=None):
+    """Gọi Groq API với fallback nếu lỗi"""
     try:
+        messages = []
         if system_instruction:
-            model = genai.GenerativeModel(WORKING_MODEL_NAME, system_instruction=system_instruction)
-        else:
-            model = genai.GenerativeModel(WORKING_MODEL_NAME)
-        response = model.generate_content(prompt)
-        return response.text
+            messages.append({"role": "system", "content": system_instruction})
+        messages.append({"role": "user", "content": prompt})
+        
+        chat_completion = groq_client.chat.completions.create(
+            messages=messages,
+            model="llama-3.1-70b-versatile",  # Có thể đổi thành "mixtral-8x7b-32768" hoặc "llama3-8b-8192"
+            temperature=0.7,
+            max_tokens=1024,
+        )
+        return chat_completion.choices[0].message.content
     except Exception as e:
-        print(f"Gemini error: {e}")
-        return "Xin lỗi, AI tạm thời bận. Vui lòng thử lại sau."
+        print("Groq API error:", e)
+        return "Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau."
 
-# ========== ROUTES STATIC ==========
+# ========== ROUTES ==========
 @app.route('/')
 @app.route('/index.html')
 def home():
@@ -68,7 +51,7 @@ def schedule_create():
 def career_page():
     return send_file('career/chat.html')
 
-# CSS, JS
+# ========== SERVING STATIC FILES ==========
 @app.route('/style.css')
 def serve_css():
     return send_file('style.css')
@@ -94,7 +77,7 @@ def serve_chat_css():
 def serve_chat_js():
     return send_file('career/chat.js')
 
-# ========== API ==========
+# ========== API SCHEDULE ==========
 @app.route('/schedule/generate', methods=['POST'])
 def schedule_generate():
     from schedule.schedule_utils import create_timetable
@@ -131,51 +114,84 @@ def ai_schedule():
 Danh sách môn học và số tiết cần xếp:
 {subject_list}
 
-Các ngày bị cấm:
+Các ngày bị cấm hoàn toàn (không được xếp bất kỳ môn nào):
 {disabled_str}
 
-Khung giờ:
-- Sáng: {', '.join(morning_slots)}
-- Chiều: {', '.join(afternoon_slots)}
+Các khung giờ có sẵn mỗi ngày (nếu ngày không bị cấm):
+- Buổi sáng: {', '.join(morning_slots)}
+- Buổi chiều: {', '.join(afternoon_slots)}
 
-Hãy xuất JSON timetable theo cấu trúc:
+QUY TẮC TUÂN THỦ NGHIÊM NGẶT:
+1. Phải phân tích yêu cầu của người dùng: nếu yêu cầu "môn X vào ngày Y buổi Z" thì CHỈ xếp môn X vào đúng ngày Y và đúng buổi Z, không xếp môn X vào ngày khác.
+2. Ví dụ: "thứ 6 học tin vào buổi sáng" => chỉ xếp Tin học vào các khung giờ buổi sáng của Thứ 6, không xếp Tin vào Thứ 2,3,4,5,7,CN.
+3. Các môn còn lại (không có yêu cầu đặc biệt) có thể xếp vào bất kỳ ngày nào còn trống (ưu tiên buổi sáng trước, sau đó buổi chiều), miễn không trùng với ngày bị cấm.
+4. Mỗi tiết học chiếm một khung giờ. Đảm bảo tổng số tiết của mỗi môn bằng đúng số tiết yêu cầu.
+5. Xuất JSON theo đúng cấu trúc, không thêm giải thích.
+
+Cấu trúc JSON:
 {{
   "timetable": {{
     "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
-    ...
+    "Thứ 3": [...],
+    "Thứ 4": [...],
+    "Thứ 5": [...],
+    "Thứ 6": [...],
+    "Thứ 7": [...],
+    "Chủ nhật": [...]
   }}
 }}
-Chỉ JSON, không giải thích.
-"""
+
+Hãy trả về JSON duy nhất."""
 
     try:
-        raw = generate_with_fallback(prompt)
-        # Lấy JSON từ response
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
-        if not match:
-            raise ValueError("Không tìm thấy JSON")
-        raw = match.group()
+        raw = generate_with_groq(prompt)
+        if raw.startswith("```json"):
+            raw = raw[7:]
+        if raw.endswith("```"):
+            raw = raw[:-3]
+        raw = raw.strip()
         result = json.loads(raw)
         timetable = result.get('timetable', {})
+        if not isinstance(timetable, dict) or len(timetable) == 0:
+            raise ValueError("Empty or invalid timetable")
         return jsonify({'success': True, 'timetable': timetable})
     except Exception as e:
-        return jsonify({'success': False, 'error': f'AI xử lý lỗi: {str(e)}'})
+        # Fallback: tạo lịch mẫu nếu AI lỗi
+        fallback_timetable = {}
+        lesson_idx = 0
+        time_slots = ["07:00","07:45","08:30","09:15","10:00","10:45","13:00","13:45","14:30","15:15","16:00","16:45"]
+        total_lessons = sum([s['sessions'] for s in subjects])
+        for day in days_vn:
+            if day in disabled_names:
+                fallback_timetable[day] = []
+            else:
+                slots = []
+                for _ in range(min(total_lessons, len(time_slots))):
+                    if lesson_idx < len(time_slots) and lesson_idx < total_lessons:
+                        sub = subjects[lesson_idx % len(subjects)]
+                        slots.append({"start": time_slots[lesson_idx], "subject": sub['name']})
+                        lesson_idx += 1
+                fallback_timetable[day] = slots
+        return jsonify({'success': True, 'timetable': fallback_timetable, 'warning': 'AI lỗi, dùng lịch mẫu'})
 
+# ========== CAREER AI (DÙNG GROQ) ==========
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
+    data = request.json
+    user_message = data.get('message', '')
+    if not user_message:
+        return jsonify({'success': False, 'error': 'Tin nhắn trống'})
+
+    system_instruction = (
+        "Bạn là chuyên gia tuyển sinh StudyVerse. Tư vấn chọn ngành, chọn trường "
+        "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, "
+        "phù hợp với học sinh trung học."
+    )
     try:
-        data = request.json
-        user_message = data.get('message', '')
-        if not user_message:
-            return jsonify({'success': False, 'error': 'Tin nhắn trống'})
-        system_instruction = (
-            "Bạn là chuyên gia tuyển sinh StudyVerse. Tư vấn chọn ngành, chọn trường "
-            "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết."
-        )
-        reply = generate_with_fallback(user_message, system_instruction=system_instruction)
+        reply = generate_with_groq(user_message, system_instruction=system_instruction)
         return jsonify({'success': True, 'reply': reply})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': True, 'reply': "Cảm ơn bạn! Hiện tại tôi đang được nâng cấp. Vui lòng thử lại sau. (Lỗi: " + str(e) + ")"})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
