@@ -49,7 +49,7 @@ const lessonSlots = [
     "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
     "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
 ];
-const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 let timetableData = [];
 let disabledDays = new Array(7).fill(false);
@@ -83,7 +83,7 @@ function initTimetable() {
 function renderTable() {
     const thead = document.getElementById('table-header');
     const tbody = document.getElementById('table-body');
-    let headerRow = `<tr><th>Giờ / Ngày</th>`;
+    let headerRow = `<tr><th>Time / Day</th>`;
     for (let i = 0; i < days.length; i++) {
         headerRow += `<th data-day="${i}">${days[i]}</th>`;
     }
@@ -101,7 +101,7 @@ function renderTable() {
             let content = '';
             if (disabledDays[d]) {
                 cellClass = 'disabled-day';
-                content = '🚫 Nghỉ';
+                content = '🚫 Off';
             } else if (cellData) {
                 if (cellData.type === 'subject') {
                     cellClass = 'subject-cell';
@@ -181,7 +181,7 @@ function handleCellClick(day, slot, tdElement) {
 function toggleXMark(day, slot) {
     const current = timetableData[day][slot];
     if (current && current.type === 'subject') {
-        alert("Hãy xóa môn trước khi đánh dấu X.");
+        alert("Clear subject before marking X.");
         return;
     }
     if (current && current.type === 'x') {
@@ -194,13 +194,13 @@ function toggleXMark(day, slot) {
 
 function showSubjectPicker(day, slot, tdElement) {
     if (subjects.length === 0) {
-        alert("Vui lòng thêm môn học trước!");
+        alert("Add a subject first!");
         return;
     }
     closePicker();
     const availableSubjects = subjects.filter(subj => (subjectCounts[subj.name] || 0) < subj.sessions);
     if (availableSubjects.length === 0 && subjects.length > 0) {
-        alert("Tất cả các môn đã đủ số tiết! Không thể thêm.");
+        alert("All subjects are full! Cannot add more.");
         return;
     }
     const pickerDiv = document.createElement('div');
@@ -212,7 +212,7 @@ function showSubjectPicker(day, slot, tdElement) {
         btn.onclick = (e) => {
             e.stopPropagation();
             if (timetableData[day][slot] !== null) {
-                alert("Ô này đã có nội dung, hãy xóa trước.");
+                alert("Slot already filled, please clear it first!");
                 closePicker();
                 return;
             }
@@ -224,7 +224,7 @@ function showSubjectPicker(day, slot, tdElement) {
         pickerDiv.appendChild(btn);
     });
     const xBtn = document.createElement('button');
-    xBtn.textContent = "✗ Không học";
+    xBtn.textContent = "✗ Off";
     xBtn.className = 'x-btn';
     xBtn.onclick = (e) => {
         e.stopPropagation();
@@ -233,7 +233,7 @@ function showSubjectPicker(day, slot, tdElement) {
     };
     pickerDiv.appendChild(xBtn);
     const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = "Hủy";
+    cancelBtn.textContent = "Cancel";
     cancelBtn.onclick = () => closePicker();
     pickerDiv.appendChild(cancelBtn);
     const rect = tdElement.getBoundingClientRect();
@@ -269,11 +269,11 @@ function updateStatus() {
         totalScheduled += scheduled;
     });
     const statusDiv = document.getElementById('status');
-    statusDiv.innerHTML = `<strong>📊 Tiến độ:</strong> Đã xếp ${totalScheduled}/${totalPlanned} tiết. `;
+    statusDiv.innerHTML = `<strong>📊 "Progress:</strong> ${totalScheduled}/${totalPlanned} periods assigned. `;
     if (totalScheduled < totalPlanned) {
         statusDiv.innerHTML += `<span style="color:#ffaa33;">Còn thiếu ${totalPlanned - totalScheduled} tiết.</span>`;
     } else if (totalScheduled === totalPlanned && totalPlanned > 0) {
-        statusDiv.innerHTML += `<span style="color:#2ecc71;">✅ Tuyệt vời! Bạn đã xếp đủ số tiết.</span>`;
+        statusDiv.innerHTML += `<span style="color:#2ecc71;">✅  Done! All periods have been assigned.</span>`;
     }
     subjects.forEach(s => {
         statusDiv.innerHTML += `<br> - ${s.name}: ${subjectCounts[s.name] || 0}/${s.sessions}`;
@@ -286,11 +286,11 @@ function addSubject() {
     const name = nameInput.value.trim();
     const sessions = parseInt(sessInput.value);
     if (!name || isNaN(sessions) || sessions < 1) {
-        alert("Tên môn hợp lệ và số tiết >0");
+        alert("Invalid name or periods must be > 0");
         return;
     }
     if (subjects.find(s => s.name === name)) {
-        alert("Môn đã tồn tại");
+        alert("Subject already added");
         return;
     }
     subjects.push({ name, sessions });
@@ -315,7 +315,7 @@ function renderSubjectList() {
 }
 
 window.removeSubject = function(name) {
-    if (confirm(`Xóa môn ${name}? Các tiết đã xếp sẽ bị xóa.`)) {
+    if (confirm("Delete this subject? All assigned periods will be removed.")) {
         for (let d=0; d<days.length; d++) {
             for (let s=0; s<lessonSlots.length; s++) {
                 const cell = timetableData[d][s];
@@ -339,7 +339,7 @@ function autoSchedule() {
         for (let i=0; i<need; i++) needSchedule.push(subj.name);
     });
     if (needSchedule.length === 0) {
-        alert("Tất cả các môn đã đủ số tiết!");
+        alert("All subjects are full!");
         return;
     }
     let emptySlots = [];
@@ -350,7 +350,7 @@ function autoSchedule() {
         }
     }
     if (emptySlots.length < needSchedule.length) {
-        alert(`Không đủ ô trống! Cần ${needSchedule.length} ô nhưng chỉ có ${emptySlots.length} ô trống.`);
+        alert(`Not enough slots! Need ${needSchedule.length} slots but only ${emptySlots.length} left.`);
         return;
     }
     for (let i=0; i<needSchedule.length; i++) {
@@ -365,7 +365,7 @@ function autoSchedule() {
 }
 
 function clearAll() {
-    if (confirm("Xóa toàn bộ lịch và reset môn?")) {
+    if (confirm("Clear all schedules and reset subjects?")) {
         initTimetable();
         subjects = [];
         subjectCounts = {};
