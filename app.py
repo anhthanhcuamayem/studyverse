@@ -177,6 +177,7 @@ def career_ai():
         "hãy hỏi người dùng thêm nếu còn khá mong lung với các quyết định"
         "phân tích thị trường hiện nay và các trường và điểm chuẩn nếu người dùng cần biết về ngành và nhóm ngành gần nơi họ(có thể hỏi về tỉnh thành)"
         "muốn giống con người thì hỏi từ tốn thôi, khuyến khích 1 đến 2 câu hỏi 1 lần"
+        "hãy tâm sự như một người bạn, ghi nhớ những gì đã được biết và đừng vội kết thúc cuộc trò chuyện mà quay lại từ đầu"
     )
     try:
         reply = generate_with_groq(user_message, system_instruction=system_instruction)
