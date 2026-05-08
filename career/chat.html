@@ -6,75 +6,69 @@
     <title>StudyVerse - AI Tư vấn nghề nghiệp</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="/todo/mylist.css"> <!-- Dùng chung biến và reset từ style.css -->
-    <link rel="stylesheet" href="chat.css">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/career/chat.css">
 </head>
 <body>
-    <header class="navbar">
-        <div class="nav-container">
-            <a href="/" class="logo">Study<span>verse</span></a>
-            <nav class="navigation">
-                <ul>
-                    <li class="list" data-index="0">
-                        <a href="/index.html">
-                            <span class="icon"><i class="fa-solid fa-house"></i></span>
-                            <span class="text">Home</span>
-                        </a>
-                    </li>
-                    <li class="list" data-index="1">
-                        <a href="/todo/mylist.html">
-                            <span class="icon"><i class="fa-solid fa-list-check"></i></span>
-                            <span class="text">My project</span>
-                        </a>
-                    </li>
-                    <li class="list" data-index="2">
-                        <a href="/schedule/create.html">
-                            <span class="icon"><i class="fa-regular fa-calendar"></i></span>
-                            <span class="text">Schedule</span>
-                        </a>
-                    </li>
-                    <li class="list active" data-index="3">
-                        <a href="#">
-                            <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
-                            <span class="text">AI Career</span>
-                        </a>
-                    </li>
-                    <div class="indicator"></div>
-                </ul>
-            </nav>
-        </div>
-    </header>
 
-    <main class="main-career">
-        <div class="container">
-            <div class="chat-card">
-                <div class="chat-header">
-                    <div class="header-info">
-                        <i class="fa-solid fa-robot" style="color: var(--primary-blue); font-size: 28px;"></i>
-                        <div>
-                            <h2>AI Career Advisor</h2>
-                            <p>Trợ lý tư vấn nghề nghiệp thông minh</p>
-                        </div>
+<header class="navbar">
+    <div class="nav-container">
+        <a href="/" class="logo">Study<span>verse</span></a>
+        <nav class="navigation">
+            <ul>
+                <li class="list" data-index="0">
+                    <a href="/index.html">
+                        <span class="icon"><i class="fa-solid fa-house"></i></span>
+                        <span class="text">Home</span>
+                    </a>
+                </li>
+                <li class="list" data-index="1">
+                    <a href="/todo/mylist.html">
+                        <span class="icon"><i class="fa-solid fa-list-check"></i></span>
+                        <span class="text">My project</span>
+                    </a>
+                </li>
+                <li class="list" data-index="2">
+                    <a href="/schedule/create.html">
+                        <span class="icon"><i class="fa-regular fa-calendar"></i></span>
+                        <span class="text">Schedule</span>
+                    </a>
+                </li>
+                <li class="list active" data-index="3">
+                    <a href="#">
+                        <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
+                        <span class="text">AI Career</span>
+                    </a>
+                </li>
+                <div class="indicator"></div>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<main class="main-career">
+    <div class="container">
+        <div class="chat-card">
+            <div class="chat-header">
+                <div class="header-info">
+                    <i class="fa-solid fa-robot" style="color: var(--primary-blue); font-size: 28px;"></i>
+                    <div>
+                        <h2>AI Career Advisor</h2>
+                        <p>Trợ lý tư vấn nghề nghiệp thông minh</p>
                     </div>
-                    <button class="btn-reset" id="resetChatBtn"><i class="fa-regular fa-trash-can"></i> Xóa lịch sử</button>
                 </div>
-                <div class="chat-messages" id="chatMessages">
-                    <div class="message bot">
-                        <div class="avatar"><i class="fa-solid fa-brain"></i></div>
-                        <div class="content">
-                            <p>Chào bạn! Tôi là AI Career Advisor. Hãy cho tôi biết sở thích, điểm mạnh, hoặc ngành học bạn quan tâm, tôi sẽ gợi ý các nghề nghiệp phù hợp. Ví dụ: "Tôi thích toán và lập trình", "Em mê vẽ và thiết kế", "Làm sao để trở thành bác sĩ?"...</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="chat-input-area">
-                    <textarea id="userInput" rows="1" placeholder="Nhập câu hỏi của bạn..."></textarea>
-                    <button id="sendBtn" class="btn-send"><i class="fa-regular fa-paper-plane"></i> Gửi</button>
-                </div>
+                <button class="btn-reset" id="resetChatBtn"><i class="fa-regular fa-trash-can"></i> Xóa lịch sử</button>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-area">
+                <textarea id="userInput" rows="1" placeholder="Nhập câu hỏi của bạn..."></textarea>
+                <button id="sendBtn" class="btn-send"><i class="fa-regular fa-paper-plane"></i> Gửi</button>
             </div>
         </div>
-    </main>
+    </div>
+</main>
 
-    <script src="/todo/mylist.js"></script> <!-- Dùng chung indicator và navigation -->
-    <script src="chat.js"></script>
+<script src="/script.js"></script>
+<script src="/career/chat.js"></script>
 </body>
 </html>
