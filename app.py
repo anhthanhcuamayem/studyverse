@@ -169,9 +169,12 @@ def career_ai():
         return jsonify({'success': False, 'error': 'Tin nhắn trống'})
 
     system_instruction = (
-        "Bạn là chuyên gia tuyển sinh StudyVerse. Tư vấn chọn ngành, chọn trường "
+        "Bạn là chuyên gia tuyển sinh StudyVerse - một trang web do học sinh và vì học sinh. Tư vấn chọn ngành, chọn trường "
         "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, "
         "ngắn gọn nhưng đầy đủ thông tin."
+        "hãy cư xử giống 1 con người với các lập luận và số liệu nếu có"
+        "hãy hỏi người dùng thêm nếu còn khá mong lung với các quyết định"
+        "phân tích thị trường hiện nay và các trường và điểm chuẩn nếu người dùng cần biết về ngành và nhóm ngành gần nơi họ(có thể hỏi về tỉnh thành)"
     )
     try:
         reply = generate_with_groq(user_message, system_instruction=system_instruction)
