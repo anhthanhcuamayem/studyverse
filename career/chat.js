@@ -81,3 +81,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tin nhắn chào mừng ban đầu
     addMessage("Chào bạn! Tôi là AI Career Advisor. Hãy cho tôi biết sở thích, điểm mạnh, hoặc ngành học bạn quan tâm, tôi sẽ gợi ý các nghề nghiệp phù hợp. Ví dụ: \"Tôi thích toán và lập trình\", \"Em mê vẽ và thiết kế\", \"Làm sao để trở thành bác sĩ?\"...", false);
 });
+// ===== XỬ LÝ INDICATOR RIÊNG CHO TRANG CAREER =====
+(function() {
+    const list = document.querySelectorAll('.list');
+    const indicator = document.querySelector('.indicator');
+    const navBar = document.querySelector('.navigation');
+    if (!indicator || !list.length) return;
+    
+    function moveTo(el, transition = '0.3s') {
+        if (!el) return;
+        indicator.style.transition = `transform ${transition} ease-out`;
+        indicator.style.transform = `translateX(${el.offsetLeft}px)`;
+    }
+    
+    function resetToActive() {
+        const active = document.querySelector('.list.active');
+        if (active) moveTo(active, '0.3s');
+    }
+    
+    list.forEach(item => {
+        item.addEventListener('mouseenter', () => moveTo(item, '0.2s'));
+    });
+    if (navBar) navBar.addEventListener('mouseleave', resetToActive);
+    window.addEventListener('resize', resetToActive);
+    resetToActive(); // đặt vị trí ban đầu
+})();
