@@ -29,7 +29,7 @@ def generate_with_groq(prompt, system_instruction=None):
         # Dùng model ổn định, được hỗ trợ rộng rãi
         chat_completion = groq_client.chat.completions.create(
             messages=messages,
-            model="mixtral-8x7b-32768",  # Hoặc "llama3-8b-8192"
+            model=llama-3.3-70b-versatile",  # Hoặc "llama3-8b-8192"
             temperature=0.7,
             max_tokens=1024,
         )
