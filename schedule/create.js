@@ -208,7 +208,7 @@ function showSubjectPicker(day, slot, tdElement) {
     availableSubjects.forEach(subj => {
         const btn = document.createElement('button');
         const remaining = subj.sessions - (subjectCounts[subj.name] || 0);
-        btn.textContent = `${subj.name} (còn ${remaining} tiết)`;
+        btn.textContent = `${subj.name} ( ${remaining} periods remaining)`;
         btn.onclick = (e) => {
             e.stopPropagation();
             if (timetableData[day][slot] !== null) {
@@ -271,7 +271,7 @@ function updateStatus() {
     const statusDiv = document.getElementById('status');
     statusDiv.innerHTML = `<strong>📊 "Progress:</strong> ${totalScheduled}/${totalPlanned} periods assigned. `;
     if (totalScheduled < totalPlanned) {
-        statusDiv.innerHTML += `<span style="color:#ffaa33;">Còn thiếu ${totalPlanned - totalScheduled} tiết.</span>`;
+        statusDiv.innerHTML += `<span style="color:#ffaa33;"></span>`;
     } else if (totalScheduled === totalPlanned && totalPlanned > 0) {
         statusDiv.innerHTML += `<span style="color:#2ecc71;">✅  Done! All periods have been assigned.</span>`;
     }
