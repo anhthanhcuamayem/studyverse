@@ -5,68 +5,96 @@ import google.generativeai as genai
 import os
 import re
 
-app = Flask(__name__,
-            template_folder='.',
-            static_folder='.',
-            static_url_path='/')
+app = Flask(__name__, template_folder='.', static_folder='.', static_url_path='')
 
 # ========== CẤU HÌNH GEMINI API ==========
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyD7ykdqIuSGVA43RLQp_vZsxfAz7ZbfIP0")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_REAL_API_KEY_HERE")  # <-- THAY KEY THẬT
 genai.configure(api_key=GEMINI_API_KEY)
 
-def get_available_model():
-    """Trả về tên model với tiền tố đầy đủ để tránh lỗi 404"""
-    try:
-        model_name = 'models/gemini-1.5-flash'
-        genai.get_model(model_name)  # Kiểm tra xem model có tồn tại không
-        return model_name
-    except Exception:
-        return 'models/gemini-pro'
+def get_working_model():
+    """Thử các tên model khác nhau, trả về model đầu tiên hoạt động"""
+    model_names = [
+        'models/gemini-1.5-flash',
+        'models/gemini-1.5-pro',
+        'models/gemini-pro',
+        'gemini-1.5-flash',
+        'gemini-1.5-pro'
+    ]
+    for name in model_names:
+        try:
+            model = genai.GenerativeModel(name)
+            # Thử generate một câu đơn giản để kiểm tra
+            model.generate_content("test")
+            print(f"✅ Model hoạt động: {name}")
+            return name
+        except Exception as e:
+            print(f"❌ Model {name} lỗi: {e}")
+    # Nếu không có model nào, dùng gemini-pro với fallback
+    print("⚠️ Không tìm thấy model Gemini, sẽ dùng fallback rule-based")
+    return None
+
+WORKING_MODEL_NAME = get_working_model()
 
 def generate_with_fallback(prompt, system_instruction=None):
-    """Gọi Gemini với cơ chế fallback mạnh mẽ"""
-    model_name = get_available_model()
-    
+    """Gọi Gemini nếu có model, không thì trả về phản hồi mẫu"""
+    if WORKING_MODEL_NAME is None:
+        return "Xin lỗi, tính năng AI đang được cập nhật. Vui lòng thử lại sau."
     try:
-        # Thử với model ưu tiên (thường là flash)
-        if system_instruction and model_name == 'models/gemini-1.5-flash':
-            model = genai.GenerativeModel(model_name, system_instruction=system_instruction)
+        if system_instruction:
+            model = genai.GenerativeModel(WORKING_MODEL_NAME, system_instruction=system_instruction)
         else:
-            model = genai.GenerativeModel(model_name)
-            if system_instruction:
-                prompt = f"{system_instruction}\n\n{prompt}"
-        
+            model = genai.GenerativeModel(WORKING_MODEL_NAME)
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        # Nếu vẫn lỗi 404 hoặc lỗi bất kỳ, ép dùng gemini-pro làm cứu cánh cuối cùng
-        if 'models/gemini-pro' not in model_name:
-            try:
-                model = genai.GenerativeModel('models/gemini-pro')
-                full_prompt = f"{system_instruction}\n\n{prompt}" if system_instruction else prompt
-                response = model.generate_content(full_prompt)
-                return response.text
-            except Exception:
-                raise e
-        raise e
+        print(f"Gemini error: {e}")
+        return "Xin lỗi, AI tạm thời bận. Vui lòng thử lại sau."
 
-# ========== ROUTES CŨ ==========
+# ========== ROUTES STATIC ==========
 @app.route('/')
+@app.route('/index.html')
 def home():
-    return render_template('index.html')
+    return send_file('index.html')
 
-@app.route('/mylist')
+@app.route('/todo/mylist.html')
 def mylist():
-    return render_template('index.html')
+    return send_file('todo/mylist.html')
 
-@app.route('/create')
-def create():
-    return render_template('index.html')
-
-@app.route('/schedule/create')
+@app.route('/schedule/create.html')
 def schedule_create():
     return send_file('schedule/create.html')
 
+@app.route('/career/chat.html')
+def career_page():
+    return send_file('career/chat.html')
+
+# CSS, JS
+@app.route('/style.css')
+def serve_css():
+    return send_file('style.css')
+@app.route('/script.js')
+def serve_js():
+    return send_file('script.js')
+@app.route('/todo/mylist.css')
+def serve_mylist_css():
+    return send_file('todo/mylist.css')
+@app.route('/todo/mylist.js')
+def serve_mylist_js():
+    return send_file('todo/mylist.js')
+@app.route('/schedule/create.css')
+def serve_create_css():
+    return send_file('schedule/create.css')
+@app.route('/schedule/create.js')
+def serve_create_js():
+    return send_file('schedule/create.js')
+@app.route('/career/chat.css')
+def serve_chat_css():
+    return send_file('career/chat.css')
+@app.route('/career/chat.js')
+def serve_chat_js():
+    return send_file('career/chat.js')
+
+# ========== API ==========
 @app.route('/schedule/generate', methods=['POST'])
 def schedule_generate():
     from schedule.schedule_utils import create_timetable
@@ -78,7 +106,6 @@ def schedule_generate():
     timetable = create_timetable(subjects, availability, breaks, special_req)
     return jsonify({'success': True, 'timetable': timetable})
 
-# ========== AI SCHEDULE ENDPOINT ==========
 @app.route('/schedule/ai-schedule', methods=['POST'])
 def ai_schedule():
     data = request.json
@@ -89,12 +116,10 @@ def ai_schedule():
     if not subjects:
         return jsonify({'success': False, 'error': 'Chưa có môn học nào'})
 
-    # Chuẩn bị danh sách môn và ngày nghỉ
     subject_list = ', '.join([f"{s['name']} ({s['sessions']} tiết)" for s in subjects])
     days_vn = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
     disabled_names = [days_vn[i] for i, d in enumerate(disabled_days) if d]
     disabled_str = ', '.join(disabled_names) if disabled_names else "không có"
-
     time_slots = ["07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
                   "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"]
     morning_slots = [t for t in time_slots if int(t[:2]) < 12]
@@ -106,55 +131,35 @@ def ai_schedule():
 Danh sách môn học và số tiết cần xếp:
 {subject_list}
 
-Các ngày bị cấm hoàn toàn (không được xếp bất kỳ môn nào):
+Các ngày bị cấm:
 {disabled_str}
 
-Các khung giờ có sẵn mỗi ngày (nếu ngày không bị cấm):
-- Buổi sáng: {', '.join(morning_slots)}
-- Buổi chiều: {', '.join(afternoon_slots)}
+Khung giờ:
+- Sáng: {', '.join(morning_slots)}
+- Chiều: {', '.join(afternoon_slots)}
 
-QUY TẮC TUÂN THỦ NGHIÊM NGẶT:
-1. Phải phân tích yêu cầu của người dùng: nếu yêu cầu "môn X vào ngày Y buổi Z" thì CHỈ xếp môn X vào đúng ngày Y và đúng buổi Z, không xếp môn X vào ngày khác.
-2. Ví dụ: "thứ 6 học tin vào buổi sáng" => chỉ xếp Tin học vào các khung giờ buổi sáng của Thứ 6, không xếp Tin vào Thứ 2,3,4,5,7,CN.
-3. Các môn còn lại (không có yêu cầu đặc biệt) có thể xếp vào bất kỳ ngày nào còn trống (ưu tiên buổi sáng trước, sau đó buổi chiều), miễn không trùng với ngày bị cấm.
-4. Mỗi tiết học chiếm một khung giờ. Đảm bảo tổng số tiết của mỗi môn bằng đúng số tiết yêu cầu.
-5. Xuất JSON theo đúng cấu trúc, không thêm giải thích.
-
-Cấu trúc JSON:
+Hãy xuất JSON timetable theo cấu trúc:
 {{
   "timetable": {{
     "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
-    "Thứ 3": [...],
-    "Thứ 4": [...],
-    "Thứ 5": [...],
-    "Thứ 6": [...],
-    "Thứ 7": [...],
-    "Chủ nhật": [...]
+    ...
   }}
 }}
-
-Hãy trả về JSON duy nhất."""
+Chỉ JSON, không giải thích.
+"""
 
     try:
         raw = generate_with_fallback(prompt)
-        # Loại bỏ markdown
-        if raw.startswith("```json"):
-            raw = raw[7:]
-        if raw.endswith("```"):
-            raw = raw[:-3]
-        raw = raw.strip()
+        # Lấy JSON từ response
+        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        if not match:
+            raise ValueError("Không tìm thấy JSON")
+        raw = match.group()
         result = json.loads(raw)
         timetable = result.get('timetable', {})
-        if not isinstance(timetable, dict) or len(timetable) == 0:
-            raise ValueError("Empty or invalid timetable")
         return jsonify({'success': True, 'timetable': timetable})
     except Exception as e:
-        return jsonify({'success': False, 'error': f'AI xử lý lỗi: {str(e)}. Vui lòng thử lại với câu lệnh rõ ràng hơn.'})
-
-# ========== CAREER AI (TUYỂN SINH) ==========
-@app.route('/career')
-def career_page():
-    return send_file('career/chat.html')
+        return jsonify({'success': False, 'error': f'AI xử lý lỗi: {str(e)}'})
 
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
@@ -163,38 +168,14 @@ def career_ai():
         user_message = data.get('message', '')
         if not user_message:
             return jsonify({'success': False, 'error': 'Tin nhắn trống'})
-
         system_instruction = (
             "Bạn là chuyên gia tuyển sinh StudyVerse. Tư vấn chọn ngành, chọn trường "
-            "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, "
-            "phù hợp với học sinh trung học."
+            "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết."
         )
         reply = generate_with_fallback(user_message, system_instruction=system_instruction)
         return jsonify({'success': True, 'reply': reply})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-
-# ========== HÀM PHỤ TRỢ ==========
-def extract_preferences_from_text(text, subjects):
-    """Hàm đơn giản trích xuất ưu tiên từ văn bản (fallback)"""
-    preferences = {'preferred_slots': [], 'avoid_days': [], 'subject_preferences': {}}
-    text_lower = text.lower()
-    if 'sáng' in text_lower or 'buổi sáng' in text_lower:
-        preferences['preferred_slots'].append('morning')
-    if 'chiều' in text_lower or 'buổi chiều' in text_lower:
-        preferences['preferred_slots'].append('afternoon')
-    day_map = {'thứ 2':0, 'thứ 3':1, 'thứ 4':2, 'thứ 5':3, 'thứ 6':4, 'thứ 7':5, 'chủ nhật':6}
-    for day_vn, idx in day_map.items():
-        if f'tránh {day_vn}' in text_lower or f'không học {day_vn}' in text_lower:
-            preferences['avoid_days'].append(idx)
-    import re
-    for subj in subjects:
-        name = subj['name'].lower()
-        if re.search(rf'{name}.*sáng', text_lower):
-            preferences['subject_preferences'][subj['name']] = 'morning'
-        elif re.search(rf'{name}.*chiều', text_lower):
-            preferences['subject_preferences'][subj['name']] = 'afternoon'
-    return preferences
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
