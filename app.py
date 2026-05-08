@@ -165,24 +165,43 @@ Xuất JSON duy nhất:
 def career_ai():
     data = request.json
     user_message = data.get('message', '')
+    history = data.get('history', [])  # lịch sử từ frontend
+    
     if not user_message:
         return jsonify({'success': False, 'error': 'Tin nhắn trống'})
 
     system_instruction = (
         "Bạn là chuyên gia tuyển sinh StudyVerse - một trang web do học sinh và vì học sinh. Tư vấn chọn ngành, chọn trường "
-        "có thể đặt các câu hỏi về môn học yêu thích, điểm mạnh về môn nào, sở thích đặc biệt, có năng khiếu gì không, có thành tích nào nổi trội như hsg không?"
+        "có thể đặt các câu hỏi về môn học yêu thích, điểm mạnh về môn nào, sở thích đặc biệt, có năng khiếu gì không, có thành tích nào nổi trội như hsg không? "
         "và hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, "
-        "ngắn gọn nhưng đầy đủ thông tin."
-        "hãy cư xử giống 1 con người với các lập luận và số liệu nếu có"
-        "hãy hỏi người dùng thêm nếu còn khá mong lung với các quyết định"
-        "phân tích thị trường hiện nay và các trường và điểm chuẩn nếu người dùng cần biết về ngành và nhóm ngành gần nơi họ(có thể hỏi về tỉnh thành)"
-        "muốn giống con người thì hỏi từ tốn thôi, khuyến khích 1 đến 2 câu hỏi 1 lần"
-        "hãy tâm sự như một người bạn, ghi nhớ những gì đã được biết và đừng vội kết thúc cuộc trò chuyện mà quay lại từ đầu"
+        "ngắn gọn nhưng đầy đủ thông tin. "
+        "hãy cư xử giống 1 con người với các lập luận và số liệu nếu có. "
+        "hãy hỏi người dùng thêm nếu còn khá mong lung với các quyết định. "
+        "phân tích thị trường hiện nay và các trường và điểm chuẩn nếu người dùng cần biết về ngành và nhóm ngành gần nơi họ(có thể hỏi về tỉnh thành). "
+        "muốn giống con người thì hỏi từ tốn thôi, khuyến khích 1 đến 2 câu hỏi 1 lần. "
+        "hãy tâm sự như một người bạn, ghi nhớ những gì đã được biết và đừng vội kết thúc cuộc trò chuyện mà quay lại từ đầu."
     )
+    
     try:
-        reply = generate_with_groq(user_message, system_instruction=system_instruction)
+        if not groq_client:
+            return jsonify({'success': False, 'error': 'Chưa cấu hình API key Groq'})
+        
+        # Xây dựng messages: system + lịch sử + tin nhắn mới
+        messages = [{"role": "system", "content": system_instruction}]
+        for msg in history:
+            messages.append({"role": msg['role'], "content": msg['content']})
+        messages.append({"role": "user", "content": user_message})
+        
+        chat_completion = groq_client.chat.completions.create(
+            messages=messages,
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+            max_tokens=1024,
+        )
+        reply = chat_completion.choices[0].message.content
         return jsonify({'success': True, 'reply': reply})
     except Exception as e:
+        print("Career AI error:", e)
         return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
