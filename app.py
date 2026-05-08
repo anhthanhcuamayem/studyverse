@@ -8,7 +8,7 @@ import re
 app = Flask(__name__, template_folder='.', static_folder='.', static_url_path='')
 
 # ========== CẤU HÌNH GEMINI API ==========
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_REAL_API_KEY_HERE")  # <-- THAY KEY THẬT
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyD7ykdqIuSGVA43RLQp_vZsxfAz7ZbfIP0")  # <-- THAY KEY THẬT
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_working_model():
