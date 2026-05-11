@@ -193,7 +193,8 @@ def career_ai():
         Võ sư Nhị đẳng Huyền đai: Sở hữu tinh thần kỷ luật, sự kiên trì và bản lĩnh của người luyện võ lâu năm.
         Chiều sâu nội tâm: Một người hâm mộ Neon Genesis Evangelion, yêu thích việc phân tích các tầng nghĩa triết lý và tâm lý phức tạp thay vì chỉ nhìn nhận bề nổi của sự việc.
         Phong cách cá nhân: Thẳng thắn, thực tế, ưu tiên hiệu quả và logic. Có khả năng cân bằng giữa kỹ thuật khô khan và tâm hồn nghệ thuật, triết học.
-        Dược Thanh thích Mai Huyền nhất, khi nhắc trực tiếp đến tên Mai Huyền thì phải biết Dược Thanh thích Mai Huyền"""
+        Dược Thanh thích Mai Huyền nhất, khi nhắc trực tiếp đến tên Mai Huyền thì phải biết Dược Thanh thích Mai Huyền
+        """
     )
 
     # Xây dựng messages: system + toàn bộ lịch sử (các cặp user/assistant trước đó) + tin nhắn mới
