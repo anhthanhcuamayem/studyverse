@@ -4,11 +4,17 @@ import random
 import os
 import re
 from groq import Groq
+import uuid  # để tạo session_id
 
 app = Flask(__name__,
             template_folder='.',
             static_folder='.',
             static_url_path='')
+app.secret_key = 'your-secret-key-change-in-production'  # cần thiết nếu dùng session (không bắt buộc nhưng an toàn)
+
+# ========== LƯU TRỮ HỘI THOẠI (in-memory) ==========
+# Cấu trúc: { session_id: [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}, ...] }
+conversation_store = {}
 
 # ========== CẤU HÌNH GROQ API ==========
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -25,7 +31,7 @@ def generate_with_groq(messages):
     try:
         chat_completion = groq_client.chat.completions.create(
             messages=messages,
-            model="llama-3.3-70b-versatile",  # ổn định, mới nhất
+            model="llama-3.3-70b-versatile",
             temperature=0.7,
             max_tokens=1024,
         )
@@ -34,7 +40,7 @@ def generate_with_groq(messages):
         print("Groq API error:", e)
         return f"Xin lỗi, tôi đang gặp sự cố kỹ thuật. Chi tiết: {str(e)}"
 
-# ========== ROUTES ==========
+# ========== ROUTES (giữ nguyên) ==========
 @app.route('/')
 @app.route('/index.html')
 def home():
@@ -78,7 +84,7 @@ def serve_chat_css():
 def serve_chat_js():
     return send_file('career/chat.js')
 
-# ========== API SCHEDULE ==========
+# ========== API SCHEDULE (giữ nguyên) ==========
 @app.route('/schedule/generate', methods=['POST'])
 def schedule_generate():
     from schedule.schedule_utils import create_timetable
@@ -157,12 +163,19 @@ Xuất JSON duy nhất:
                 fallback[day] = items
         return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI tạm thời không khả dụng, dùng lịch mẫu'})
 
-# ========== CAREER AI (CÓ NHỚ LỊCH SỬ) ==========
+# ========== CAREER AI (CÓ NHỚ LỊCH SỬ - BACKEND STORAGE) ==========
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
     data = request.json
     user_message = data.get('message', '')
-    history = data.get('history', [])  # lịch sử từ frontend (không bao gồm tin nhắn user vừa gửi)
+    session_id = data.get('session_id')  # frontend có thể gửi lên session_id cũ
+
+    # Nếu chưa có session_id, tạo mới
+    if not session_id:
+        session_id = str(uuid.uuid4())
+
+    # Lấy lịch sử của session này (nếu chưa có thì tạo mảng rỗng)
+    history = conversation_store.get(session_id, [])
 
     if not user_message:
         return jsonify({'success': False, 'error': 'Tin nhắn trống'})
@@ -175,17 +188,21 @@ def career_ai():
         "Hỏi từ tốn, khuyến khích 1-2 câu hỏi mỗi lần. Tâm sự như bạn bè, ghi nhớ những gì đã biết, không vội kết thúc."
     )
 
-    # Xây dựng messages: system + lịch sử + tin nhắn mới
+    # Xây dựng messages: system + toàn bộ lịch sử (các cặp user/assistant trước đó) + tin nhắn mới
     messages = [{"role": "system", "content": system_instruction}]
-    for msg in history:
-        messages.append({"role": msg['role'], "content": msg['content']})
+    messages.extend(history)  # history đã lưu các lượt trước (role: user/assistant)
     messages.append({"role": "user", "content": user_message})
 
-    try:
-        reply = generate_with_groq(messages)
-        return jsonify({'success': True, 'reply': reply})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+    # Gọi AI
+    reply = generate_with_groq(messages)
+
+    # Cập nhật lịch sử: thêm tin nhắn user vừa gửi và phản hồi của AI
+    history.append({"role": "user", "content": user_message})
+    history.append({"role": "assistant", "content": reply})
+    conversation_store[session_id] = history
+
+    # Trả về phản hồi kèm session_id để frontend lưu lại
+    return jsonify({'success': True, 'reply': reply, 'session_id': session_id})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
