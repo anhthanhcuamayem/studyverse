@@ -83,7 +83,7 @@ function initTimetable() {
 function renderTable() {
     const thead = document.getElementById('table-header');
     const tbody = document.getElementById('table-body');
-    let headerRow = `<tr><th>Time / Day</th>`;
+    let headerRow = `</table><th>Time / Day</th>`;
     for (let i = 0; i < days.length; i++) {
         headerRow += `<th data-day="${i}">${days[i]}</th>`;
     }
@@ -198,16 +198,13 @@ function showSubjectPicker(day, slot, tdElement) {
         return;
     }
     closePicker();
-    
     const availableSubjects = subjects.filter(subj => (subjectCounts[subj.name] || 0) < subj.sessions);
     if (availableSubjects.length === 0 && subjects.length > 0) {
         alert("All subjects are full! Cannot add more.");
         return;
     }
-    
     const pickerDiv = document.createElement('div');
     pickerDiv.className = 'subject-picker';
-    
     availableSubjects.forEach(subj => {
         const btn = document.createElement('button');
         const remaining = subj.sessions - (subjectCounts[subj.name] || 0);
@@ -226,7 +223,6 @@ function showSubjectPicker(day, slot, tdElement) {
         };
         pickerDiv.appendChild(btn);
     });
-    
     const xBtn = document.createElement('button');
     xBtn.textContent = "✗ Off";
     xBtn.className = 'x-btn';
@@ -236,45 +232,31 @@ function showSubjectPicker(day, slot, tdElement) {
         closePicker();
     };
     pickerDiv.appendChild(xBtn);
-    
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = "Cancel";
     cancelBtn.onclick = () => closePicker();
     pickerDiv.appendChild(cancelBtn);
-    
-    // Đưa picker vào body để lấy kích thước thật
     document.body.appendChild(pickerDiv);
-    
-    // Lấy vị trí của ô được click
     const rect = tdElement.getBoundingClientRect();
     const pickerRect = pickerDiv.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    
     let left = rect.left;
     let top = rect.bottom + 5;
-    
-    // Kiểm tra tràn bên phải
     if (left + pickerRect.width > viewportWidth) {
         left = rect.right - pickerRect.width;
         if (left < 0) left = 0;
     }
-    // Kiểm tra tràn bên dưới
     if (top + pickerRect.height > viewportHeight) {
         top = rect.top - pickerRect.height - 5;
         if (top < 0) top = 0;
     }
-    
-    // Đảm bảo không bị tràn sang trái
     if (left < 0) left = 5;
-    
     pickerDiv.style.position = 'fixed';
     pickerDiv.style.left = `${left}px`;
     pickerDiv.style.top = `${top}px`;
     pickerDiv.style.zIndex = '9999';
-    
     currentPicker = pickerDiv;
-    
     const outsideClick = (e) => {
         if (!pickerDiv.contains(e.target)) {
             closePicker();
@@ -292,9 +274,9 @@ function updateStatus() {
         totalScheduled += scheduled;
     });
     const statusDiv = document.getElementById('status');
-    statusDiv.innerHTML = `<strong>📊 "Progress:</strong> ${totalScheduled}/${totalPlanned} periods assigned. `;
+    statusDiv.innerHTML = `<strong>📊 Progress:</strong> ${totalScheduled}/${totalPlanned} periods assigned. `;
     if (totalScheduled < totalPlanned) {
-        statusDiv.innerHTML += `<span style="color:#ffaa33;"></span>`;
+        statusDiv.innerHTML += `<span style="color:#ffaa33;">Need ${totalPlanned - totalScheduled} more.</span>`;
     } else if (totalScheduled === totalPlanned && totalPlanned > 0) {
         statusDiv.innerHTML += `<span style="color:#2ecc71;">✅ Done! All periods have been assigned.</span>`;
     }
@@ -397,6 +379,89 @@ function clearAll() {
         updateStatus();
     }
 }
+
+// ========== HÀM GỌI AI TẠO LỊCH ==========
+document.getElementById('aiGenerateBtn').addEventListener('click', async () => {
+    const prompt = document.getElementById('aiPrompt').value.trim();
+    if (!prompt) {
+        alert("Vui lòng nhập mô tả lịch học!");
+        return;
+    }
+    if (subjects.length === 0) {
+        alert("Vui lòng thêm ít nhất một môn học trước khi dùng AI.");
+        return;
+    }
+
+    // Chuẩn bị dữ liệu gửi đi
+    const subjectsData = subjects.map(s => ({ name: s.name, sessions: s.sessions }));
+    const disabledDaysData = disabledDays;
+
+    const btn = document.getElementById('aiGenerateBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse"></i> Đang tạo...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/schedule/ai-schedule', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: prompt,
+                subjects: subjectsData,
+                disabledDays: disabledDaysData
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            // Xóa toàn bộ lịch hiện tại
+            for (let d = 0; d < days.length; d++) {
+                for (let s = 0; s < lessonSlots.length; s++) {
+                    timetableData[d][s] = null;
+                }
+            }
+            // Reset số tiết đã xếp
+            for (let subj of subjects) {
+                subjectCounts[subj.name] = 0;
+            }
+            // Áp dụng lịch mới từ AI
+            const newTimetable = data.timetable;
+            // Map tên ngày tiếng Việt sang chỉ số (vì AI trả về tiếng Việt)
+            const dayMap = {
+                "Thứ 2": 0, "Thứ 3": 1, "Thứ 4": 2, "Thứ 5": 3, "Thứ 6": 4, "Thứ 7": 5, "Chủ nhật": 6
+            };
+            for (let dayName in newTimetable) {
+                const dayIdx = dayMap[dayName];
+                if (dayIdx === undefined) continue;
+                const slots = newTimetable[dayName];
+                if (!Array.isArray(slots)) continue;
+                for (let slot of slots) {
+                    const startTime = slot.start;
+                    const slotIdx = lessonSlots.indexOf(startTime);
+                    if (slotIdx !== -1 && timetableData[dayIdx][slotIdx] === null) {
+                        const subjName = slot.subject;
+                        // Kiểm tra xem môn có trong danh sách không
+                        const valid = subjects.some(s => s.name === subjName);
+                        if (valid && (subjectCounts[subjName] || 0) < subjects.find(s => s.name === subjName).sessions) {
+                            timetableData[dayIdx][slotIdx] = { type: 'subject', name: subjName };
+                            subjectCounts[subjName] = (subjectCounts[subjName] || 0) + 1;
+                        }
+                    }
+                }
+            }
+            renderTable();
+            renderSubjectList(); // cập nhật badge
+            alert("✅ Đã tạo lịch theo yêu cầu!");
+        } else {
+            alert("❌ AI xử lý lỗi: " + (data.error || "Không rõ nguyên nhân"));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Lỗi kết nối đến server AI.");
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
 
 initTimetable();
 document.getElementById('add-subject-btn').addEventListener('click', addSubject);
