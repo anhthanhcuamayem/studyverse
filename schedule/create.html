@@ -33,7 +33,7 @@
                         <span class="text">Schedule</span>
                     </a>
                 </li>
-                <li class="list" id="li-create"  data-index="3">
+                <li class="list" id="li-create" data-index="3">
                     <a href="/career/chat.html">
                         <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
                         <span class="text">AI Career</span>
@@ -64,6 +64,12 @@
                 </div>
             </div>
 
+            <!-- Ô nhập văn bản và nút AI -->
+            <div style="margin-top: 20px; margin-bottom: 20px;">
+                <textarea id="aiPrompt" rows="3" placeholder="Mô tả lịch học bằng tiếng Việt, ví dụ:&#10;Học Toán 3 tiết vào buổi sáng thứ 2 và thứ 4, Tin học 2 tiết vào thứ 6 buổi chiều, tránh thứ 7 và chủ nhật." style="width: 100%; background: #1e1e2f; border: 1px solid var(--border-soft); border-radius: 16px; padding: 12px; color: white; font-family: inherit; resize: vertical;"></textarea>
+                <button id="aiGenerateBtn" style="margin-top: 10px; background: linear-gradient(135deg, #007AFF, #8B5CF6);"><i class="fa-solid fa-magic"></i> Tạo lịch bằng AI</button>
+            </div>
+
             <div class="timetable-container">
                 <table class="timetable" id="timetable">
                     <thead id="table-header"></thead>
@@ -87,7 +93,6 @@
     </div>
 </main>
 
-
-<script src="create.js"></script>   
+<script src="create.js"></script>
 </body>
 </html>
