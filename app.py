@@ -19,9 +19,9 @@ else:
     groq_client = Groq(api_key=GROQ_API_KEY)
 
 def generate_with_groq(prompt, system_instruction=None):
-    """Gọi Groq API với prompt và system instruction (tuỳ chọn)"""
+    """Gọi Groq API, trả về string hoặc None nếu lỗi."""
     if not groq_client:
-        return "Xin lỗi, tính năng AI chưa được cấu hình. Vui lòng thử lại sau."
+        return None
     try:
         messages = []
         if system_instruction:
@@ -29,14 +29,14 @@ def generate_with_groq(prompt, system_instruction=None):
         messages.append({"role": "user", "content": prompt})
         chat_completion = groq_client.chat.completions.create(
             messages=messages,
-            model="llama-3.1-70b-versatile",  # hoặc "llama-3.3-70b-versatile"
+            model="llama-3.1-70b-versatile",
             temperature=0.7,
             max_tokens=1024,
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
         print("Groq API error:", e)
-        return None  # Trả về None để báo lỗi
+        return None
 
 # ========== ROUTES ==========
 @app.route('/')
@@ -108,42 +108,46 @@ def ai_schedule():
     days_vn = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
     disabled_names = [days_vn[i] for i, d in enumerate(disabled_days) if d]
     disabled_str = ', '.join(disabled_names) if disabled_names else "không có"
+
     time_slots = ["07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
                   "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"]
     morning_slots = [t for t in time_slots if int(t[:2]) < 12]
     afternoon_slots = [t for t in time_slots if int(t[:2]) >= 13]
 
-    prompt = f"""Bạn là trợ lý xếp thời khóa biểu chính xác. Yêu cầu:
-{user_text}
+    prompt = f"""Bạn là trợ lý xếp thời khóa biểu thông minh. Hãy phân tích yêu cầu sau bằng tiếng Việt:
+"{user_text}"
 
-Danh sách môn học và số tiết cần xếp:
+Danh sách môn học cần xếp (mỗi môn có số tiết):
 {subject_list}
 
-Các ngày bị cấm: {disabled_str}
-Buổi sáng: {', '.join(morning_slots)}
-Buổi chiều: {', '.join(afternoon_slots)}
+Các ngày bị cấm (không xếp bất kỳ môn nào): {disabled_str}
+Khung giờ mỗi ngày (nếu ngày không bị cấm):
+- Buổi sáng: {', '.join(morning_slots)}
+- Buổi chiều: {', '.join(afternoon_slots)}
 
-QUY TẮC: Nếu yêu cầu "môn X vào ngày Y buổi Z" thì CHỈ xếp môn X vào đúng ngày Y buổi Z.
-Xuất JSON duy nhất:
+Yêu cầu: Xuất ra JSON duy nhất với cấu trúc:
 {{
   "timetable": {{
-    "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}],
-    ...
+    "Thứ 2": [{{"start": "07:00", "subject": "Toán"}}, ...],
+    "Thứ 3": [...],
+    "Thứ 4": [...],
+    "Thứ 5": [...],
+    "Thứ 6": [...],
+    "Thứ 7": [...],
+    "Chủ nhật": [...]
   }}
-}}"""
-    try:
-        raw = generate_with_groq(prompt)
-        if not raw:
-            raise ValueError("AI không phản hồi")
-        if raw.startswith("```json"): raw = raw[7:]
-        if raw.endswith("```"): raw = raw[:-3]
-        raw = raw.strip()
-        result = json.loads(raw)
-        timetable = result.get('timetable', {})
-        if not isinstance(timetable, dict) or len(timetable) == 0:
-            raise ValueError("Empty")
-        return jsonify({'success': True, 'timetable': timetable})
-    except Exception as e:
+}}
+
+Lưu ý:
+- Tên các ngày phải đúng: "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật".
+- start phải là một trong các mốc giờ đã cho.
+- Mỗi tiết chỉ một môn, không trùng lặp trong cùng khung giờ của một ngày.
+- Đảm bảo tổng số tiết của mỗi môn bằng đúng số tiết yêu cầu.
+- Nếu yêu cầu nói rõ "môn X vào ngày Y buổi Z", hãy ưu tiên xếp đúng.
+- Trả về JSON hợp lệ, không thêm bất kỳ văn bản hay giải thích nào khác."""
+
+    raw = generate_with_groq(prompt)
+    if not raw:
         # Fallback lịch mẫu
         fallback = {}
         idx = 0
@@ -159,7 +163,37 @@ Xuất JSON duy nhất:
                         items.append({"start": time_slots[idx % len(time_slots)], "subject": sub['name']})
                         idx += 1
                 fallback[day] = items
-        return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI tạm thời không khả dụng, dùng lịch mẫu'})
+        return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI không phản hồi, dùng lịch mẫu'})
+
+    raw = raw.strip()
+    if raw.startswith("```json"):
+        raw = raw[7:]
+    if raw.endswith("```"):
+        raw = raw[:-3]
+    raw = raw.strip()
+    try:
+        result = json.loads(raw)
+        timetable = result.get('timetable', {})
+        if not isinstance(timetable, dict) or len(timetable) == 0:
+            raise ValueError("Empty")
+        return jsonify({'success': True, 'timetable': timetable})
+    except Exception as e:
+        # Fallback lịch mẫu nếu parse lỗi
+        fallback = {}
+        idx = 0
+        total = sum(s['sessions'] for s in subjects)
+        for day in days_vn:
+            if day in disabled_names:
+                fallback[day] = []
+            else:
+                items = []
+                for _ in range(min(2, total - idx)):
+                    if idx < total:
+                        sub = subjects[idx % len(subjects)]
+                        items.append({"start": time_slots[idx % len(time_slots)], "subject": sub['name']})
+                        idx += 1
+                fallback[day] = items
+        return jsonify({'success': True, 'timetable': fallback, 'warning': f'Lỗi parse JSON, dùng lịch mẫu: {str(e)}'})
 
 # ========== CAREER AI ==========
 @app.route('/api/career-ai', methods=['POST'])
