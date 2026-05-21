@@ -236,21 +236,37 @@ function showSubjectPicker(day, slot, tdElement) {
     cancelBtn.textContent = "Cancel";
     cancelBtn.onclick = () => closePicker();
     pickerDiv.appendChild(cancelBtn);
+
+    // Lấy vị trí của ô được click
     const rect = tdElement.getBoundingClientRect();
-    let left = rect.left + window.scrollX;
-    let top = rect.bottom + window.scrollY + 5;
-    const pickerWidth = 200;
-    if (left + pickerWidth > window.innerWidth + window.scrollX) {
-        left = rect.right + window.scrollX - pickerWidth;
-        if (left < window.scrollX) left = rect.left + window.scrollX;
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+    let left = rect.left + scrollX;
+    let top = rect.bottom + scrollY + 5;
+
+    // Đo kích thước picker (sau khi thêm nội dung)
+    document.body.appendChild(pickerDiv);
+    const pickerRect = pickerDiv.getBoundingClientRect();
+    const pickerWidth = pickerRect.width;
+    const pickerHeight = pickerRect.height;
+    
+    // Điều chỉnh theo chiều ngang
+    if (left + pickerWidth > window.innerWidth + scrollX) {
+        left = rect.right + scrollX - pickerWidth;
+        if (left < scrollX) left = rect.left + scrollX; // fallback
     }
-    if (top + 150 > window.innerHeight + window.scrollY) {
-        top = rect.top + window.scrollY - 150;
+    // Điều chỉnh theo chiều dọc
+    if (top + pickerHeight > window.innerHeight + scrollY) {
+        top = rect.top + scrollY - pickerHeight - 5;
+        if (top < scrollY) top = rect.bottom + scrollY + 5; // fallback
     }
+
     pickerDiv.style.position = 'fixed';
     pickerDiv.style.left = `${left}px`;
     pickerDiv.style.top = `${top}px`;
-    document.body.appendChild(pickerDiv);
+    // Đảm bảo picker nằm trên cùng
+    pickerDiv.style.zIndex = '9999';
+    
     currentPicker = pickerDiv;
     const outsideClick = (e) => {
         if (!pickerDiv.contains(e.target)) {
@@ -273,7 +289,7 @@ function updateStatus() {
     if (totalScheduled < totalPlanned) {
         statusDiv.innerHTML += `<span style="color:#ffaa33;"></span>`;
     } else if (totalScheduled === totalPlanned && totalPlanned > 0) {
-        statusDiv.innerHTML += `<span style="color:#2ecc71;">✅  Done! All periods have been assigned.</span>`;
+        statusDiv.innerHTML += `<span style="color:#2ecc71;">✅ Done! All periods have been assigned.</span>`;
     }
     subjects.forEach(s => {
         statusDiv.innerHTML += `<br> - ${s.name}: ${subjectCounts[s.name] || 0}/${s.sessions}`;
