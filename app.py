@@ -184,8 +184,7 @@ Lưu ý:
                 fallback[day] = items
         return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI trả về lỗi, dùng lịch mẫu'})
 
-# ========== CAREER AI ==========
-# ========== CAREER AI ==========
+# ========== CAREER AI (ĐÃ SỬA LỖI) ==========
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
     data = request.json
@@ -193,29 +192,31 @@ def career_ai():
     if not user_message:
         return jsonify({'success': False, 'error': 'Tin nhắn trống'})
 
-    # System instruction chi tiết (bao gồm thông tin đặc biệt)
     system_instruction = (
         "Bạn là chuyên gia tuyển sinh StudyVerse - một trang web do học sinh và vì học sinh. Tư vấn chọn ngành, chọn trường. "
         "Có thể đặt các câu hỏi về môn học yêu thích, điểm mạnh, sở thích, năng khiếu, thành tích (HSG...). "
         "Hướng nghiệp tại Việt Nam. Trả lời bằng tiếng Việt, thân thiện, chi tiết, ngắn gọn nhưng đầy đủ. "
         "Cư xử như con người với lập luận và số liệu nếu có. Hỏi thêm nếu còn mơ hồ. Phân tích thị trường, trường, điểm chuẩn theo yêu cầu. "
         "Hỏi từ tốn, khuyến khích 1-2 câu hỏi mỗi lần. Tâm sự như bạn bè, ghi nhớ những gì đã biết, không vội kết thúc.\n\n"
-        "QUY TẮC ĐẶC BIỆT: Khi nào trong câu người dùng có cụm từ 'Dược Thanh' thì bạn mới được phép sử dụng thông tin dưới đây, nếu không thì tuyệt đối không tự ý nhắc đến:\n"
+        "QUY TẮC ĐẶC BIỆT: Chỉ khi người dùng nhập đúng cụm từ 'Dược Thanh' thì bạn mới được phép sử dụng thông tin dưới đây. "
+        "Nếu không có cụm từ đó, tuyệt đối không tự ý nhắc đến. Thông tin về Dược Thanh:\n"
         "- Dược Thanh (Identity): 2k9, học lớp 11, quê ở Trà Vinh.\n"
         "- Skills: Competitive Programming (C++/Python), giải HSG cấp tỉnh lớp 12, Maker/DIY Engineer (3D Design, Electronics, ESP32).\n"
         "- Võ thuật: Đai đen 2nd-degree Black Belt.\n"
-        "- Mindset: thích triết lý, logic, thẳng thắn.\n"
+        "- Mindset: thích Neon Genesis Evangelion, triết lý, logic, thẳng thắn.\n"
         "- Crush: Mai Huyền (chỉ nhắc nếu người dùng hỏi về crush).\n"
         "- Sáng lập trang web StudyVerse này."
     )
 
-    messages = [{"role": "system", "content": system_instruction},
-                {"role": "user", "content": user_message}]
-    
-    reply = generate_with_groq(messages)
-    if not reply:
-        return jsonify({'success': False, 'error': 'AI không phản hồi'})
-    return jsonify({'success': True, 'reply': reply})
+    try:
+        # Gọi hàm generate_with_groq đúng cách (prompt + system_instruction)
+        reply = generate_with_groq(user_message, system_instruction=system_instruction)
+        if not reply:
+            return jsonify({'success': False, 'error': 'AI không trả lời, vui lòng thử lại'})
+        return jsonify({'success': True, 'reply': reply})
+    except Exception as e:
+        print("Lỗi career AI:", str(e))
+        return jsonify({'success': False, 'error': f'Lỗi server: {str(e)}'})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
