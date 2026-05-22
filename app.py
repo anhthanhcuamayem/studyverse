@@ -1,19 +1,15 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, session
 import json
 import random
 import os
 import re
 from groq import Groq
-import uuid
 
 app = Flask(__name__,
             template_folder='.',
             static_folder='.',
             static_url_path='')
 app.secret_key = 'your-secret-key-change-in-production'
-
-# ========== LƯU TRỮ HỘI THOẠI (in-memory) ==========
-conversation_store = {}
 
 # ========== CẤU HÌNH GROQ API ==========
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -161,7 +157,7 @@ def serve_chat_css():
 def serve_chat_js():
     return send_file('career/chat.js')
 
-# ========== API SCHEDULE (giữ nguyên) ==========
+# ========== API SCHEDULE ==========
 @app.route('/schedule/generate', methods=['POST'])
 def schedule_generate():
     from schedule.schedule_utils import create_timetable
@@ -240,23 +236,19 @@ Xuất JSON duy nhất:
                 fallback[day] = items
         return jsonify({'success': True, 'timetable': fallback, 'warning': 'AI tạm thời không khả dụng, dùng lịch mẫu'})
 
-# ========== CAREER AI (CÓ NHỚ LỊCH SỬ) - ĐÃ TÍCH HỢP PROMPT CHUẨN ==========
+# ========== CAREER AI - DÙNG FLASK SESSION ĐỂ NHỚ LỊCH SỬ ==========
 @app.route('/api/career-ai', methods=['POST'])
 def career_ai():
     data = request.json
     user_message = data.get('message', '')
-    session_id = data.get('session_id')
-
-    if not session_id:
-        session_id = str(uuid.uuid4())
-
-    # Lấy lịch sử của session
-    history = conversation_store.get(session_id, [])
 
     if not user_message:
         return jsonify({'success': False, 'error': 'Tin nhắn trống'})
 
-    # Xây dựng messages: system (prompt chuẩn) + lịch sử + tin nhắn mới
+    # Lấy lịch sử từ session (mỗi trình duyệt riêng)
+    history = session.get('chat_history', [])
+
+    # Xây dựng messages: system + lịch sử + tin nhắn mới
     messages = [{"role": "system", "content": STUDYVERSE_SYSTEM_PROMPT}]
     messages.extend(history)
     messages.append({"role": "user", "content": user_message})
@@ -267,9 +259,15 @@ def career_ai():
     # Cập nhật lịch sử
     history.append({"role": "user", "content": user_message})
     history.append({"role": "assistant", "content": reply})
-    conversation_store[session_id] = history
+    session['chat_history'] = history
 
-    return jsonify({'success': True, 'reply': reply, 'session_id': session_id})
+    return jsonify({'success': True, 'reply': reply})
+
+# (Tuỳ chọn) Route reset lịch sử chat
+@app.route('/api/career-reset', methods=['POST'])
+def career_reset():
+    session.pop('chat_history', None)
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
