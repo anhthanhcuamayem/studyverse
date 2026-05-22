@@ -197,14 +197,16 @@ function showSubjectPicker(day, slot, tdElement) {
         alert("Add a subject first!");
         return;
     }
-    closePicker();
     const availableSubjects = subjects.filter(subj => (subjectCounts[subj.name] || 0) < subj.sessions);
     if (availableSubjects.length === 0 && subjects.length > 0) {
         alert("All subjects are full! Cannot add more.");
         return;
     }
+    closePicker();
+    
     const pickerDiv = document.createElement('div');
     pickerDiv.className = 'subject-picker';
+    
     availableSubjects.forEach(subj => {
         const btn = document.createElement('button');
         const remaining = subj.sessions - (subjectCounts[subj.name] || 0);
@@ -223,6 +225,7 @@ function showSubjectPicker(day, slot, tdElement) {
         };
         pickerDiv.appendChild(btn);
     });
+    
     const xBtn = document.createElement('button');
     xBtn.textContent = "✗ Off";
     xBtn.className = 'x-btn';
@@ -232,42 +235,46 @@ function showSubjectPicker(day, slot, tdElement) {
         closePicker();
     };
     pickerDiv.appendChild(xBtn);
+    
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = "Cancel";
     cancelBtn.onclick = () => closePicker();
     pickerDiv.appendChild(cancelBtn);
-
-    // Lấy vị trí của ô được click
-    const rect = tdElement.getBoundingClientRect();
-    const scrollX = window.scrollX || window.pageXOffset;
-    const scrollY = window.scrollY || window.pageYOffset;
-    let left = rect.left + scrollX;
-    let top = rect.bottom + scrollY + 5;
-
-    // Đo kích thước picker (sau khi thêm nội dung)
+    
+    // Append tạm để lấy kích thước thật
     document.body.appendChild(pickerDiv);
     const pickerRect = pickerDiv.getBoundingClientRect();
     const pickerWidth = pickerRect.width;
     const pickerHeight = pickerRect.height;
     
-    // Điều chỉnh theo chiều ngang
-    if (left + pickerWidth > window.innerWidth + scrollX) {
-        left = rect.right + scrollX - pickerWidth;
-        if (left < scrollX) left = rect.left + scrollX; // fallback
+    // Lấy vị trí của ô được click (so với viewport)
+    const rect = tdElement.getBoundingClientRect();
+    let left = rect.left;
+    let top = rect.bottom + 5; // mặc định hiển thị bên dưới
+    
+    // Kiểm tra vướng mép phải
+    if (left + pickerWidth > window.innerWidth) {
+        left = rect.right - pickerWidth;
+        // Nếu vẫn tràn thì đưa về sát mép phải
+        if (left < 0) left = window.innerWidth - pickerWidth - 10;
     }
-    // Điều chỉnh theo chiều dọc
-    if (top + pickerHeight > window.innerHeight + scrollY) {
-        top = rect.top + scrollY - pickerHeight - 5;
-        if (top < scrollY) top = rect.bottom + scrollY + 5; // fallback
+    
+    // Kiểm tra vướng mép dưới
+    if (top + pickerHeight > window.innerHeight) {
+        // Hiển thị lên phía trên ô thay vì dưới
+        top = rect.top - pickerHeight - 5;
+        // Nếu vẫn tràn (ô quá cao), đưa lên sát mép trên
+        if (top < 0) top = 10;
     }
-
+    
     pickerDiv.style.position = 'fixed';
     pickerDiv.style.left = `${left}px`;
     pickerDiv.style.top = `${top}px`;
-    // Đảm bảo picker nằm trên cùng
     pickerDiv.style.zIndex = '9999';
     
     currentPicker = pickerDiv;
+    
+    // Click ra ngoài để đóng
     const outsideClick = (e) => {
         if (!pickerDiv.contains(e.target)) {
             closePicker();
