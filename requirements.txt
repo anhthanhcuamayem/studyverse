@@ -3,3 +3,4 @@ gunicorn
 Werkzeug
 google-generativeai>=0.7.2
 groq
+openAI
