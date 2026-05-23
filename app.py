@@ -1,7 +1,9 @@
-from flask import Flask, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session
 import json
+import random
 import os
-from openai import OpenAI
+import re
+from groq import Groq
 
 app = Flask(__name__,
             template_folder='.',
@@ -9,31 +11,31 @@ app = Flask(__name__,
             static_url_path='')
 app.secret_key = 'your-secret-key-change-in-production'
 
-# ========== CẤU HÌNH OPENAI API ==========
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    print("⚠️  Cảnh báo: Chưa có biến môi trường OPENAI_API_KEY. AI sẽ không hoạt động.")
-    openai_client = None
+# ========== CẤU HÌNH GROQ API ==========
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    print("⚠️  Cảnh báo: Chưa có biến môi trường GROQ_API_KEY. AI sẽ không hoạt động.")
+    groq_client = None
 else:
-    openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    groq_client = Groq(api_key=GROQ_API_KEY)
 
-def generate_with_openai(messages):
-    """Gửi danh sách messages lên OpenAI (model gpt-3.5-turbo)."""
-    if not openai_client:
+def generate_with_groq(messages):
+    """Gửi danh sách messages (đã có system + user + assistant) lên Groq."""
+    if not groq_client:
         return "Xin lỗi, tính năng AI chưa được cấu hình. Vui lòng thử lại sau."
     try:
-        chat_completion = openai_client.chat.completions.create(
+        chat_completion = groq_client.chat.completions.create(
             messages=messages,
-            model="gpt-3.5-turbo",  # hoặc "gpt-4" nếu có quyền
+            model="llama-3.3-70b-versatile",
             temperature=0.7,
             max_tokens=1024,
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
-        print("OpenAI API error:", e)
+        print("Groq API error:", e)
         return f"Xin lỗi, tôi đang gặp sự cố kỹ thuật. Chi tiết: {str(e)}"
 
-# ========== PROMPT TƯ VẤN CHUẨN ==========
+# ========== PROMPT TƯ VẤN CHUẨN (ĐÃ TÍCH HỢP ĐẦY ĐỦ DATA) ==========
 STUDYVERSE_SYSTEM_PROMPT = """Bạn là chuyên gia tuyển sinh StudyVerse. 
 Tư vấn chọn ngành/trường theo sở thích, điểm mạnh, HSG. Trả lời tiếng Việt, thân thiện, ngắn gọn, có số liệu điểm chuẩn 2024. Mỗi lần khuyến khích hỏi lại 1-2 câu, tâm sự như bạn bè.
 
@@ -134,7 +136,7 @@ Xuất JSON duy nhất:
 }}"""
     try:
         messages = [{"role": "user", "content": prompt}]
-        raw = generate_with_openai(messages)
+        raw = generate_with_groq(messages)
         if raw.startswith("```json"): raw = raw[7:]
         if raw.endswith("```"): raw = raw[:-3]
         raw = raw.strip()
@@ -171,7 +173,7 @@ def career_ai():
     if not user_message:
         return jsonify({'success': False, 'error': 'Tin nhắn trống'})
 
-    # Lấy lịch sử từ session
+    # Lấy lịch sử từ session (mỗi trình duyệt riêng)
     history = session.get('chat_history', [])
 
     # Xây dựng messages: system + lịch sử + tin nhắn mới
@@ -180,7 +182,7 @@ def career_ai():
     messages.append({"role": "user", "content": user_message})
 
     # Gọi AI
-    reply = generate_with_openai(messages)
+    reply = generate_with_groq(messages)
 
     # Cập nhật lịch sử
     history.append({"role": "user", "content": user_message})
@@ -189,7 +191,7 @@ def career_ai():
 
     return jsonify({'success': True, 'reply': reply})
 
-# Reset lịch sử chat
+# (Tuỳ chọn) Route reset lịch sử chat
 @app.route('/api/career-reset', methods=['POST'])
 def career_reset():
     session.pop('chat_history', None)
