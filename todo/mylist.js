@@ -387,7 +387,7 @@ document.addEventListener('click', function (event) {
                     localStorage.setItem('studyverse_projects', JSON.stringify(projects));
                     openProject(projects[pIdx].name); 
                     renderSidebar();
-                }
+                }    
             } else {
                 projects.push({ name: n.value.trim(), deadline: d.value || "Not set", tasks: [] });
                 localStorage.setItem('studyverse_projects', JSON.stringify(projects));
