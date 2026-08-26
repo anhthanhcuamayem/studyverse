@@ -19,7 +19,7 @@ client = OpenAI(
     api_key=FREELLM_API_KEY,
     base_url=FREELLM_BASE_URL
 )
-
+ 
 # ==================== PHẦN SERVE FILE TĨNH ====================
 @app.route('/')
 def serve_index():
