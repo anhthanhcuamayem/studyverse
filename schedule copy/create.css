@@ -1,4 +1,4 @@
-/* --- NÂNG CẤP GIAO DIỆN SCHEDULE SANG TRỌNG, ĐỒNG BỘ STYLE VỚI TOÀN HỆ THỐNG --- */
+
 :root {
     --bg-color: #05070a;
     --card-bg: #0d1117;
@@ -8,25 +8,16 @@
     --border-soft: rgba(255, 255, 255, 0.08);
     --white-glow: 0 10px 30px -5px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.03);
 }
-
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: 'Inter', sans-serif;
 }
-
 body {
     background-color: var(--bg-color);
     color: var(--text-white);
     overflow-x: hidden;
-    opacity: 0;
-    animation: fadeIn 0.4s ease forwards;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .navbar {
@@ -43,7 +34,6 @@ body {
     padding-bottom: 10px;
     z-index: 1000;
 }
-
 .nav-container {
     max-width: 1200px;
     width: 100%;
@@ -53,18 +43,15 @@ body {
     justify-content: space-between;
     align-items: center;
 }
-
 .logo {
     font-size: 40px;
     font-weight: 800;
     text-decoration: none;
     color: var(--text-white);
 }
-
 .logo span {
     color: var(--primary-blue);
 }
-
 .navigation {
     position: relative;
     width: 350px;
@@ -76,7 +63,6 @@ body {
     border-radius: 14px;
     border: 1px solid var(--border-soft);
 }
-
 .navigation ul {
     display: flex;
     position: relative;
@@ -84,7 +70,6 @@ body {
     margin: 0;
     list-style: none;
 }
-
 .navigation ul li {
     position: relative;
     list-style: none;
@@ -92,7 +77,6 @@ body {
     height: 70px;
     z-index: 10;
 }
-
 .navigation ul li a {
     position: relative;
     display: flex;
@@ -105,7 +89,6 @@ body {
     color: #fff;
     text-decoration: none;
 }
-
 .navigation ul li a .icon {
     position: relative;
     display: block;
@@ -116,7 +99,6 @@ body {
     color: #fff;
     z-index: 1000;
 }
-
 .navigation ul li a .text {
     position: absolute;
     font-weight: 400;
@@ -127,19 +109,18 @@ body {
     transform: translateY(20px);
     z-index: 100;
 }
-
+/* Gộp chung active và hover-effect để icon/chữ hiện lên */
 .navigation ul li.active a .icon,
 .navigation ul li.hover-effect a .icon {
     color: #fff;
-    transform: translateY(-35px);
+    transform: translateY(-35px); /* Đẩy icon lên nếu menu bạn có hiệu ứng này */
 }
 
 .navigation ul li.active a .text,
 .navigation ul li.hover-effect a .text {
     opacity: 1;
-    transform: translateY(10px);
+    transform: translateY(10px); /* Hiện chữ bên dưới */
 }
-
 .indicator {
     position: absolute;
     top: -50%;
@@ -152,7 +133,8 @@ body {
     z-index: 1;
     left: 0;
 }
-
+/* Bỏ các rule transform cứng, sẽ dùng JS để set vị trí */
+/* Responsive */
 @media (max-width: 900px) {
     .navbar { height: 90px; }
     .main-schedule { padding-top: 130px; }
@@ -163,350 +145,245 @@ body {
     .navigation ul li.active a .icon { transform: translateY(-28px); }
     .indicator { width: 55px; height: 55px; top: -40%; }
 }
-
+/* Phần còn lại giữ nguyên */
 .main-schedule {
-    padding-top: 150px;
+    padding-top: 160px;
     padding-bottom: 60px;
     min-height: 100vh;
 }
-
 .container {
-    max-width: 1300px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 0 24px;
 }
-
 .schedule-card {
     background: var(--card-bg);
     border: 1px solid var(--border-soft);
-    border-radius: 28px;
-    padding: 36px;
+    border-radius: 32px;
+    padding: 28px 30px;
     box-shadow: var(--white-glow);
-    backdrop-filter: blur(10px);
 }
-
 h1 {
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 800;
     margin-bottom: 12px;
     background: linear-gradient(135deg, #fff, var(--primary-blue));
+    background-clip: text;
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    color: transparent;
 }
-
 .intro-text {
     color: var(--text-gray);
     margin-bottom: 28px;
-    font-size: 0.95rem;
-    line-height: 1.6;
+    font-size: 1rem;
+    line-height: 1.5;
     border-left: 3px solid var(--primary-blue);
     padding-left: 16px;
-    background: rgba(0, 122, 255, 0.03);
-    padding-top: 8px;
-    padding-bottom: 8px;
-    border-radius: 0 12px 12px 0;
 }
-
 .subjects-panel {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-soft);
-    border-radius: 20px;
-    padding: 24px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 24px;
+    padding: 20px;
     margin-bottom: 32px;
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
 }
-
 .subjects-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
 }
-
 .subject-badge {
-    background: rgba(0, 122, 255, 0.15);
-    border: 1px solid rgba(0, 122, 255, 0.4);
+    background: rgba(0, 122, 255, 0.2);
+    border: 1px solid rgba(0, 122, 255, 0.5);
     color: white;
-    padding: 8px 16px;
-    border-radius: 30px;
-    font-size: 0.85rem;
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 0.9rem;
     font-weight: 500;
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    transition: all 0.2s;
 }
-
-.subject-badge:hover {
-    border-color: var(--primary-blue);
-    background: rgba(0, 122, 255, 0.25);
-}
-
 .subject-badge button {
-    background: rgba(255, 77, 77, 0.2);
-    border: 1px solid #ff4d4d;
-    color: #ff9999;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: 0.2s;
-    box-shadow: none;
-    padding: 0;
-}
-
-.subject-badge button:hover {
     background: #ff4d4d;
+    border: none;
     color: white;
-    transform: scale(1.1);
+    border-radius: 30px;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
 }
-
 .add-subject-form {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
     align-items: center;
 }
-
 .add-subject-form input {
-    background: rgba(255, 255, 255, 0.05);
+    background: #1e1e2f;
     border: 1px solid var(--border-soft);
-    padding: 12px 16px;
-    border-radius: 12px;
+    padding: 10px 14px;
+    border-radius: 16px;
     color: white;
     font-size: 0.9rem;
     outline: none;
-    transition: 0.2s;
 }
-
 .add-subject-form input:focus {
     border-color: var(--primary-blue);
-    background: rgba(255, 255, 255, 0.08);
 }
-
-button {
+button, .btn-main {
     background: var(--primary-blue);
     border: none;
-    padding: 12px 24px;
+    padding: 12px 28px;
     border-radius: 12px;
     font-weight: 600;
     color: white;
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: 0.3s;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     font-size: 0.9rem;
-    box-shadow: 0 4px 15px rgba(0, 122, 255, 0.25);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
 }
-
-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
-    filter: brightness(1.1);
+button:hover, .btn-main:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 122, 255, 0.4);
+    filter: brightness(1.05);
 }
-
 .ai-btn {
-    background: linear-gradient(135deg, #007AFF, #5856D6);
+    background: linear-gradient(135deg, #007AFF, #5e2a84);
 }
-
 .clear-btn {
-    background: rgba(255, 59, 48, 0.15);
-    border: 1px solid rgba(255, 59, 48, 0.4);
-    color: #ff6b6b;
-    box-shadow: none;
+    background: rgba(255, 77, 77, 0.9);
 }
-
 .clear-btn:hover {
-    background: #ff3b30;
-    color: white;
-    box-shadow: 0 6px 20px rgba(255, 59, 48, 0.3);
+    background: #ff4d4d;
 }
-
 .timetable-container {
     overflow-x: auto;
-    margin: 24px 0;
-    border-radius: 20px;
+    margin: 28px 0 20px;
+    border-radius: 24px;
     border: 1px solid var(--border-soft);
-    background: #080c14;
-    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    background: #0a0e14;
 }
-
 .timetable {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
+    border-collapse: collapse;
     font-size: 0.85rem;
-    min-width: 900px;
+    min-width: 800px;
 }
-
 .timetable th, .timetable td {
-    border-bottom: 1px solid var(--border-soft);
-    border-right: 1px solid var(--border-soft);
-    padding: 14px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 12px 8px;
     text-align: center;
     vertical-align: middle;
 }
-
-.timetable th:last-child, .timetable td:last-child {
-    border-right: none;
-}
-
 .timetable th {
-    background: #0f1523;
+    background: #0f131c;
     color: white;
     font-weight: 600;
     cursor: pointer;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    transition: 0.2s;
 }
-
 .timetable th:hover {
     background: var(--primary-blue);
-    color: white;
 }
-
 .timetable td {
-    background: rgba(13, 17, 23, 0.7);
+    background: #0d1117;
     color: var(--text-gray);
     cursor: pointer;
-    transition: all 0.15s ease;
 }
-
-.timetable td:hover:not(.disabled-day) {
-    background: rgba(255, 255, 255, 0.04);
-    color: white;
+.timetable td:hover {
+    background: #1a1f2a;
 }
-
 .timetable td.disabled-day {
-    background: repeating-linear-gradient(45deg, #111522, #111522 10px, #080c14 10px, #080c14 20px);
-    color: rgba(255,255,255,0.2);
+    background: repeating-linear-gradient(45deg, #1e1e2a, #1e1e2a 12px, #15171f 12px, #15171f 24px);
     cursor: not-allowed;
-    font-weight: 500;
 }
-
 .timetable td.x-mark {
-    background: rgba(255, 59, 48, 0.12);
+    background: #2a1215;
     position: relative;
 }
-
 .timetable td.x-mark::after {
-    content: "✕ Off";
-    font-size: 0.85rem;
-    font-weight: 600;
+    content: "✗";
+    font-size: 1.4rem;
+    font-weight: bold;
+    display: block;
     color: #ff6b6b;
 }
-
 .timetable td.subject-cell {
     background: rgba(0, 122, 255, 0.2);
     font-weight: 600;
     color: white;
-    border: 1px solid rgba(0, 122, 255, 0.4);
-    box-shadow: inset 0 0 10px rgba(0, 122, 255, 0.15);
 }
-
 .legend {
     display: flex;
     flex-wrap: wrap;
     gap: 24px;
-    margin: 20px 0;
-    font-size: 0.85rem;
+    margin: 16px 0 20px;
+    font-size: 0.8rem;
     color: var(--text-gray);
-    align-items: center;
 }
-
-.legend div {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
 .legend span {
     display: inline-block;
-    width: 20px;
-    height: 20px;
-    border-radius: 6px;
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    margin-right: 8px;
+    vertical-align: middle;
 }
-
 .status {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-soft);
-    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 20px;
     padding: 16px 20px;
     margin-top: 24px;
     font-size: 0.9rem;
     border-left: 4px solid var(--primary-blue);
-    line-height: 1.5;
 }
-
-/* Subject picker popup */
+/* Subject picker floating */
 .subject-picker {
     position: absolute;
-    background: #121824;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
+    background: #1e1e2f;
+    border: 1px solid var(--border-soft);
+    border-radius: 20px;
     padding: 12px;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
     z-index: 2000;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-    backdrop-filter: blur(15px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
     min-width: 180px;
-    animation: pickerIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-@keyframes pickerIn {
-    from { opacity: 0; transform: scale(0.95) translateY(-5px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
 .subject-picker button {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border-soft);
-    padding: 8px 12px;
-    border-radius: 10px;
-    font-size: 0.85rem;
+    background: rgba(0, 122, 255, 0.2);
+    border: 1px solid rgba(0, 122, 255, 0.5);
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-size: 0.8rem;
     font-weight: 500;
     color: white;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: 0.2s;
     box-shadow: none;
-    text-align: left;
-    width: 100%;
 }
-
 .subject-picker button:hover {
     background: var(--primary-blue);
-    border-color: var(--primary-blue);
-    transform: none;
-    box-shadow: none;
+    transform: scale(1.02);
 }
-
 .subject-picker .x-btn {
-    background: rgba(255, 59, 48, 0.1);
-    border-color: rgba(255, 59, 48, 0.3);
+    background: rgba(255, 77, 77, 0.2);
+    border-color: #ff4d4d;
     color: #ff9999;
 }
-
 .subject-picker .x-btn:hover {
-    background: #ff3b30;
+    background: #ff4d4d;
     color: white;
-    border-color: #ff3b30;
 }
