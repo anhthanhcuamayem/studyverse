@@ -45,24 +45,9 @@ window.addEventListener('load', setIndicatorPosition);
 window.addEventListener('resize', setIndicatorPosition);
 
 // ========== LOGIC LỊCH ==========
-const scheduleSlots = [
-    // Buổi sáng: 4 tiết học + 1 giờ ra chơi lớn
-    { type: "lesson", label: "Tiết 1", start: "07:15", end: "08:00" },
-    { type: "lesson", label: "Tiết 2", start: "08:05", end: "08:50" },
-    { type: "break",  label: "Ra chơi lớn", start: "08:50", end: "09:15" },
-    { type: "lesson", label: "Tiết 3", start: "09:15", end: "10:00" },
-    { type: "lesson", label: "Tiết 4", start: "10:05", end: "10:50" },
-    { type: "lesson", label: "Tiết 5", start: "10:55", end: "11:40" },
-
-    // Nghỉ trưa
-    { type: "break",  label: "Nghỉ trưa", start: "11:40", end: "13:30" },
-
-    // Buổi chiều: Các tiết học chiều
-    { type: "lesson", label: "Tiết 6", start: "13:30", end: "14:15" },
-    { type: "lesson", label: "Tiết 7", start: "14:20", end: "15:05" },
-    { type: "break",  label: "Giải lao chiều", start: "15:05", end: "15:20" },
-    { type: "lesson", label: "Tiết 8", start: "15:20", end: "16:05" },
-    { type: "lesson", label: "Tiết 9", start: "16:10", end: "16:55" }
+const lessonSlots = [
+    "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
+    "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
 ];
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -79,10 +64,18 @@ function closePicker() {
     }
 }
 
+function getEndTime(startTime) {
+    let [h, m] = startTime.split(':').map(Number);
+    let total = h*60 + m + 45;
+    let nh = Math.floor(total/60);
+    let nm = total % 60;
+    return `${nh.toString().padStart(2,'0')}:${nm.toString().padStart(2,'0')}`;
+}
+
 function initTimetable() {
     timetableData = [];
     for (let i = 0; i < days.length; i++) {
-        timetableData[i] = new Array(scheduleSlots.length).fill(null);
+        timetableData[i] = new Array(lessonSlots.length).fill(null);
     }
     renderTable();
 }
@@ -98,20 +91,10 @@ function renderTable() {
     thead.innerHTML = headerRow;
 
     let bodyHtml = '';
-    for (let s = 0; s < scheduleSlots.length; s++) {
-        const slotInfo = scheduleSlots[s];
-
-        if (slotInfo.type === 'break') {
-            bodyHtml += `<tr style="background: rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.4); font-style: italic;">`;
-            bodyHtml += `<td style="background:#0f131c; font-weight:500; font-size: 0.85em;">${slotInfo.start} - ${slotInfo.end}<br><span style="color: var(--primary-blue); font-size: 0.8em;">☕ ${slotInfo.label}</span></td>`;
-            for (let d = 0; d < days.length; d++) {
-                bodyHtml += `<td style="text-align: center; color: rgba(255,255,255,0.2); font-size: 0.8em;" colspan="1">☕ ${slotInfo.label}</td>`;
-            }
-            bodyHtml += `</tr>`;
-            continue;
-        }
-
-        bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${slotInfo.start} - ${slotInfo.end}<br><span style="font-size: 0.75em; color: var(--text-gray);">${slotInfo.label}</span></td>`;
+    for (let s = 0; s < lessonSlots.length; s++) {
+        const time = lessonSlots[s];
+        const endTime = getEndTime(time);
+        bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${time} - ${endTime}</td>`;
         for (let d = 0; d < days.length; d++) {
             const cellData = timetableData[d][s];
             let cellClass = '';
