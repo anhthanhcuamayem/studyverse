@@ -219,22 +219,27 @@ function showSubjectPicker(day, slot, tdElement) {
     const pickerRect = pickerDiv.getBoundingClientRect();
     const rect = tdElement.getBoundingClientRect();
 
-    const MARGIN = 10; // khoảng cách an toàn với mép màn hình
+    const MARGIN = 10;
 
-    // Ưu tiên đặt picker bên dưới ô, căn giữa theo chiều ngang
-    let left = rect.left + (rect.width / 2) - (pickerRect.width / 2);
-    let top = rect.bottom + MARGIN;
+    // Tính vị trí: Ưu tiên bên phải, nếu không đủ chỗ thì sang bên trái
+    let top = rect.top + (rect.height / 2) - (pickerRect.height / 2);
+    let left;
 
-    // Nếu không đủ chỗ bên dưới, chuyển lên trên
-    if (top + pickerRect.height > window.innerHeight - MARGIN) {
-        top = rect.top - pickerRect.height - MARGIN;
+    if (rect.right + pickerRect.width + MARGIN < window.innerWidth) {
+        // Có đủ chỗ bên phải
+        left = rect.right + MARGIN;
+    } else if (rect.left - pickerRect.width - MARGIN > 0) {
+        // Có đủ chỗ bên trái
+        left = rect.left - pickerRect.width - MARGIN;
+    } else {
+        // Không đủ chỗ 2 bên, đặt ở giữa màn hình hoặc ép lề
+        left = MARGIN;
     }
 
-    // Điều chỉnh ngang để không tràn màn hình
-    if (left < MARGIN) {
-        left = MARGIN;
-    } else if (left + pickerRect.width > window.innerWidth - MARGIN) {
-        left = window.innerWidth - pickerRect.width - MARGIN;
+    // Đảm bảo không bị tràn dọc
+    if (top < MARGIN) top = MARGIN;
+    if (top + pickerRect.height > window.innerHeight - MARGIN) {
+        top = window.innerHeight - pickerRect.height - MARGIN;
     }
 
     pickerDiv.style.position = 'fixed';
