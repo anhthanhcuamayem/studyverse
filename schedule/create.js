@@ -220,15 +220,20 @@ function showSubjectPicker(day, slot, tdElement) {
     let left = rect.right + 10;
     let top = rect.top + (rect.height / 2) - (pickerRect.height / 2);
 
-    // Nếu không đủ chỗ bên phải, lật sang bên trái
-    if (left + pickerRect.width > window.innerWidth - 10) {
+    // Kiểm tra xem bên phải có đủ không gian không (tính cả margin 10px)
+    const spaceOnRight = window.innerWidth - rect.right;
+
+    // Nếu bên phải không đủ không gian, lật sang bên trái
+    if (spaceOnRight < pickerRect.width + 10) {
         left = rect.left - pickerRect.width - 10;
     }
 
-    // Nếu vẫn không đủ chỗ (quá hẹp), ép vào lề
-    if (left < 10) left = 10;
+    // Đảm bảo không bị tràn ra ngoài lề trái
+    if (left < 10) {
+        left = 10;
+    }
 
-    // Giới hạn trong màn hình theo chiều dọc
+    // Giới hạn trong màn hình theo chiều dọc (đảm bảo không bị tràn trên/dưới)
     if (top < 10) top = 10;
     if (top + pickerRect.height > window.innerHeight - 10) {
         top = window.innerHeight - pickerRect.height - 10;
