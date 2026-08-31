@@ -162,6 +162,9 @@ function toggleXMark(day, slot) {
     renderTable();
 }
 
+// ============================================================
+// HÀM showSubjectPicker ĐÃ ĐƯỢC CHỈNH SỬA VỀ VỊ TRÍ
+// ============================================================
 function showSubjectPicker(day, slot, tdElement) {
     if (subjects.length === 0) {
         alert("Add a subject first!");
@@ -211,40 +214,35 @@ function showSubjectPicker(day, slot, tdElement) {
     cancelBtn.onclick = () => closePicker();
     pickerDiv.appendChild(cancelBtn);
 
-    // Xử lý vị trí hiển thị: Hiển thị tinh tế ở bên phải ô được chọn
+    // ========== PHẦN ĐỊNH VỊ LẠI ==========
     document.body.appendChild(pickerDiv);
     const pickerRect = pickerDiv.getBoundingClientRect();
     const rect = tdElement.getBoundingClientRect();
 
-    // Vị trí mặc định: Bên phải ô được chọn (giữa bảng theo chiều dọc)
-    let left = rect.right + 10;
-    let top = rect.top + (rect.height / 2) - (pickerRect.height / 2);
+    const MARGIN = 10; // khoảng cách an toàn với mép màn hình
 
-    // Kiểm tra xem bên phải có đủ không gian không (tính cả margin 10px)
-    const spaceOnRight = window.innerWidth - rect.right;
+    // Ưu tiên đặt picker bên dưới ô, căn giữa theo chiều ngang
+    let left = rect.left + (rect.width / 2) - (pickerRect.width / 2);
+    let top = rect.bottom + MARGIN;
 
-    // Nếu bên phải không đủ không gian, lật sang bên trái
-    if (spaceOnRight < pickerRect.width + 10) {
-        left = rect.left - pickerRect.width - 10;
+    // Nếu không đủ chỗ bên dưới, chuyển lên trên
+    if (top + pickerRect.height > window.innerHeight - MARGIN) {
+        top = rect.top - pickerRect.height - MARGIN;
     }
 
-    // Đảm bảo không bị tràn ra ngoài lề trái
-    if (left < 10) {
-        left = 10;
-    }
-
-    // Giới hạn trong màn hình theo chiều dọc (đảm bảo không bị tràn trên/dưới)
-    if (top < 10) top = 10;
-    if (top + pickerRect.height > window.innerHeight - 10) {
-        top = window.innerHeight - pickerRect.height - 10;
+    // Điều chỉnh ngang để không tràn màn hình
+    if (left < MARGIN) {
+        left = MARGIN;
+    } else if (left + pickerRect.width > window.innerWidth - MARGIN) {
+        left = window.innerWidth - pickerRect.width - MARGIN;
     }
 
     pickerDiv.style.position = 'fixed';
-    pickerDiv.style.left = `${left}px`;
-    pickerDiv.style.top = `${top}px`;
+    pickerDiv.style.left = left + 'px';
+    pickerDiv.style.top = top + 'px';
     pickerDiv.style.zIndex = '9999';
 
-    // Thêm hiệu ứng xuất hiện nhẹ nhàng
+    // Hiệu ứng xuất hiện nhẹ nhàng
     pickerDiv.style.opacity = '0';
     pickerDiv.style.transition = 'opacity 0.2s ease-out';
     setTimeout(() => { pickerDiv.style.opacity = '1'; }, 10);
