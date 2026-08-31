@@ -211,30 +211,35 @@ function showSubjectPicker(day, slot, tdElement) {
     cancelBtn.onclick = () => closePicker();
     pickerDiv.appendChild(cancelBtn);
 
-    // Xử lý vị trí hiển thị thông minh (tránh tràn màn hình)
+    // Xử lý vị trí hiển thị: Hiển thị tinh tế ở bên phải ô được chọn
     document.body.appendChild(pickerDiv);
     const pickerRect = pickerDiv.getBoundingClientRect();
     const rect = tdElement.getBoundingClientRect();
 
-    // Căn giữa popup theo chiều ngang với ô được click
-    let left = rect.left + (rect.width / 2) - (pickerRect.width / 2);
-    // Giới hạn trong màn hình theo chiều ngang
-    if (left < 5) left = 5;
-    if (left + pickerRect.width > window.innerWidth - 5) {
-        left = window.innerWidth - pickerRect.width - 5;
+    // Vị trí mặc định: Bên phải ô được chọn
+    let left = rect.right + 10;
+    let top = rect.top + (rect.height / 2) - (pickerRect.height / 2);
+
+    // Nếu tràn màn hình bên phải, tự động lật sang bên trái
+    if (left + pickerRect.width > window.innerWidth - 10) {
+        left = rect.left - pickerRect.width - 10;
     }
 
-    // Hiển thị ngay dưới ô, nếu vướng mép dưới thì đẩy lên trên
-    let top = rect.bottom + 5;
-    if (top + pickerRect.height > window.innerHeight - 5) {
-        top = rect.top - pickerRect.height - 5;
-        if (top < 5) top = 5;
+    // Giới hạn trong màn hình theo chiều dọc
+    if (top < 10) top = 10;
+    if (top + pickerRect.height > window.innerHeight - 10) {
+        top = window.innerHeight - pickerRect.height - 10;
     }
 
     pickerDiv.style.position = 'fixed';
     pickerDiv.style.left = `${left}px`;
     pickerDiv.style.top = `${top}px`;
     pickerDiv.style.zIndex = '9999';
+
+    // Thêm hiệu ứng xuất hiện nhẹ nhàng
+    pickerDiv.style.opacity = '0';
+    pickerDiv.style.transition = 'opacity 0.2s ease-out';
+    setTimeout(() => { pickerDiv.style.opacity = '1'; }, 10);
 
     currentPicker = pickerDiv;
 
