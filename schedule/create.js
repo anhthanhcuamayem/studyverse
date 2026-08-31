@@ -1,53 +1,21 @@
-const list = document.querySelectorAll('.list');
-const indicator = document.querySelector('.indicator');
+const scheduleSlots = [
+    // Buổi sáng: 4 tiết học + 1 giờ ra chơi lớn
+    { type: "lesson", label: "Tiết 1", start: "07:15", end: "08:00" },
+    { type: "lesson", label: "Tiết 2", start: "08:05", end: "08:50" },
+    { type: "break",  label: "Ra chơi lớn", start: "08:50", end: "09:15" },
+    { type: "lesson", label: "Tiết 3", start: "09:15", end: "10:00" },
+    { type: "lesson", label: "Tiết 4", start: "10:05", end: "10:50" },
+    { type: "lesson", label: "Tiết 5", start: "10:55", end: "11:40" },
 
-function moveIndicator(element, speed = '0.5s') {
-    if (!element || !indicator) return;
-    indicator.style.transition = speed;
-    indicator.style.transform = `translateX(${element.offsetLeft}px)`;
-}
+    // Nghỉ trưa
+    { type: "break",  label: "Nghỉ trưa", start: "11:40", end: "13:30" },
 
-window.addEventListener('DOMContentLoaded', () => {
-    const activeItem = document.querySelector('.list.active');
-    if (activeItem) {
-        moveIndicator(activeItem, 'none');
-        setTimeout(() => { indicator.style.transition = '0.5s'; }, 50);
-    }
-});
-
-list.forEach((item) => {
-    item.addEventListener('mouseenter', function() {
-        moveIndicator(this, '0.5s');
-        list.forEach(li => li.classList.remove('hover-effect'));
-        this.classList.add('hover-effect');
-    });
-    item.addEventListener('click', function() {
-        list.forEach(li => li.classList.remove('active'));
-        this.classList.add('active');
-        moveIndicator(this, '0.5s');
-    });
-});
-const navigation = document.querySelector('.navigation');
-if (navigation) {
-    navigation.addEventListener('mouseleave', () => {
-        const activeItem = document.querySelector('.list.active');
-        moveIndicator(activeItem, '0.5s');
-        list.forEach(li => li.classList.remove('hover-effect'));
-    });
-}
-function setIndicatorPosition() {
-    const activeItem = document.querySelector('.navigation ul li.active');
-    if (activeItem && indicator) {
-        indicator.style.transform = `translateX(${activeItem.offsetLeft}px)`;
-    }
-}
-window.addEventListener('load', setIndicatorPosition);
-window.addEventListener('resize', setIndicatorPosition);
-
-// ========== LOGIC LỊCH ==========
-const lessonSlots = [
-    "07:00", "07:45", "08:30", "09:15", "10:00", "10:45",
-    "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
+    // Buổi chiều: Các tiết học chiều
+    { type: "lesson", label: "Tiết 6", start: "13:30", end: "14:15" },
+    { type: "lesson", label: "Tiết 7", start: "14:20", end: "15:05" },
+    { type: "break",  label: "Giải lao chiều", start: "15:05", end: "15:20" },
+    { type: "lesson", label: "Tiết 8", start: "15:20", end: "16:05" },
+    { type: "lesson", label: "Tiết 9", start: "16:10", end: "16:55" }
 ];
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -64,18 +32,10 @@ function closePicker() {
     }
 }
 
-function getEndTime(startTime) {
-    let [h, m] = startTime.split(':').map(Number);
-    let total = h*60 + m + 45;
-    let nh = Math.floor(total/60);
-    let nm = total % 60;
-    return `${nh.toString().padStart(2,'0')}:${nm.toString().padStart(2,'0')}`;
-}
-
 function initTimetable() {
     timetableData = [];
     for (let i = 0; i < days.length; i++) {
-        timetableData[i] = new Array(lessonSlots.length).fill(null);
+        timetableData[i] = new Array(scheduleSlots.length).fill(null);
     }
     renderTable();
 }
@@ -91,10 +51,20 @@ function renderTable() {
     thead.innerHTML = headerRow;
 
     let bodyHtml = '';
-    for (let s = 0; s < lessonSlots.length; s++) {
-        const time = lessonSlots[s];
-        const endTime = getEndTime(time);
-        bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${time} - ${endTime}</td>`;
+    for (let s = 0; s < scheduleSlots.length; s++) {
+        const slotInfo = scheduleSlots[s];
+
+        if (slotInfo.type === 'break') {
+            bodyHtml += `<tr style="background: rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.4); font-style: italic;">`;
+            bodyHtml += `<td style="background:#0f131c; font-weight:500; font-size: 0.85em;">${slotInfo.start} - ${slotInfo.end}<br><span style="color: var(--primary-blue); font-size: 0.8em;">☕ ${slotInfo.label}</span></td>`;
+            for (let d = 0; d < days.length; d++) {
+                bodyHtml += `<td style="text-align: center; color: rgba(255,255,255,0.2); font-size: 0.8em;" colspan="1">☕ ${slotInfo.label}</td>`;
+            }
+            bodyHtml += `</tr>`;
+            continue;
+        }
+
+        bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${slotInfo.start} - ${slotInfo.end}<br><span style="font-size: 0.75em; color: var(--text-gray);">${slotInfo.label}</span></td>`;
         for (let d = 0; d < days.length; d++) {
             const cellData = timetableData[d][s];
             let cellClass = '';
@@ -148,7 +118,7 @@ function renderTable() {
 function toggleDisableDay(day) {
     disabledDays[day] = !disabledDays[day];
     if (disabledDays[day]) {
-        for (let s = 0; s < lessonSlots.length; s++) {
+        for (let s = 0; s < scheduleSlots.length; s++) {
             const cell = timetableData[day][s];
             if (cell && cell.type === 'subject') {
                 const subjName = cell.name;
@@ -203,14 +173,14 @@ function showSubjectPicker(day, slot, tdElement) {
         return;
     }
     closePicker();
-    
+
     const pickerDiv = document.createElement('div');
     pickerDiv.className = 'subject-picker';
-    
+
     availableSubjects.forEach(subj => {
         const btn = document.createElement('button');
         const remaining = subj.sessions - (subjectCounts[subj.name] || 0);
-        btn.textContent = `${subj.name} ( ${remaining} periods remaining)`;
+        btn.textContent = `${subj.name} (${remaining} periods left)`;
         btn.onclick = (e) => {
             e.stopPropagation();
             if (timetableData[day][slot] !== null) {
@@ -225,9 +195,9 @@ function showSubjectPicker(day, slot, tdElement) {
         };
         pickerDiv.appendChild(btn);
     });
-    
+
     const xBtn = document.createElement('button');
-    xBtn.textContent = "✗ Off";
+    xBtn.textContent = "✗ Off / Skip";
     xBtn.className = 'x-btn';
     xBtn.onclick = (e) => {
         e.stopPropagation();
@@ -235,53 +205,46 @@ function showSubjectPicker(day, slot, tdElement) {
         closePicker();
     };
     pickerDiv.appendChild(xBtn);
-    
+
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = "Cancel";
     cancelBtn.onclick = () => closePicker();
     pickerDiv.appendChild(cancelBtn);
-    
-    // Append tạm để lấy kích thước thật
+
+    // Xử lý vị trí hiển thị thông minh (tránh tràn màn hình)
     document.body.appendChild(pickerDiv);
     const pickerRect = pickerDiv.getBoundingClientRect();
-    const pickerWidth = pickerRect.width;
-    const pickerHeight = pickerRect.height;
-    
-    // Lấy vị trí của ô được click (so với viewport)
     const rect = tdElement.getBoundingClientRect();
-    let left = rect.left;
-    let top = rect.bottom + 5; // mặc định hiển thị bên dưới
-    
-    // Kiểm tra vướng mép phải
-    if (left + pickerWidth > window.innerWidth) {
-        left = rect.right - pickerWidth;
-        // Nếu vẫn tràn thì đưa về sát mép phải
-        if (left < 0) left = window.innerWidth - pickerWidth - 10;
+
+    let left = rect.left + (rect.width / 2) - (pickerRect.width / 2);
+    let top = rect.bottom + 8;
+
+    // Giới hạn trong màn hình theo chiều ngang
+    if (left < 15) left = 15;
+    if (left + pickerRect.width > window.innerWidth - 15) {
+        left = window.innerWidth - pickerRect.width - 15;
     }
-    
-    // Kiểm tra vướng mép dưới
-    if (top + pickerHeight > window.innerHeight) {
-        // Hiển thị lên phía trên ô thay vì dưới
-        top = rect.top - pickerHeight - 5;
-        // Nếu vẫn tràn (ô quá cao), đưa lên sát mép trên
-        if (top < 0) top = 10;
+
+    // Nếu bị tràn màn hình phía dưới thì đẩy lên trên ô được click
+    if (top + pickerRect.height > window.innerHeight - 15) {
+        top = rect.top - pickerRect.height - 8;
+        if (top < 15) top = 15;
     }
-    
+
     pickerDiv.style.position = 'fixed';
     pickerDiv.style.left = `${left}px`;
     pickerDiv.style.top = `${top}px`;
     pickerDiv.style.zIndex = '9999';
-    
+
     currentPicker = pickerDiv;
-    
-    // Click ra ngoài để đóng
+
     const outsideClick = (e) => {
         if (!pickerDiv.contains(e.target)) {
             closePicker();
             document.removeEventListener('click', outsideClick);
         }
     };
-    setTimeout(() => document.addEventListener('click', outsideClick), 10);
+    setTimeout(() => document.addEventListener('click', outsideClick, true), 10);
 }
 
 function updateStatus() {
@@ -292,10 +255,8 @@ function updateStatus() {
         totalScheduled += scheduled;
     });
     const statusDiv = document.getElementById('status');
-    statusDiv.innerHTML = `<strong>📊 "Progress:</strong> ${totalScheduled}/${totalPlanned} periods assigned. `;
-    if (totalScheduled < totalPlanned) {
-        statusDiv.innerHTML += `<span style="color:#ffaa33;"></span>`;
-    } else if (totalScheduled === totalPlanned && totalPlanned > 0) {
+    statusDiv.innerHTML = `<strong>📊 Progress:</strong> ${totalScheduled}/${totalPlanned} periods assigned. `;
+    if (totalScheduled === totalPlanned && totalPlanned > 0) {
         statusDiv.innerHTML += `<span style="color:#2ecc71;">✅ Done! All periods have been assigned.</span>`;
     }
     subjects.forEach(s => {
@@ -331,7 +292,7 @@ function renderSubjectList() {
     subjects.forEach(sub => {
         const span = document.createElement('span');
         span.className = 'subject-badge';
-        span.innerHTML = `${sub.name} (${subjectCounts[sub.name] || 0}/${sub.sessions}) 
+        span.innerHTML = `${sub.name} (${subjectCounts[sub.name] || 0}/${sub.sessions})
             <button onclick="removeSubject('${sub.name}')">✕</button>`;
         container.appendChild(span);
     });
@@ -340,7 +301,7 @@ function renderSubjectList() {
 window.removeSubject = function(name) {
     if (confirm("Delete this subject? All assigned periods will be removed.")) {
         for (let d=0; d<days.length; d++) {
-            for (let s=0; s<lessonSlots.length; s++) {
+            for (let s=0; s<scheduleSlots.length; s++) {
                 const cell = timetableData[d][s];
                 if (cell && cell.type === 'subject' && cell.name === name) {
                     timetableData[d][s] = null;
@@ -368,12 +329,14 @@ function autoSchedule() {
     let emptySlots = [];
     for (let d=0; d<days.length; d++) {
         if (disabledDays[d]) continue;
-        for (let s=0; s<lessonSlots.length; s++) {
-            if (timetableData[d][s] === null) emptySlots.push({day:d, slot:s});
+        for (let s=0; s<scheduleSlots.length; s++) {
+            if (scheduleSlots[s].type === 'lesson' && timetableData[d][s] === null) {
+                emptySlots.push({day: d, slot: s});
+            }
         }
     }
     if (emptySlots.length < needSchedule.length) {
-        alert(`Not enough slots! Need ${needSchedule.length} slots but only ${emptySlots.length} left.`);
+        alert(`Not enough slots! Need ${needSchedule.length} lesson slots but only ${emptySlots.length} left.`);
         return;
     }
     for (let i=0; i<needSchedule.length; i++) {
@@ -382,7 +345,7 @@ function autoSchedule() {
         let {day, slot} = emptySlots[randomIndex];
         timetableData[day][slot] = { type: 'subject', name: subjName };
         subjectCounts[subjName]++;
-        emptySlots.splice(randomIndex,1);
+        emptySlots.splice(randomIndex, 1);
     }
     renderTable();
 }
@@ -398,7 +361,16 @@ function clearAll() {
     }
 }
 
-initTimetable();
-document.getElementById('add-subject-btn').addEventListener('click', addSubject);
-document.getElementById('auto-schedule').addEventListener('click', autoSchedule);
-document.getElementById('clear-all').addEventListener('click', clearAll);
+document.addEventListener('DOMContentLoaded', () => {
+    initTimetable();
+});
+
+// Gán sự kiện cho các nút bấm chính nếu tồn tại
+const addSubBtn = document.getElementById('add-subject-btn');
+if (addSubBtn) addSubBtn.addEventListener('click', addSubject);
+
+const autoSchBtn = document.getElementById('auto-schedule');
+if (autoSchBtn) autoSchBtn.addEventListener('click', autoSchedule);
+
+const clearAllBtn = document.getElementById('clear-all');
+if (clearAllBtn) clearAllBtn.addEventListener('click', clearAll);
