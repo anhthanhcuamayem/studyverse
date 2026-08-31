@@ -456,7 +456,7 @@ button:hover {
 
 /* Subject picker popup */
 .subject-picker {
-    position: absolute;
+    position: fixed;
     background: #121824;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 16px;
