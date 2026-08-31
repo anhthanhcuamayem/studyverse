@@ -362,6 +362,53 @@ function clearAll() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- XỬ LÝ INDICATOR ---
+    const list = document.querySelectorAll('.list');
+    const indicator = document.querySelector('.indicator');
+
+    function moveIndicator(element, speed = '0.3s') {
+        if (!element || !indicator) return;
+        indicator.style.transition = `transform ${speed} ease-out`;
+        indicator.style.transform = `translateX(${element.offsetLeft}px)`;
+    }
+
+    const activeItem = document.querySelector('.list.active');
+    if (activeItem) {
+        moveIndicator(activeItem, '0s');
+    }
+
+    list.forEach((item) => {
+        item.addEventListener('mouseenter', function() {
+            moveIndicator(this, '0.2s');
+            list.forEach(li => li.classList.remove('hover-effect'));
+            this.classList.add('hover-effect');
+        });
+        item.addEventListener('click', function() {
+            list.forEach(li => li.classList.remove('active'));
+            this.classList.add('active');
+            moveIndicator(this, '0.3s');
+        });
+    });
+
+    const navigation = document.querySelector('.navigation');
+    if (navigation) {
+        navigation.addEventListener('mouseleave', () => {
+            const activeItem = document.querySelector('.list.active');
+            moveIndicator(activeItem, '0.3s');
+            list.forEach(li => li.classList.remove('hover-effect'));
+        });
+    }
+
+    function setIndicatorPosition() {
+        const activeItem = document.querySelector('.navigation ul li.active');
+        if (activeItem && indicator) {
+            moveIndicator(activeItem, '0s');
+        }
+    }
+    window.addEventListener('load', setIndicatorPosition);
+    window.addEventListener('resize', setIndicatorPosition);
+    // --- KẾT THÚC XỬ LÝ INDICATOR ---
+
     initTimetable();
 });
 
