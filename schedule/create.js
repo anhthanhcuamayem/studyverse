@@ -216,19 +216,19 @@ function showSubjectPicker(day, slot, tdElement) {
     const pickerRect = pickerDiv.getBoundingClientRect();
     const rect = tdElement.getBoundingClientRect();
 
+    // Căn giữa popup theo chiều ngang với ô được click
     let left = rect.left + (rect.width / 2) - (pickerRect.width / 2);
-    let top = rect.bottom + 8;
-
     // Giới hạn trong màn hình theo chiều ngang
-    if (left < 15) left = 15;
-    if (left + pickerRect.width > window.innerWidth - 15) {
-        left = window.innerWidth - pickerRect.width - 15;
+    if (left < 5) left = 5;
+    if (left + pickerRect.width > window.innerWidth - 5) {
+        left = window.innerWidth - pickerRect.width - 5;
     }
 
-    // Nếu bị tràn màn hình phía dưới thì đẩy lên trên ô được click
-    if (top + pickerRect.height > window.innerHeight - 15) {
-        top = rect.top - pickerRect.height - 8;
-        if (top < 15) top = 15;
+    // Hiển thị ngay dưới ô, nếu vướng mép dưới thì đẩy lên trên
+    let top = rect.bottom + 5;
+    if (top + pickerRect.height > window.innerHeight - 5) {
+        top = rect.top - pickerRect.height - 5;
+        if (top < 5) top = 5;
     }
 
     pickerDiv.style.position = 'fixed';
