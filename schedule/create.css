@@ -150,7 +150,6 @@ body {
     border: 6px solid #05070a;
     transition: 0.5s;
     z-index: 1;
-    left: 0;
 }
 
 @media (max-width: 900px) {
