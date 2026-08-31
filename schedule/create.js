@@ -1,335 +1,436 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const daysOfWeek = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-    const periods = Array.from({ length: 9 }, (_, i) => `Tiết ${i + 1}`);
-    const scheduleContainer = document.getElementById('schedule-container');
-    const saveScheduleBtn = document.getElementById('save-schedule-btn');
-    const loadScheduleBtn = document.getElementById('load-schedule-btn');
-    const deleteScheduleBtn = document.getElementById('delete-schedule-btn');
+const scheduleSlots = [
+    // Buổi sáng: 4 tiết học + 1 giờ ra chơi lớn
+    { type: "lesson", label: "Tiết 1", start: "07:15", end: "08:00" },
+    { type: "lesson", label: "Tiết 2", start: "08:05", end: "08:50" },
+    { type: "break",  label: "Ra chơi lớn", start: "08:50", end: "09:15" },
+    { type: "lesson", label: "Tiết 3", start: "09:15", end: "10:00" },
+    { type: "lesson", label: "Tiết 4", start: "10:05", end: "10:50" },
+    { type: "lesson", label: "Tiết 5", start: "10:55", end: "11:40" },
 
-    let currentSchedule = [];
-    let selectedCell = null;
-    let subjectPicker = null;
+    // Nghỉ trưa
+    { type: "break",  label: "Nghỉ trưa", start: "11:40", end: "13:30" },
 
-    // Sample subjects
-    const sampleSubjects = [
-        'Toán', 'Văn', 'Anh', 'Lý', 'Hóa', 'Sinh', 'Sử', 'Địa', 'GDCD', 'Tin',
-        'Thể dục', 'GDQP', 'Ngoại ngữ', 'Tự chọn', 'Hoạt động trải nghiệm'
-    ];
+    // Buổi chiều: Các tiết học chiều
+    { type: "lesson", label: "Tiết 6", start: "13:30", end: "14:15" },
+    { type: "lesson", label: "Tiết 7", start: "14:20", end: "15:05" },
+    { type: "break",  label: "Giải lao chiều", start: "15:05", end: "15:20" },
+    { type: "lesson", label: "Tiết 8", start: "15:20", end: "16:05" },
+    { type: "lesson", label: "Tiết 9", start: "16:10", end: "16:55" }
+];
+const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-    // Initialize schedule
-    function initSchedule() {
-        currentSchedule = JSON.parse(localStorage.getItem('studyverse_schedule')) || [];
-        if (currentSchedule.length === 0) {
-            // Create default empty schedule
-            daysOfWeek.forEach((day, dayIndex) => {
-                periods.forEach((_, periodIndex) => {
-                    currentSchedule.push({
-                        day: dayIndex,
-                        period: periodIndex,
-                        subject: '',
-                        room: '',
-                        teacher: ''
-                    });
-                });
-            });
-        }
-        renderSchedule();
+let timetableData = [];
+let disabledDays = new Array(7).fill(false);
+let subjects = [];
+let subjectCounts = {};
+let currentPicker = null;
+
+function closePicker() {
+    if (currentPicker) {
+        currentPicker.remove();
+        currentPicker = null;
     }
+}
 
-    function renderSchedule() {
-        scheduleContainer.innerHTML = '';
-        // Create header row
-        const headerRow = document.createElement('div');
-        headerRow.className = 'schedule-header';
-        headerRow.innerHTML = `<div class="cell header">Buổi</div>`;
-        daysOfWeek.forEach(day => {
-            const cell = document.createElement('div');
-            cell.className = 'cell header';
-            cell.textContent = day;
-            headerRow.appendChild(cell);
-        });
-        scheduleContainer.appendChild(headerRow);
+function initTimetable() {
+    timetableData = [];
+    for (let i = 0; i < days.length; i++) {
+        timetableData[i] = new Array(scheduleSlots.length).fill(null);
+    }
+    renderTable();
+}
 
-        // Group periods into morning (tiết 1-5) and afternoon (tiết 6-9)
-        const morningPeriods = periods.slice(0, 5);
-        const afternoonPeriods = periods.slice(5);
+function renderTable() {
+    const thead = document.getElementById('table-header');
+    const tbody = document.getElementById('table-body');
+    let headerRow = `<tr><th>Time / Day</th>`;
+    for (let i = 0; i < days.length; i++) {
+        headerRow += `<th data-day="${i}">${days[i]}</th>`;
+    }
+    headerRow += `</tr>`;
+    thead.innerHTML = headerRow;
 
-        // Morning session
-        const morningLabel = document.createElement('div');
-        morningLabel.className = 'session-label';
-        morningLabel.textContent = 'Sáng';
-        scheduleContainer.appendChild(morningLabel);
+    let bodyHtml = '';
+    for (let s = 0; s < scheduleSlots.length; s++) {
+        const slotInfo = scheduleSlots[s];
 
-        morningPeriods.forEach((period, periodIndex) => {
-            const row = document.createElement('div');
-            row.className = 'schedule-row';
-            const periodCell = document.createElement('div');
-            periodCell.className = 'cell period-label';
-            periodCell.textContent = period;
-            row.appendChild(periodCell);
+        if (slotInfo.type === 'break') {
+            bodyHtml += `<tr style="background: rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.4); font-style: italic;">`;
+            bodyHtml += `<td style="background:#0f131c; font-weight:500; font-size: 0.85em;">${slotInfo.start} - ${slotInfo.end}<br><span style="color: var(--primary-blue); font-size: 0.8em;">☕ ${slotInfo.label}</span></td>`;
+            for (let d = 0; d < days.length; d++) {
+                bodyHtml += `<td style="text-align: center; color: rgba(255,255,255,0.2); font-size: 0.8em;" colspan="1">☕ ${slotInfo.label}</td>`;
+            }
+            bodyHtml += `</tr>`;
+            continue;
+        }
 
-            daysOfWeek.forEach((_, dayIndex) => {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.day = dayIndex;
-                cell.dataset.period = periodIndex;
-                const entry = currentSchedule.find(e => e.day === dayIndex && e.period === periodIndex);
-                if (entry && entry.subject) {
-                    cell.textContent = entry.subject;
-                    cell.style.backgroundColor = '#e3f2fd';
+        bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${slotInfo.start} - ${slotInfo.end}<br><span style="font-size: 0.75em; color: var(--text-gray);">${slotInfo.label}</span></td>`;
+        for (let d = 0; d < days.length; d++) {
+            const cellData = timetableData[d][s];
+            let cellClass = '';
+            let content = '';
+            if (disabledDays[d]) {
+                cellClass = 'disabled-day';
+                content = '🚫 Off';
+            } else if (cellData) {
+                if (cellData.type === 'subject') {
+                    cellClass = 'subject-cell';
+                    content = cellData.name;
+                } else if (cellData.type === 'x') {
+                    cellClass = 'x-mark';
+                    content = '';
                 }
-                cell.addEventListener('click', () => onCellClick(cell));
-                row.appendChild(cell);
-            });
-            scheduleContainer.appendChild(row);
-        });
-
-        // Afternoon session
-        const afternoonLabel = document.createElement('div');
-        afternoonLabel.className = 'session-label';
-        afternoonLabel.textContent = 'Chiều';
-        scheduleContainer.appendChild(afternoonLabel);
-
-        afternoonPeriods.forEach((period, idx) => {
-            const periodIndex = idx + 5;
-            const row = document.createElement('div');
-            row.className = 'schedule-row';
-            const periodCell = document.createElement('div');
-            periodCell.className = 'cell period-label';
-            periodCell.textContent = period;
-            row.appendChild(periodCell);
-
-            daysOfWeek.forEach((_, dayIndex) => {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.day = dayIndex;
-                cell.dataset.period = periodIndex;
-                const entry = currentSchedule.find(e => e.day === dayIndex && e.period === periodIndex);
-                if (entry && entry.subject) {
-                    cell.textContent = entry.subject;
-                    cell.style.backgroundColor = '#e3f2fd';
-                }
-                cell.addEventListener('click', () => onCellClick(cell));
-                row.appendChild(cell);
-            });
-            scheduleContainer.appendChild(row);
-        });
-
-        // Add extra empty row for spacing if needed
-        const spacer = document.createElement('div');
-        spacer.style.height = '20px';
-        scheduleContainer.appendChild(spacer);
-    }
-
-    function onCellClick(cell) {
-        if (selectedCell) {
-            selectedCell.classList.remove('selected');
+            } else {
+                content = '';
+            }
+            bodyHtml += `<td class="${cellClass}" data-day="${d}" data-slot="${s}">${content}</td>`;
         }
-        selectedCell = cell;
-        cell.classList.add('selected');
-
-        const day = parseInt(cell.dataset.day);
-        const period = parseInt(cell.dataset.period);
-        const entry = currentSchedule.find(e => e.day === day && e.period === period);
-
-        showSubjectPicker(cell, entry);
+        bodyHtml += `</tr>`;
     }
+    tbody.innerHTML = bodyHtml;
 
-    // ================================================================
-    // HÀM showSubjectPicker ĐÃ ĐƯỢC CHỈNH SỬA
-    // ================================================================
-    function showSubjectPicker(cell, entry) {
-        // Remove existing picker
-        if (subjectPicker) {
-            document.body.removeChild(subjectPicker);
-            subjectPicker = null;
+    document.querySelectorAll('th[data-day]').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', (e) => {
+            const day = parseInt(th.dataset.day);
+            toggleDisableDay(day);
+        });
+    });
+    document.querySelectorAll('td[data-day]').forEach(td => {
+        td.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const day = parseInt(td.dataset.day);
+            const slot = parseInt(td.dataset.slot);
+            if (disabledDays[day]) return;
+            handleCellClick(day, slot, td);
+        });
+        td.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const day = parseInt(td.dataset.day);
+            const slot = parseInt(td.dataset.slot);
+            if (disabledDays[day]) return;
+            toggleXMark(day, slot);
+        });
+    });
+    updateStatus();
+}
+
+function toggleDisableDay(day) {
+    disabledDays[day] = !disabledDays[day];
+    if (disabledDays[day]) {
+        for (let s = 0; s < scheduleSlots.length; s++) {
+            const cell = timetableData[day][s];
+            if (cell && cell.type === 'subject') {
+                const subjName = cell.name;
+                if (subjectCounts[subjName] > 0) subjectCounts[subjName]--;
+            }
+            timetableData[day][s] = null;
         }
+    }
+    renderTable();
+    closePicker();
+}
 
-        const pickerDiv = document.createElement('div');
-        pickerDiv.className = 'subject-picker';
-        pickerDiv.style.position = 'fixed';
-        pickerDiv.style.zIndex = '1000';
+function handleCellClick(day, slot, tdElement) {
+    const current = timetableData[day][slot];
+    if (current && current.type === 'subject') {
+        const subjName = current.name;
+        if (subjectCounts[subjName] > 0) subjectCounts[subjName]--;
+        timetableData[day][slot] = null;
+        renderTable();
+        return;
+    }
+    if (current && current.type === 'x') {
+        timetableData[day][slot] = null;
+        renderTable();
+        return;
+    }
+    showSubjectPicker(day, slot, tdElement);
+}
 
-        // Title
-        const title = document.createElement('div');
-        title.className = 'picker-title';
-        title.textContent = 'Chọn môn học';
-        pickerDiv.appendChild(title);
+function toggleXMark(day, slot) {
+    const current = timetableData[day][slot];
+    if (current && current.type === 'subject') {
+        alert("Clear subject before marking X.");
+        return;
+    }
+    if (current && current.type === 'x') {
+        timetableData[day][slot] = null;
+    } else {
+        timetableData[day][slot] = { type: 'x' };
+    }
+    renderTable();
+}
 
-        // Subject grid
-        const grid = document.createElement('div');
-        grid.className = 'subject-grid';
+function showSubjectPicker(day, slot, tdElement) {
+    if (subjects.length === 0) {
+        alert("Add a subject first!");
+        return;
+    }
+    const availableSubjects = subjects.filter(subj => (subjectCounts[subj.name] || 0) < subj.sessions);
+    if (availableSubjects.length === 0 && subjects.length > 0) {
+        alert("All subjects are full! Cannot add more.");
+        return;
+    }
+    closePicker();
 
-        sampleSubjects.forEach(subject => {
-            const btn = document.createElement('button');
-            btn.className = 'subject-btn';
-            btn.textContent = subject;
-            btn.addEventListener('click', () => {
-                selectSubject(entry, subject, cell);
+    const pickerDiv = document.createElement('div');
+    pickerDiv.className = 'subject-picker';
+
+    availableSubjects.forEach(subj => {
+        const btn = document.createElement('button');
+        const remaining = subj.sessions - (subjectCounts[subj.name] || 0);
+        btn.textContent = `${subj.name} (${remaining} periods left)`;
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            if (timetableData[day][slot] !== null) {
+                alert("Slot already filled, please clear it first!");
                 closePicker();
-            });
-            grid.appendChild(btn);
-        });
-
-        // Custom subject input
-        const customDiv = document.createElement('div');
-        customDiv.className = 'custom-subject';
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = 'Môn khác...';
-        const addBtn = document.createElement('button');
-        addBtn.textContent = 'Thêm';
-        addBtn.addEventListener('click', () => {
-            if (input.value.trim()) {
-                selectSubject(entry, input.value.trim(), cell);
-                closePicker();
+                return;
             }
-        });
-        customDiv.appendChild(input);
-        customDiv.appendChild(addBtn);
-        pickerDiv.appendChild(grid);
-        pickerDiv.appendChild(customDiv);
-
-        // Remove button
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'remove-subject-btn';
-        removeBtn.textContent = 'Xóa môn';
-        removeBtn.addEventListener('click', () => {
-            selectSubject(entry, '', cell);
+            timetableData[day][slot] = { type: 'subject', name: subj.name };
+            subjectCounts[subj.name] = (subjectCounts[subj.name] || 0) + 1;
+            renderTable();
             closePicker();
-        });
-        pickerDiv.appendChild(removeBtn);
+        };
+        pickerDiv.appendChild(btn);
+    });
 
-        document.body.appendChild(pickerDiv);
-        subjectPicker = pickerDiv;
+    const xBtn = document.createElement('button');
+    xBtn.textContent = "✗ Off / Skip";
+    xBtn.className = 'x-btn';
+    xBtn.onclick = (e) => {
+        e.stopPropagation();
+        toggleXMark(day, slot);
+        closePicker();
+    };
+    pickerDiv.appendChild(xBtn);
 
-        // ---------- VỊ TRÍ PICKER (đã cải thiện) ----------
-        const rect = cell.getBoundingClientRect();
-        const pickerRect = pickerDiv.getBoundingClientRect();
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.onclick = () => closePicker();
+    pickerDiv.appendChild(cancelBtn);
 
-        const MARGIN = 10; // khoảng cách với mép màn hình
+    // Xử lý vị trí hiển thị: Hiển thị tinh tế ở bên phải ô được chọn
+    document.body.appendChild(pickerDiv);
+    const pickerRect = pickerDiv.getBoundingClientRect();
+    const rect = tdElement.getBoundingClientRect();
 
-        // Ưu tiên đặt picker bên dưới ô, căn giữa theo chiều ngang
-        let left = rect.left + (rect.width / 2) - (pickerRect.width / 2);
-        let top = rect.bottom + MARGIN;
+    // Vị trí mặc định: Bên phải ô được chọn (giữa bảng theo chiều dọc)
+    let left = rect.right + 10;
+    let top = rect.top + (rect.height / 2) - (pickerRect.height / 2);
 
-        // Nếu không đủ chỗ bên dưới, chuyển lên trên
-        if (top + pickerRect.height > window.innerHeight - MARGIN) {
-            top = rect.top - pickerRect.height - MARGIN;
-        }
+    // Kiểm tra xem bên phải có đủ không gian không (tính cả margin 10px)
+    const spaceOnRight = window.innerWidth - rect.right;
 
-        // Điều chỉnh ngang để không tràn màn hình
-        if (left < MARGIN) {
-            left = MARGIN;
-        } else if (left + pickerRect.width > window.innerWidth - MARGIN) {
-            left = window.innerWidth - pickerRect.width - MARGIN;
-        }
-
-        pickerDiv.style.left = left + 'px';
-        pickerDiv.style.top = top + 'px';
-
-        // Auto focus input
-        setTimeout(() => input.focus(), 100);
+    // Nếu bên phải không đủ không gian, lật sang bên trái
+    if (spaceOnRight < pickerRect.width + 10) {
+        left = rect.left - pickerRect.width - 10;
     }
 
-    function selectSubject(entry, subject, cell) {
-        if (!entry) {
-            // Create entry if not exists
-            const day = parseInt(cell.dataset.day);
-            const period = parseInt(cell.dataset.period);
-            const newEntry = { day, period, subject, room: '', teacher: '' };
-            currentSchedule.push(newEntry);
-        } else {
-            entry.subject = subject;
-        }
-        cell.textContent = subject;
-        cell.style.backgroundColor = subject ? '#e3f2fd' : '';
-        saveSchedule();
+    // Đảm bảo không bị tràn ra ngoài lề trái
+    if (left < 10) {
+        left = 10;
     }
 
-    function closePicker() {
-        if (subjectPicker) {
-            document.body.removeChild(subjectPicker);
-            subjectPicker = null;
-        }
-        if (selectedCell) {
-            selectedCell.classList.remove('selected');
-            selectedCell = null;
-        }
+    // Giới hạn trong màn hình theo chiều dọc (đảm bảo không bị tràn trên/dưới)
+    if (top < 10) top = 10;
+    if (top + pickerRect.height > window.innerHeight - 10) {
+        top = window.innerHeight - pickerRect.height - 10;
     }
 
-    function saveSchedule() {
-        localStorage.setItem('studyverse_schedule', JSON.stringify(currentSchedule));
-    }
+    pickerDiv.style.position = 'fixed';
+    pickerDiv.style.left = `${left}px`;
+    pickerDiv.style.top = `${top}px`;
+    pickerDiv.style.zIndex = '9999';
 
-    // Load schedule from JSON file
-    function loadScheduleFromFile(file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (Array.isArray(data)) {
-                    currentSchedule = data;
-                    saveSchedule();
-                    renderSchedule();
-                    alert('Tải lịch học thành công!');
-                } else {
-                    alert('Dữ liệu không hợp lệ!');
+    // Thêm hiệu ứng xuất hiện nhẹ nhàng
+    pickerDiv.style.opacity = '0';
+    pickerDiv.style.transition = 'opacity 0.2s ease-out';
+    setTimeout(() => { pickerDiv.style.opacity = '1'; }, 10);
+
+    currentPicker = pickerDiv;
+
+    const outsideClick = (e) => {
+        if (!pickerDiv.contains(e.target)) {
+            closePicker();
+            document.removeEventListener('click', outsideClick);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', outsideClick, true), 10);
+}
+
+function updateStatus() {
+    let totalPlanned = 0, totalScheduled = 0;
+    subjects.forEach(s => {
+        const scheduled = subjectCounts[s.name] || 0;
+        totalPlanned += s.sessions;
+        totalScheduled += scheduled;
+    });
+    const statusDiv = document.getElementById('status');
+    statusDiv.innerHTML = `<strong>📊 Progress:</strong> ${totalScheduled}/${totalPlanned} periods assigned. `;
+    if (totalScheduled === totalPlanned && totalPlanned > 0) {
+        statusDiv.innerHTML += `<span style="color:#2ecc71;">✅ Done! All periods have been assigned.</span>`;
+    }
+    subjects.forEach(s => {
+        statusDiv.innerHTML += `<br> - ${s.name}: ${subjectCounts[s.name] || 0}/${s.sessions}`;
+    });
+}
+
+function addSubject() {
+    const nameInput = document.getElementById('new-subject-name');
+    const sessInput = document.getElementById('new-subject-sessions');
+    const name = nameInput.value.trim();
+    const sessions = parseInt(sessInput.value);
+    if (!name || isNaN(sessions) || sessions < 1) {
+        alert("Invalid name or periods must be > 0");
+        return;
+    }
+    if (subjects.find(s => s.name === name)) {
+        alert("Subject already added");
+        return;
+    }
+    subjects.push({ name, sessions });
+    subjectCounts[name] = 0;
+    nameInput.value = '';
+    sessInput.value = '2';
+    renderSubjectList();
+    updateStatus();
+    renderTable();
+}
+
+function renderSubjectList() {
+    const container = document.getElementById('subjects-list');
+    container.innerHTML = '';
+    subjects.forEach(sub => {
+        const span = document.createElement('span');
+        span.className = 'subject-badge';
+        span.innerHTML = `${sub.name} (${subjectCounts[sub.name] || 0}/${sub.sessions})
+            <button onclick="removeSubject('${sub.name}')">✕</button>`;
+        container.appendChild(span);
+    });
+}
+
+window.removeSubject = function(name) {
+    if (confirm("Delete this subject? All assigned periods will be removed.")) {
+        for (let d=0; d<days.length; d++) {
+            for (let s=0; s<scheduleSlots.length; s++) {
+                const cell = timetableData[d][s];
+                if (cell && cell.type === 'subject' && cell.name === name) {
+                    timetableData[d][s] = null;
                 }
-            } catch (err) {
-                alert('Lỗi đọc file!');
             }
-        };
-        reader.readAsText(file);
+        }
+        subjects = subjects.filter(s => s.name !== name);
+        delete subjectCounts[name];
+        renderSubjectList();
+        renderTable();
+    }
+};
+
+function autoSchedule() {
+    let needSchedule = [];
+    subjects.forEach(subj => {
+        let scheduled = subjectCounts[subj.name] || 0;
+        let need = subj.sessions - scheduled;
+        for (let i=0; i<need; i++) needSchedule.push(subj.name);
+    });
+    if (needSchedule.length === 0) {
+        alert("All subjects are full!");
+        return;
+    }
+    let emptySlots = [];
+    for (let d=0; d<days.length; d++) {
+        if (disabledDays[d]) continue;
+        for (let s=0; s<scheduleSlots.length; s++) {
+            if (scheduleSlots[s].type === 'lesson' && timetableData[d][s] === null) {
+                emptySlots.push({day: d, slot: s});
+            }
+        }
+    }
+    if (emptySlots.length < needSchedule.length) {
+        alert(`Not enough slots! Need ${needSchedule.length} lesson slots but only ${emptySlots.length} left.`);
+        return;
+    }
+    for (let i=0; i<needSchedule.length; i++) {
+        let subjName = needSchedule[i];
+        let randomIndex = Math.floor(Math.random() * emptySlots.length);
+        let {day, slot} = emptySlots[randomIndex];
+        timetableData[day][slot] = { type: 'subject', name: subjName };
+        subjectCounts[subjName]++;
+        emptySlots.splice(randomIndex, 1);
+    }
+    renderTable();
+}
+
+function clearAll() {
+    if (confirm("Clear all schedules and reset subjects?")) {
+        initTimetable();
+        subjects = [];
+        subjectCounts = {};
+        disabledDays.fill(false);
+        renderSubjectList();
+        updateStatus();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // --- XỬ LÝ INDICATOR ---
+    const list = document.querySelectorAll('.list');
+    const indicator = document.querySelector('.indicator');
+
+    function moveIndicator(element, speed = '0.3s') {
+        if (!element || !indicator) return;
+        indicator.style.transition = `transform ${speed} ease-out`;
+        indicator.style.transform = `translateX(${element.offsetLeft}px)`;
     }
 
-    // Event listeners
-    saveScheduleBtn.addEventListener('click', () => {
-        // Download JSON
-        const dataStr = JSON.stringify(currentSchedule, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'studyverse_schedule.json';
-        a.click();
-        URL.revokeObjectURL(url);
-        alert('Đã lưu lịch học!');
+    const activeItem = document.querySelector('.list.active');
+    if (activeItem) {
+        moveIndicator(activeItem, '0s');
+    }
+
+    list.forEach((item) => {
+        item.addEventListener('mouseenter', function() {
+            moveIndicator(this, '0.2s');
+            list.forEach(li => li.classList.remove('hover-effect'));
+            this.classList.add('hover-effect');
+        });
+        item.addEventListener('click', function() {
+            list.forEach(li => li.classList.remove('active'));
+            this.classList.add('active');
+            moveIndicator(this, '0.3s');
+        });
     });
 
-    loadScheduleBtn.addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = function(e) {
-            if (input.files.length > 0) {
-                loadScheduleFromFile(input.files[0]);
-            }
-        };
-        input.click();
-    });
+    const navigation = document.querySelector('.navigation');
+    if (navigation) {
+        navigation.addEventListener('mouseleave', () => {
+            const activeItem = document.querySelector('.list.active');
+            moveIndicator(activeItem, '0.3s');
+            list.forEach(li => li.classList.remove('hover-effect'));
+        });
+    }
 
-    deleteScheduleBtn.addEventListener('click', () => {
-        if (confirm('Bạn có chắc muốn xóa toàn bộ lịch học?')) {
-            localStorage.removeItem('studyverse_schedule');
-            currentSchedule = [];
-            daysOfWeek.forEach((day, dayIndex) => {
-                periods.forEach((_, periodIndex) => {
-                    currentSchedule.push({ day: dayIndex, period: periodIndex, subject: '', room: '', teacher: '' });
-                });
-            });
-            renderSchedule();
-            alert('Đã xóa lịch học!');
+    function setIndicatorPosition() {
+        const activeItem = document.querySelector('.navigation ul li.active');
+        if (activeItem && indicator) {
+            moveIndicator(activeItem, '0s');
         }
-    });
+    }
+    window.addEventListener('load', setIndicatorPosition);
+    window.addEventListener('resize', setIndicatorPosition);
+    // --- KẾT THÚC XỬ LÝ INDICATOR ---
 
-    // Click outside to close picker
-    document.addEventListener('click', function(e) {
-        if (subjectPicker && !subjectPicker.contains(e.target) && !e.target.closest('.cell')) {
-            closePicker();
-        }
-    });
-
-    // Init
-    initSchedule();
+    initTimetable();
 });
+
+// Gán sự kiện cho các nút bấm chính nếu tồn tại
+const addSubBtn = document.getElementById('add-subject-btn');
+if (addSubBtn) addSubBtn.addEventListener('click', addSubject);
+
+const autoSchBtn = document.getElementById('auto-schedule');
+if (autoSchBtn) autoSchBtn.addEventListener('click', autoSchedule);
+
+const clearAllBtn = document.getElementById('clear-all');
+if (clearAllBtn) clearAllBtn.addEventListener('click', clearAll);
