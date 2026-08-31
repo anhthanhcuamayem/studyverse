@@ -216,14 +216,17 @@ function showSubjectPicker(day, slot, tdElement) {
     const pickerRect = pickerDiv.getBoundingClientRect();
     const rect = tdElement.getBoundingClientRect();
 
-    // Vị trí mặc định: Bên phải ô được chọn
+    // Vị trí mặc định: Bên phải ô được chọn (giữa bảng theo chiều dọc)
     let left = rect.right + 10;
     let top = rect.top + (rect.height / 2) - (pickerRect.height / 2);
 
-    // Nếu tràn màn hình bên phải, tự động lật sang bên trái
+    // Nếu không đủ chỗ bên phải, lật sang bên trái
     if (left + pickerRect.width > window.innerWidth - 10) {
         left = rect.left - pickerRect.width - 10;
     }
+
+    // Nếu vẫn không đủ chỗ (quá hẹp), ép vào lề
+    if (left < 10) left = 10;
 
     // Giới hạn trong màn hình theo chiều dọc
     if (top < 10) top = 10;
