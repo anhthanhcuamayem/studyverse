@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Schedule</title>
+    <title>Interactive Schedule - Studyverse</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="create.css">
@@ -33,7 +33,7 @@
                         <span class="text">Schedule</span>
                     </a>
                 </li>
-                <li class="list" id="li-create"  data-index="3">
+                <li class="list" id="li-create" data-index="3">
                     <a href="/career/chat.html">
                         <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
                         <span class="text">AI Career</span>
@@ -46,48 +46,102 @@
 </header>
 
 <main class="main-schedule">
-    <div class="container">
-        <div class="schedule-card">
-            <h1><i class="fa-regular fa-calendar-alt"></i> Interactive Schedule</h1>
-            <div class="intro-text">
-                👉 Click <strong>a day (Mon, Tue...)</strong> to turn the whole day on/off.<br>
-                👉 Click <strong>a box</strong> to choose a subject or mark X (no class).<br>
-                👉 Each subject has a limited number of periods.
+    <div class="container-fluid">
+        <!-- Banner tiêu đề -->
+        <div class="schedule-banner">
+            <div class="banner-title">
+                <h1><i class="fa-regular fa-calendar-alt"></i> Interactive Schedule</h1>
+                <p>Thiết lập thời khóa biểu thông minh: Kéo - Thả môn học, Tùy chỉnh màu sắc & Tự động xếp lịch với AI</p>
             </div>
+            <div class="banner-actions">
+                <button class="btn-action btn-ai" id="auto-schedule"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Auto Schedule</button>
+                <button class="btn-action btn-export" id="export-print-btn"><i class="fa-solid fa-print"></i> In / Xuất TKB</button>
+                <button class="btn-action btn-danger" id="clear-all"><i class="fa-solid fa-trash-can"></i> Xóa tất cả</button>
+            </div>
+        </div>
 
-            <div class="subjects-panel" id="subjects-panel">
-                <div class="subjects-list" id="subjects-list"></div>
-                <div class="add-subject-form">
-                    <input type="text" id="new-subject-name" placeholder=" Subjects name" autocomplete="off">
-                    <input type="number" id="new-subject-sessions" placeholder="Periods" min="1" value="2" style="width: 100px;">
-                    <button id="add-subject-btn"><i class="fa-solid fa-plus-circle"></i> Add subjects</button>
+        <!-- Không gian làm việc chính (Dashboard Layout) -->
+        <div class="schedule-workspace">
+            <!-- Sidebar Bên Trái: Quản lý Môn học & Công cụ -->
+            <aside class="sidebar-panel">
+                <!-- Card 1: Thêm môn học -->
+                <div class="panel-card">
+                    <h3><i class="fa-solid fa-plus-circle"></i> Thêm môn học</h3>
+                    <div class="add-subject-form">
+                        <div class="form-group">
+                            <label for="new-subject-name">Tên môn học</label>
+                            <input type="text" id="new-subject-name" placeholder="Ví dụ: Toán học, Tiếng Anh..." autocomplete="off">
+                        </div>
+                        <div class="form-group row-group">
+                            <div>
+                                <label for="new-subject-sessions">Số tiết / tuần</label>
+                                <input type="number" id="new-subject-sessions" min="1" max="20" value="2">
+                            </div>
+                            <div>
+                                <label for="new-subject-color">Màu hiển thị</label>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="new-subject-color" value="#007AFF">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Palettes màu gợi ý nhanh -->
+                        <div class="preset-colors" id="preset-colors">
+                            <span class="color-dot active" data-color="#007AFF" style="background: #007AFF;"></span>
+                            <span class="color-dot" data-color="#34C759" style="background: #34C759;"></span>
+                            <span class="color-dot" data-color="#AF52DE" style="background: #AF52DE;"></span>
+                            <span class="color-dot" data-color="#FF9500" style="background: #FF9500;"></span>
+                            <span class="color-dot" data-color="#FF2D55" style="background: #FF2D55;"></span>
+                            <span class="color-dot" data-color="#5856D6" style="background: #5856D6;"></span>
+                            <span class="color-dot" data-color="#00C7BE" style="background: #00C7BE;"></span>
+                        </div>
+
+                        <button id="add-subject-btn" class="btn-add"><i class="fa-solid fa-plus"></i> Thêm môn học</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="timetable-container">
-                <table class="timetable" id="timetable">
-                    <thead id="table-header"></thead>
-                    <tbody id="table-body"></tbody>
-                </table>
-            </div>
+                <!-- Card 2: Danh sách môn học (Draggable Pool) -->
+                <div class="panel-card">
+                    <h3><i class="fa-solid fa-grip-vertical"></i> Danh sách môn học</h3>
+                    <p class="drag-hint"><i class="fa-solid fa-hand-pointer"></i> <strong>Kéo & Thả</strong> thẻ môn học vào thời khóa biểu hoặc nhấp trực tiếp vào ô tiết học.</p>
+                    <div class="subjects-list" id="subjects-list">
+                        <!-- Thẻ môn học sẽ được render tự động ở đây -->
+                    </div>
+                </div>
 
-            <div class="legend">
-                <div><span style="background:#007AFF33; border:1px solid #007AFF;"></span> Subject assigned</div>
-                <div><span style="background:#2a1215;"></span> Marked X (No class)</div>
-                <div><span style="background: repeating-linear-gradient(45deg, #1e1e2a, #1e1e2a 12px, #15171f 12px, #15171f 24px);"></span> Full day off</div>
-            </div>
+                <!-- Card 3: Thống kê & Tiến độ -->
+                <div class="panel-card">
+                    <h3><i class="fa-solid fa-chart-pie"></i> Tiến độ phân bổ</h3>
+                    <div id="status" class="status-box"></div>
+                </div>
+            </aside>
 
-            <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px;">
-                <button class="ai-btn" id="auto-schedule"><i class="fa-solid fa-robot"></i> Auto Schedule</button>
-                <button class="clear-btn" id="clear-all"><i class="fa-solid fa-trash-can"></i> Delete all</button>
-            </div>
+            <!-- Vùng Thời khóa biểu Chính (Main Timetable) -->
+            <section class="timetable-section">
+                <!-- Toolbar trên bảng TKB -->
+                <div class="timetable-toolbar">
+                    <div class="toolbar-info">
+                        <span><i class="fa-solid fa-info-circle"></i> Click <strong>Thứ (Mon-Sun)</strong> để bật/tắt cả ngày. Click chuột phải ô để đánh dấu <strong>Nghỉ tiết (✕)</strong>.</span>
+                    </div>
+                    <div class="timetable-legend">
+                        <div><span class="legend-box subject-legend"></span> Đã xếp môn</div>
+                        <div><span class="legend-box x-legend"></span> Nghỉ tiết (✕)</div>
+                        <div><span class="legend-box off-legend"></span> Nghỉ cả ngày</div>
+                    </div>
+                </div>
 
-            <div id="status" class="status"></div>
+                <!-- Bảng thời khóa biểu -->
+                <div class="timetable-container" id="printable-area">
+                    <table class="timetable" id="timetable">
+                        <thead id="table-header"></thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     </div>
 </main>
 
-
-<script src="create.js"></script>   
+<script src="create.js"></script>
 </body>
 </html>
