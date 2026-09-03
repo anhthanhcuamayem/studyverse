@@ -1,7 +1,23 @@
 // --- DỮ LIỆU ---
-let projects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+function loadProjects() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('studyverse_projects'));
+        return Array.isArray(saved) ? saved : [];
+    } catch {
+        localStorage.removeItem('studyverse_projects');
+        return [];
+    }
+}
+
+let projects = loadProjects();
 const list = document.querySelectorAll('.list');
 const indicator = document.querySelector('.indicator');
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[char]));
+}
 
 // --- 1. HÀM KHỞI TẠO HỆ THỐNG ---
 function initPage() {
@@ -25,7 +41,7 @@ function initPage() {
     // Khôi phục dự án đang xem dở
     const lastProjectName = localStorage.getItem('lastSelectedProject');
     if (lastProjectName) {
-        const savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+        const savedProjects = loadProjects();
         const project = savedProjects.find(p => p.name.trim() === lastProjectName.trim());
 
         if (project) {
@@ -97,7 +113,7 @@ function renderSidebar() {
     const sidebarList = document.querySelector('.sidebar-list');
     if (!sidebarList) return;
     
-    const saved = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+    const saved = loadProjects();
     
     const lastProjectName = localStorage.getItem('lastSelectedProject');
     
@@ -115,8 +131,8 @@ function renderSidebar() {
             <div class="project-info" style="display: flex; align-items: center; flex: 1;">
                 <i class="fa-solid fa-folder" style="color: #3b82f6; margin-right: 10px;"></i>
                 <div style="display: flex; flex-direction: column;">
-                    <span class="project-name-text" style="color: white; font-weight: 500;">${proj.name}</span>
-                    <small style="color: rgba(255,255,255,0.4); font-size: 11px;">Deadline: ${formatDate(proj.deadline)}</small>
+                    <span class="project-name-text" style="color: white; font-weight: 500;">${escapeHtml(proj.name)}</span>
+                    <small style="color: rgba(255,255,255,0.4); font-size: 11px;">Deadline: ${escapeHtml(formatDate(proj.deadline))}</small>
                 </div>
             </div>
         `;
@@ -130,7 +146,7 @@ function updateProgressBar(projectName) {
     const text = document.getElementById('progressText');
     if (!container || !fill || !text) return;
 
-    const savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+    const savedProjects = loadProjects();
     const project = savedProjects.find(p => p.name.trim() === projectName.trim());
 
     if (!project || !project.tasks || project.tasks.length === 0) {
@@ -233,7 +249,7 @@ function saveTaskOrder(projectName) {
         orderedIds.push(Number(item.getAttribute('data-task-id')));
     });
 
-    let savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+    let savedProjects = loadProjects();
     const pIdx = savedProjects.findIndex(p => p.name.trim() === projectName.trim());
 
     if (pIdx !== -1 && savedProjects[pIdx].tasks) {
@@ -248,7 +264,7 @@ function renderTasks(projectName) {
     const taskListContainer = document.getElementById('displayTaskList');
     if (!taskListContainer) return;
 
-    const savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+    const savedProjects = loadProjects();
     const project = savedProjects.find(p => p.name.trim() === projectName.trim());
 
     taskListContainer.innerHTML = '';
@@ -275,9 +291,9 @@ function renderTasks(projectName) {
                     <div style="display: flex; flex-direction: column; min-width: 0; word-break: break-word;">
                         <span class="task-name ${task.completed ? 'completed' : ''}" 
                               style="color: white; font-size: 15px; line-height: 1.4; ${task.completed ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
-                              ${task.name}
+                              ${escapeHtml(task.name)}
                         </span>
-                        ${task.deadline ? `<small style="color: #db4c3f; font-size: 12px; margin-top: 4px;">${task.deadline}</small>` : ''}
+                        ${task.deadline ? `<small style="color: #db4c3f; font-size: 12px; margin-top: 4px;">${escapeHtml(task.deadline)}</small>` : ''}
                     </div>
                 </div>
                 <i class="fa-solid fa-pencil btn-edit-task" 
@@ -355,7 +371,7 @@ document.addEventListener('click', function (event) {
         const currentProjectName = mainTitle.getAttribute('data-old-name');
 
         if (taskName !== "" && currentProjectName) {
-            let savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+            let savedProjects = loadProjects();
             const projectIndex = savedProjects.findIndex(p => p.name === currentProjectName);
 
             if (projectIndex !== -1) {
@@ -386,7 +402,7 @@ document.addEventListener('click', function (event) {
         const taskId = taskCheck.getAttribute('data-task-id');
         const currentProjectName = mainTitle.getAttribute('data-old-name');
 
-        let savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+        let savedProjects = loadProjects();
         const projectIndex = savedProjects.findIndex(p => p.name === currentProjectName);
 
         if (projectIndex !== -1 && savedProjects[projectIndex].tasks) {
@@ -443,7 +459,7 @@ document.addEventListener('click', function (event) {
     if (event.target.classList.contains('btn-delete')) {
         if (confirm("Delete this project?")) {
             const index = event.target.getAttribute('data-index');
-            let saved = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+            let saved = loadProjects();
             saved.splice(index, 1);
             localStorage.setItem('studyverse_projects', JSON.stringify(saved));
             localStorage.removeItem('lastSelectedProject');
@@ -512,7 +528,7 @@ document.addEventListener('click', function (event) {
         const mode = modal.getAttribute('data-mode');
 
         if (n.value.trim() !== "") {
-            projects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+            projects = loadProjects();
 
             if (mode === 'edit') {
                 const oldName = document.getElementById('mainProjectName').getAttribute('data-old-name');
@@ -545,7 +561,7 @@ document.addEventListener('click', function (event) {
         const taskId = btnEditTask.getAttribute('data-task-id');
         const currentProjectName = document.getElementById('mainProjectName').getAttribute('data-old-name');
 
-        let savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+        let savedProjects = loadProjects();
         const project = savedProjects.find(p => p.name === currentProjectName);
         const task = project.tasks.find(t => t.id == taskId);
 
@@ -553,12 +569,12 @@ document.addEventListener('click', function (event) {
             const taskItem = btnEditTask.closest('.task-item');
             taskItem.innerHTML = `
                 <div class="edit-task-card" style="width: 100%; background: #1a1d23; padding: 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 8px 0;">
-                    <input type="text" id="editTaskName-${task.id}" value="${task.name}" placeholder="Task name..."
+                    <input type="text" id="editTaskName-${task.id}" value="${escapeHtml(task.name)}" placeholder="Task name..."
                         style="width: 100%; background: transparent; border: none; color: white; outline: none; font-size: 16px; margin-bottom: 12px; font-family: inherit;">
                     
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: rgba(255,255,255,0.5);">
                         <i class="fa-regular fa-clock" style="font-size: 14px;"></i>
-                        <input type="text" id="editTaskDate-${task.id}" value="${task.deadline || ''}" placeholder="Deadline (e.g., Oct 20 or Mon)..."
+                        <input type="text" id="editTaskDate-${task.id}" value="${escapeHtml(task.deadline || '')}" placeholder="Deadline (e.g., Oct 20 or Mon)..."
                             style="background: transparent; border: none; color: rgba(255,255,255,0.5); font-size: 14px; outline: none; width: 100%; font-family: inherit;">
                     </div>
 
@@ -597,7 +613,7 @@ document.addEventListener('click', function (event) {
         const currentProjectName = document.getElementById('mainProjectName').getAttribute('data-old-name');
 
         if (newName !== "") {
-            let savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+            let savedProjects = loadProjects();
             const pIdx = savedProjects.findIndex(p => p.name === currentProjectName);
             const tIdx = savedProjects[pIdx].tasks.findIndex(t => t.id == taskId);
 
@@ -620,7 +636,7 @@ document.addEventListener('click', function (event) {
             const taskId = event.target.getAttribute('data-task-id');
             const currentProjectName = document.getElementById('mainProjectName').getAttribute('data-old-name');
 
-            let savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+            let savedProjects = loadProjects();
             const pIdx = savedProjects.findIndex(p => p.name === currentProjectName);
 
             savedProjects[pIdx].tasks = savedProjects[pIdx].tasks.filter(t => t.id != taskId);
@@ -646,7 +662,7 @@ function renderProjectListMain() {
     if (!displayArea) return;
     displayArea.style.display = 'block';
 
-    let saved = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+    let saved = loadProjects();
     
     saved.sort((a, b) => {
         const getPercent = (proj) => {
@@ -671,23 +687,23 @@ function renderProjectListMain() {
         const color = `hsl(${percentage * 1.2}, 100%, 60%)`; 
 
         html += `
-            <div class="project-list-row" data-name="${proj.name}" 
+            <div class="project-list-row" data-name="${escapeHtml(proj.name)}"
                  style="display: flex; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px 0px 18px 20px; cursor: pointer; transition: all 0.2s ease; min-height: 60px; position: relative;">
                 <i class="fa-solid fa-circle-dot" style="color: #3b82f6; margin-right: 15px; font-size: 14px; flex-shrink: 0;"></i>
                 <div style="flex: 0 0 50%; max-width: 50%; padding-right: 10px; word-break: break-word;">
-                    <span style="color: white; font-size: 16px; font-weight: 500; display: block; line-height: 1.4;">${proj.name}</span>
+                    <span style="color: white; font-size: 16px; font-weight: 500; display: block; line-height: 1.4;">${escapeHtml(proj.name)}</span>
                 </div>
                 <div style="flex: 1; min-width: 90px; text-align: left;">
                     <span style="color: rgba(255,255,255,0.4); font-size: 13px; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
                         <i class="fa-regular fa-calendar" style="font-size: 11px;"></i>
-                        ${deadlineText}
+                        ${escapeHtml(deadlineText)}
                     </span>
                 </div>
                 <div style="display: flex; align-items: center; flex-shrink: 0; padding-right: 12px; gap: 12px;">
                     <span style="color: ${color}; font-size: 14px; font-weight: 700; white-space: nowrap; display: inline-flex; align-items: baseline;">
                         ${percentage}<span style="font-size: 11px; margin-left: 1px;">%</span>
                     </span>
-                    <div class="delete-project-btn" onclick="event.stopPropagation(); deleteProject('${proj.name}')" style="color: rgba(255,255,255,0.3); padding: 5px; cursor: pointer;">
+                    <div class="delete-project-btn" data-project-name="${escapeHtml(proj.name)}" style="color: rgba(255,255,255,0.3); padding: 5px; cursor: pointer;">
                         <i class="fa-solid fa-trash-can" style="font-size: 14px;"></i>
                     </div>
                 </div>
@@ -720,6 +736,13 @@ function renderProjectListMain() {
             }
             openProject(projectName);
         };
+    });
+
+    document.querySelectorAll('.delete-project-btn').forEach(button => {
+        button.addEventListener('click', event => {
+            event.stopPropagation();
+            deleteProject(button.dataset.projectName);
+        });
     });
 }
 
@@ -763,7 +786,7 @@ function openProject(name) {
 
 function deleteProject(name) {
     if (confirm(`Are you sure you want to delete project "${name}"?`)) {
-        let saved = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+        let saved = loadProjects();
         saved = saved.filter(p => p.name !== name);
         localStorage.setItem('studyverse_projects', JSON.stringify(saved));
         

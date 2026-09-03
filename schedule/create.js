@@ -33,6 +33,12 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 // PALETTE MÀU MẶC ĐỊNH CHO MÔN HỌC MỚI
 const DEFAULT_COLORS = ["#007AFF", "#34C759", "#AF52DE", "#FF9500", "#FF2D55", "#5856D6", "#00C7BE"];
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
+}
+
 class ScheduleDashboard {
     constructor() {
         this.timetableData = [];
@@ -221,7 +227,7 @@ class ScheduleDashboard {
                 } else if (cellData) {
                     if (cellData.type === 'subject') {
                         cellClass = 'subject-cell';
-                        content = cellData.name;
+                        content = escapeHtml(cellData.name);
                         const subjObj = this.subjects.find(sub => sub.name === cellData.name);
                         const color = subjObj ? subjObj.color : '#007AFF';
                         cellStyle = `style="background: ${color}33; border: 1px solid ${color}; color: #ffffff;"`;
@@ -419,7 +425,7 @@ class ScheduleDashboard {
             const remaining = subj.sessions - (this.subjectCounts[subj.name] || 0);
             btn.innerHTML = `
                 <span style="width:10px; height:10px; border-radius:50%; background:${subj.color}; display:inline-block;"></span>
-                ${subj.name} (${remaining} tiết)
+                ${escapeHtml(subj.name)} (${remaining} tiết)
             `;
             btn.onclick = (e) => {
                 e.stopPropagation();
@@ -558,12 +564,12 @@ class ScheduleDashboard {
                 <div class="subject-info">
                     <span class="subject-color-tag" style="background: ${sub.color};"></span>
                     <div>
-                        <div class="subject-name">${sub.name}</div>
+                        <div class="subject-name">${escapeHtml(sub.name)}</div>
                         <div class="subject-count">${count}/${sub.sessions} tiết ${isFull ? '(Đủ)' : ''}</div>
                     </div>
                 </div>
                 <div class="subject-actions">
-                    <button class="btn-remove-subject" onclick="removeSubject('${sub.name}')" title="Xóa môn">✕</button>
+                    <button class="btn-remove-subject" title="Xóa môn">✕</button>
                 </div>
             `;
 
@@ -579,6 +585,8 @@ class ScheduleDashboard {
                 this.draggedSubjectName = null;
                 card.classList.remove('dragging');
             });
+
+            card.querySelector('.btn-remove-subject').addEventListener('click', () => this.removeSubject(sub.name));
 
             container.appendChild(card);
         });
@@ -609,7 +617,7 @@ class ScheduleDashboard {
     }
 
     /**
-     * Xếp lịch tự động (AI Auto Schedule)
+     * Xếp lịch tự động phía trình duyệt.
      */
     autoSchedule() {
         let needSchedule = [];
@@ -686,7 +694,7 @@ class ScheduleDashboard {
             statusHtml += `
                 <div style="margin-top:6px; font-size:0.82rem;">
                     <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${s.color}; margin-right:4px;"></span>
-                    ${s.name}: <strong>${current}/${s.sessions}</strong> (${Math.round(percent)}%)
+                    ${escapeHtml(s.name)}: <strong>${current}/${s.sessions}</strong> (${Math.round(percent)}%)
                 </div>
             `;
         });

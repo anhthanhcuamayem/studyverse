@@ -27,6 +27,25 @@ studyverse/ (Root)
 
 **Studyverse** là một nền tảng web tích hợp thông minh dành cho học sinh, sinh viên, kết hợp giữa quản lý học tập, tổ chức thời gian và định hướng nghề nghiệp bằng Trí tuệ Nhân tạo (AI). 
 
+## Chạy dự án
+
+Yêu cầu: Python 3.10+.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+pip install -r requirements.txt
+export FREELLM_API_KEY="your-key"
+export FREELLM_BASE_URL="http://localhost:3001/v1"  # tùy chọn
+python app.py
+```
+
+Mở `http://localhost:5000`. Nếu chưa cấu hình `FREELLM_API_KEY`, các tính năng AI sẽ trả về thông báo cấu hình thay vì gọi dịch vụ bên ngoài.
+
+## Lưu ý dữ liệu
+
+Todo và thời khóa biểu hiện được lưu cục bộ trong LocalStorage của trình duyệt. Dữ liệu không tự đồng bộ giữa thiết bị; không nhập thông tin nhạy cảm vào bản demo này.
+
 Các tính năng nổi bật trong kho lưu trữ này bao gồm:
 1. **Interactive Schedule (Thời khóa biểu tương tác):** Cho phép học sinh thiết lập thời gian biểu cá nhân theo chuẩn khung giờ học tập thực tế (bao gồm các tiết học, giờ ra chơi lớn, nghỉ trưa và buổi chiều), hỗ trợ thuật toán xếp lịch tự động và tuỳ biến linh hoạt theo từng ngày trong tuần.
 2. **My Projects / Todo List:** Giúp người dùng quản lý các mục tiêu học tập, dự án cá nhân kèm theo thời hạn (deadline) và phân chia công việc chi tiết.

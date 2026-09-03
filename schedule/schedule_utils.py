@@ -1,5 +1,3 @@
-import random
-
 def parse_time(time_str):
     h, m = map(int, time_str.split(':'))
     return h * 60 + m
@@ -19,6 +17,16 @@ def generate_slots(available_slots, fixed_breaks, lesson_duration=45):
         {"start": "18:00", "end": "19:00"}
     ]
     all_breaks = fixed_breaks if fixed_breaks else default_breaks
+    # A break such as 22:00–06:00 crosses midnight. Represent it as two ranges
+    # so comparisons with slots in a single day remain correct.
+    break_ranges = []
+    for br in all_breaks:
+        br_start = parse_time(br['start'])
+        br_end = parse_time(br['end'])
+        if br_end <= br_start:
+            break_ranges.extend(((br_start, 24 * 60), (0, br_end)))
+        else:
+            break_ranges.append((br_start, br_end))
 
     for slot in available_slots:
         start = parse_time(slot['start'])
@@ -27,9 +35,7 @@ def generate_slots(available_slots, fixed_breaks, lesson_duration=45):
         while current + lesson_duration <= end:
             slot_end = current + lesson_duration
             conflict = False
-            for br in all_breaks:
-                br_start = parse_time(br['start'])
-                br_end = parse_time(br['end'])
+            for br_start, br_end in break_ranges:
                 # Kiểm tra nếu slot bị dính vào giờ nghỉ
                 if not (slot_end <= br_start or current >= br_end):
                     conflict = True
@@ -39,8 +45,6 @@ def generate_slots(available_slots, fixed_breaks, lesson_duration=45):
             if not conflict:
                 slots.append((current, slot_end))
                 current += lesson_duration
-            elif not conflict: # Đã xử lý conflict bằng cách nhảy current
-                pass
     return slots
 
 def create_timetable_with_preferences(subjects, availability, breaks, preferences=None):
