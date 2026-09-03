@@ -6,7 +6,7 @@
     <title>Intelligent Career Counseling Assistant</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/shared.css">
     <link rel="stylesheet" href="/career/chat.css">
 </head>
 <body>
@@ -70,56 +70,14 @@
 
 <script src="/script.js"></script>
 <script>
-// Ghi đè indicator cho trang career để đảm bảo hoạt động đúng
-(function() {
-    const list = document.querySelectorAll('.list');
-    const indicator = document.querySelector('.indicator');
-    const nav = document.querySelector('.navigation');
-    if (!indicator) return;
-
-    function moveTo(el, transition = '0.3s') {
-        if (!el) return;
-        indicator.style.transition = `transform ${transition} ease-out`;
-        indicator.style.transform = `translateX(${el.offsetLeft}px)`;
-    }
-
-    function resetToActive() {
-        const active = document.querySelector('.list.active');
-        if (active) moveTo(active, '0.3s');
-    }
-
-    // Gắn sự kiện hover
-    list.forEach(item => {
-        item.addEventListener('mouseenter', () => moveTo(item, '0.2s'));
-    });
-    if (nav) nav.addEventListener('mouseleave', resetToActive);
-
-    // Xử lý khi click để cập nhật active (hỗ trợ chuyển trang)
-    list.forEach(item => {
-        const link = item.querySelector('a');
-        if (link && link.getAttribute('href') !== '#') {
-            link.addEventListener('click', (e) => {
-                // Không preventDefault để trình duyệt chuyển trang bình thường
-                // Nhưng cần cập nhật active trước khi chuyển
-                list.forEach(l => l.classList.remove('active'));
-                item.classList.add('active');
-                moveTo(item, '0.2s');
-                // Để trang kịp chuyển, không cần setTimeout vì sẽ load lại trang mới
-            });
-        }
-    });
-
-    // Khởi tạo vị trí ban đầu
-    resetToActive();
-    window.addEventListener('resize', resetToActive);
-})();
-
 // Chat logic
 document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('sendBtn');
     const userInput = document.getElementById('userInput');
     const chatMessages = document.getElementById('chatMessages');
     const resetBtn = document.getElementById('resetChatBtn');
+
+    let conversationHistory = [];
 
     function addMessage(text, isUser = false) {
         const messageDiv = document.createElement('div');
@@ -136,6 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.appendChild(contentDiv);
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        conversationHistory.push({ role: isUser ? 'user' : 'assistant', content: text });
     }
 
     async function sendToAI(message) {
@@ -150,7 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/career-ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({
+                    message: message,
+                    history: conversationHistory.slice(0, -1)
+                })
             });
             const data = await response.json();
             typingDiv.remove();
@@ -190,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     resetBtn.addEventListener('click', () => {
         if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử chat?')) {
             chatMessages.innerHTML = '';
+            conversationHistory = [];
             addMessage("Chào bạn! Tôi là AI Career Advisor. Hãy cho tôi biết sở thích, điểm mạnh, hoặc ngành học bạn quan tâm, tôi sẽ gợi ý các nghề nghiệp phù hợp. Ví dụ: \"Tôi thích toán và lập trình\", \"Em mê vẽ và thiết kế\", \"Làm sao để trở thành bác sĩ?\"...", false);
         }
     });
@@ -197,6 +161,5 @@ document.addEventListener('DOMContentLoaded', () => {
     addMessage("Chào bạn! Tôi là AI Career Advisor. Hãy cho tôi biết sở thích, điểm mạnh, hoặc ngành học bạn quan tâm, tôi sẽ gợi ý các nghề nghiệp phù hợp. Ví dụ: \"Tôi thích toán và lập trình\", \"Em mê vẽ và thiết kế\", \"Làm sao để trở thành bác sĩ?\"...", false);
 });
 </script>
-<script src="/todo/mylist.js"></script>
 </body>
 </html>

@@ -1,165 +1,10 @@
 /* ==========================================================================
    STUDYVERSE - INTERACTIVE SCHEDULE DASHBOARD STYLES
+   Shared styles loaded via <link href="/shared.css"> in create.html
    ========================================================================== */
 
-:root {
-    --bg-color: #05070a;
-    --card-bg: #0d1117;
-    --card-hover-bg: #141b26;
-    --primary-blue: #007AFF;
-    --primary-blue-glow: rgba(0, 122, 255, 0.35);
-    --text-white: #ffffff;
-    --text-gray: rgba(255, 255, 255, 0.65);
-    --text-muted: rgba(255, 255, 255, 0.45);
-    --border-soft: rgba(255, 255, 255, 0.08);
-    --border-highlight: rgba(255, 255, 255, 0.15);
-    --white-glow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.02);
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
-}
-
 body {
-    background-color: var(--bg-color);
-    color: var(--text-white);
-    overflow-x: hidden;
-    min-height: 100vh;
-    opacity: 0;
     animation: fadeIn 0.4s ease forwards;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- NAVBAR HEADER --- */
-.navbar {
-    width: 100%;
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 110px;
-    background: rgba(5, 7, 10, 0.88);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border-soft);
-    display: flex;
-    align-items: flex-end;
-    padding-bottom: 10px;
-    z-index: 1000;
-}
-
-.nav-container {
-    max-width: 1400px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 0 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.logo {
-    font-size: 36px;
-    font-weight: 800;
-    text-decoration: none;
-    color: var(--text-white);
-    letter-spacing: -0.5px;
-}
-
-.logo span {
-    color: var(--primary-blue);
-}
-
-.navigation {
-    position: relative;
-    width: 350px;
-    height: 65px;
-    background: var(--card-bg);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 14px;
-    border: 1px solid var(--border-soft);
-}
-
-.navigation ul {
-    display: flex;
-    position: relative;
-    padding: 0;
-    margin: 0;
-    list-style: none;
-}
-
-.navigation ul li {
-    position: relative;
-    list-style: none;
-    width: 70px;
-    height: 65px;
-    z-index: 10;
-}
-
-.navigation ul li a {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    width: 100%;
-    text-align: center;
-    font-weight: 500;
-    color: #fff;
-    text-decoration: none;
-}
-
-.navigation ul li a .icon {
-    position: relative;
-    display: block;
-    line-height: 70px;
-    font-size: 1.4em;
-    text-align: center;
-    transition: 0.5s;
-    color: #fff;
-    z-index: 1000;
-}
-
-.navigation ul li a .text {
-    position: absolute;
-    font-weight: 400;
-    font-size: 0.75em;
-    letter-spacing: 0.05em;
-    transition: 0.5s;
-    opacity: 0;
-    transform: translateY(20px);
-    z-index: 100;
-}
-
-.navigation ul li.active a .icon,
-.navigation ul li.hover-effect a .icon {
-    color: #fff;
-    transform: translateY(-32px);
-}
-
-.navigation ul li.active a .text,
-.navigation ul li.hover-effect a .text {
-    opacity: 1;
-    transform: translateY(8px);
-}
-
-.indicator {
-    position: absolute;
-    top: -45%;
-    width: 65px;
-    height: 65px;
-    background: var(--primary-blue);
-    border-radius: 50%;
-    border: 5px solid #05070a;
-    transition: 0.5s;
-    z-index: 1;
 }
 
 /* --- MAIN CONTAINER LAYOUT --- */
@@ -175,7 +20,7 @@ body {
     padding: 0 24px;
 }
 
-/* Banner Tiêu đề & Actions */
+/* --- BANNER --- */
 .schedule-banner {
     background: var(--card-bg);
     border: 1px solid var(--border-soft);
@@ -213,7 +58,7 @@ body {
     flex-wrap: wrap;
 }
 
-/* Nút bấm chung */
+/* --- BUTTONS --- */
 .btn-action {
     padding: 10px 20px;
     border-radius: 12px;
@@ -268,7 +113,7 @@ body {
     align-items: flex-start;
 }
 
-/* Sidebar Bên Trái */
+/* --- SIDEBAR --- */
 .sidebar-panel {
     width: 360px;
     flex-shrink: 0;
@@ -299,7 +144,7 @@ body {
     color: var(--primary-blue);
 }
 
-/* Form thêm môn học */
+/* --- FORM ADD SUBJECT --- */
 .add-subject-form {
     display: flex;
     flex-direction: column;
@@ -347,7 +192,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     box-shadow: 0 0 0 3px var(--primary-blue-glow);
 }
 
-/* Color Picker Input Custom */
+/* --- COLOR PICKER --- */
 .color-picker-wrapper {
     width: 100%;
     height: 38px;
@@ -366,7 +211,7 @@ input[type="color"] {
     cursor: pointer;
 }
 
-/* Preset Colors Palette */
+/* --- PRESET COLORS --- */
 .preset-colors {
     display: flex;
     gap: 8px;
@@ -413,7 +258,7 @@ input[type="color"] {
     transform: translateY(-1px);
 }
 
-/* Drag Hint */
+/* --- DRAG HINT --- */
 .drag-hint {
     font-size: 0.8rem;
     color: var(--text-gray);
@@ -425,7 +270,7 @@ input[type="color"] {
     border-radius: 0 8px 8px 0;
 }
 
-/* Danh sách thẻ môn học (Subject Cards / Draggable Badges) */
+/* --- SUBJECT CARDS (DRAGGABLE) --- */
 .subjects-list {
     display: flex;
     flex-direction: column;
@@ -520,7 +365,7 @@ input[type="color"] {
     color: white;
 }
 
-/* Stats Box */
+/* --- STATS BOX --- */
 .status-box {
     font-size: 0.85rem;
     line-height: 1.6;
@@ -536,7 +381,6 @@ input[type="color"] {
     gap: 16px;
 }
 
-/* Toolbar trên bảng */
 .timetable-toolbar {
     background: var(--card-bg);
     border: 1px solid var(--border-soft);
@@ -574,7 +418,7 @@ input[type="color"] {
 .legend-box.x-legend { background: rgba(255, 59, 48, 0.3); border: 1px solid #ff3b30; }
 .legend-box.off-legend { background: repeating-linear-gradient(45deg, #181d28, #181d28 8px, #0e121a 8px, #0e121a 16px); }
 
-/* Bảng thời khóa biểu Container */
+/* --- TIMETABLE TABLE --- */
 .timetable-container {
     overflow-x: auto;
     border-radius: 20px;
@@ -636,7 +480,6 @@ input[type="color"] {
     color: white;
 }
 
-/* Hiệu ứng Drag Over trên ô tiết học */
 .timetable td.drag-over {
     background: rgba(0, 122, 255, 0.25) !important;
     border: 2px dashed var(--primary-blue) !important;
@@ -644,7 +487,6 @@ input[type="color"] {
     z-index: 2;
 }
 
-/* Trạng thái ngày nghỉ / Tắt */
 .timetable td.disabled-day {
     background: repeating-linear-gradient(45deg, #111522, #111522 10px, #080c14 10px, #080c14 20px);
     color: rgba(255, 255, 255, 0.2);
@@ -652,7 +494,6 @@ input[type="color"] {
     font-weight: 500;
 }
 
-/* Trạng thái Nghỉ tiết X */
 .timetable td.x-mark {
     background: rgba(255, 59, 48, 0.12) !important;
 }
@@ -664,7 +505,6 @@ input[type="color"] {
     color: #ff6b6b;
 }
 
-/* Ô đã xếp môn học */
 .timetable td.subject-cell {
     font-weight: 700;
     color: white;
@@ -736,7 +576,7 @@ input[type="color"] {
     color: white;
 }
 
-/* --- RESPONSIVE DESIGN --- */
+/* --- RESPONSIVE --- */
 @media (max-width: 1024px) {
     .schedule-workspace {
         flex-direction: column;
@@ -747,17 +587,138 @@ input[type="color"] {
 }
 
 @media (max-width: 900px) {
-    .navbar { height: 90px; }
     .main-schedule { padding-top: 120px; }
-    .logo { font-size: 28px; }
-    .navigation { width: 280px; height: 55px; }
-    .navigation ul li { width: 56px; height: 55px; }
-    .navigation ul li a .icon { font-size: 1.2rem; line-height: 55px; }
-    .navigation ul li.active a .icon { transform: translateY(-28px); }
-    .indicator { width: 55px; height: 55px; top: -40%; }
 }
 
-/* --- IN VÀ XUẤT THỜI KHÓA BIỂU (@MEDIA PRINT) --- */
+@media (max-width: 768px) {
+    .main-schedule {
+        padding-top: 130px;
+        padding-bottom: 30px;
+    }
+
+    .container-fluid {
+        padding: 0 12px;
+    }
+
+    .schedule-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px 18px;
+        gap: 14px;
+    }
+
+    .banner-title h1 {
+        font-size: 1.25rem;
+    }
+
+    .banner-title p {
+        font-size: 0.78rem;
+    }
+
+    .banner-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .btn-action {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        justify-content: center;
+    }
+
+    .sidebar-panel {
+        width: 100%;
+    }
+
+    .panel-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .panel-card h3 {
+        font-size: 0.9rem;
+    }
+
+    .form-group.row-group {
+        flex-direction: column;
+    }
+
+    .preset-colors {
+        gap: 6px;
+    }
+
+    .color-dot {
+        width: 20px;
+        height: 20px;
+    }
+
+    .timetable-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px 14px;
+    }
+
+    .toolbar-info {
+        display: none;
+    }
+
+    .timetable-legend {
+        gap: 10px;
+    }
+
+    .timetable-legend div {
+        font-size: 0.75rem;
+    }
+
+    .timetable {
+        font-size: 0.75rem;
+        min-width: 700px;
+    }
+
+    .timetable th, .timetable td {
+        padding: 10px 6px;
+        height: 44px;
+    }
+
+    .timetable th {
+        font-size: 0.68rem;
+    }
+
+    .subjects-list {
+        max-height: 240px;
+    }
+}
+
+@media (max-width: 480px) {
+    .schedule-banner {
+        padding: 12px 14px;
+    }
+
+    .banner-title h1 {
+        font-size: 1.1rem;
+    }
+
+    .banner-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-action {
+        padding: 10px;
+    }
+
+    .timetable-container {
+        border-radius: 12px;
+    }
+
+    .timetable {
+        min-width: 600px;
+        font-size: 0.7rem;
+    }
+}
+
+/* --- PRINT --- */
 @media print {
     body {
         background: white !important;

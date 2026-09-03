@@ -30,32 +30,43 @@ def serve_static(path):
     return send_from_directory('.', path)
 
 # ==================== PHẦN AI CAREER ====================
-@app.route('/career/chat', methods=['POST'])
+@app.route('/api/career-ai', methods=['POST'])
 def career_chat():
     try:
         data = request.get_json()
         user_message = data.get('message', '')
+        history = data.get('history', [])
         
         if not user_message:
-            return jsonify({'error': 'Vui lòng nhập nội dung cần tư vấn'}), 400
+            return jsonify({'success': False, 'error': 'Vui lòng nhập nội dung cần tư vấn'}), 400
         
-        # Gọi FreeLLMAPI thay vì Groq
+        # Build messages array with conversation history
+        messages = [
+            {"role": "system", "content": "Bạn là một chuyên gia tư vấn hướng nghiệp cho học sinh. Hãy trả lời câu hỏi một cách chi tiết, thực tế và dễ hiểu."}
+        ]
+        
+        # Add conversation history if provided
+        for msg in history:
+            if msg.get('role') in ('user', 'assistant') and msg.get('content'):
+                messages.append({"role": msg['role'], "content": msg['content']})
+        
+        # Add current user message
+        messages.append({"role": "user", "content": user_message})
+        
+        # Gọi FreeLLMAPI
         response = client.chat.completions.create(
-            model="auto:fast",  # <-- SỬA: dùng model của FreeLLMAPI
-            messages=[
-                {"role": "system", "content": "Bạn là một chuyên gia tư vấn hướng nghiệp cho học sinh. Hãy trả lời câu hỏi một cách chi tiết, thực tế và dễ hiểu."},
-                {"role": "user", "content": user_message}
-            ],
+            model="auto:fast",
+            messages=messages,
             temperature=0.7,
             max_tokens=500
         )
         
         ai_reply = response.choices[0].message.content
-        return jsonify({'reply': ai_reply})
+        return jsonify({'success': True, 'reply': ai_reply})
         
     except Exception as e:
         print(f"Lỗi từ FreeLLMAPI: {e}")
-        return jsonify({'error': f'Lỗi từ AI: {str(e)}'}), 500
+        return jsonify({'success': False, 'error': f'Lỗi từ AI: {str(e)}'}), 500
 
 # ==================== PHẦN TẠO THỜI KHÓA BIỂU ====================
 @app.route('/schedule/create', methods=['POST'])

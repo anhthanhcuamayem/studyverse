@@ -6,10 +6,9 @@
     <title>My Project</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <!-- SỬA LẠI ĐƯỜNG DẪN CSS -->
+    <link rel="stylesheet" href="/shared.css">
     <link rel="stylesheet" href="mylist.css">
     <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body style="visibility: hidden;">
@@ -20,25 +19,25 @@
             
             <nav class="navigation">
                 <ul>
-                    <li class="list" id="li-create" data-index="0" >
+                    <li class="list" id="li-home" data-index="0">
                         <a href="../index.html">
                             <span class="icon"><i class="fa-solid fa-house"></i></span>
                             <span class="text">Home</span>
                         </a>
                     </li>
-                    <li class="list active" id="li-create" data-index="1">
+                    <li class="list active" id="li-myproject" data-index="1">
                         <a href="mylist.html"> 
                             <span class="icon"><i class="fa-solid fa-list-check"></i></span>
                             <span class="text">My Project</span>
                         </a>
                     </li>
-                    <li class="list" id="li-create" data-index="2">
+                    <li class="list" id="li-schedule" data-index="2">
                         <a href="/schedule/create.html">
                             <span class="icon"><i class="fa-regular fa-calendar"></i></span>
                             <span class="text">Schedule</span>
                         </a>
                     </li>
-                    <li class="list" id="li-create"  data-index="3">
+                    <li class="list" id="li-career" data-index="3">
                         <a href="/career/chat.html">
                             <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
                             <span class="text">AI Career</span>
@@ -73,16 +72,26 @@
                         <span id="mainProjectDeadline"></span>
                         <i class="fa-solid fa-pen btn-edit-deadline" style="cursor: pointer; font-size: 13px; color: rgba(255,255,255,0.3); display: none;" title="Edit deadline"></i>
                     </div>
-                </div> 
+                </div>
+                
+                <!-- Progress Bar -->
+                <div id="progressBarContainer" style="display: none; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 13px; color: rgba(255,255,255,0.5);">Progress</span>
+                        <span id="progressText" style="font-size: 13px; color: #4299e1; font-weight: 600;">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
                 
                 <div id="taskAreaContainer" style="display: none;">
                     
-                    <p id="mainProjectDeadline"></p>
                     <div id="displayTaskList" style="margin-bottom: 10px;"></div>
 
-                    <div class="add-task-btn" id="btnShowInput" style="display: flex; align-items: center; gap: 10px; cursor: pointer; width: fit-content; opacity: 0.6; padding: 5px 0;">
+                    <div class="add-task-btn" id="btnShowInput" style="display: flex; align-items: center; gap: 10px; cursor: pointer; width: fit-content; padding: 8px 12px; border-radius: 8px; transition: background 0.2s;">
                         <i class="fa-solid fa-plus" style="color: #db4c3f; font-size: 16px;"></i>
-                        <span style="color: #808080; font-size: 15px;">Add task</span>
+                        <span style="color: rgba(255,255,255,0.6); font-size: 15px; font-weight: 500;">Add task</span>
                     </div>
 
                     <div id="taskInputCard" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; margin-top: 5px;">

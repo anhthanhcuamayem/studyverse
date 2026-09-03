@@ -47,6 +47,7 @@ function initPage() {
             if (taskAreaContainer) {
                 taskAreaContainer.style.display = 'block';
                 renderTasks(project.name);
+                updateProgressBar(project.name);
             }
         }
     } else {
@@ -123,6 +124,126 @@ function renderSidebar() {
     });
 }
 
+function updateProgressBar(projectName) {
+    const container = document.getElementById('progressBarContainer');
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+    if (!container || !fill || !text) return;
+
+    const savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+    const project = savedProjects.find(p => p.name.trim() === projectName.trim());
+
+    if (!project || !project.tasks || project.tasks.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    const total = project.tasks.length;
+    const completed = project.tasks.filter(t => t.completed).length;
+    const pct = Math.round((completed / total) * 100);
+
+    container.style.display = 'block';
+    fill.style.width = pct + '%';
+    text.textContent = pct + '%';
+}
+
+// --- DRAG AND DROP ---
+let draggedItem = null;
+let draggedProject = null;
+
+function initDragAndDrop(projectName) {
+    const container = document.getElementById('displayTaskList');
+    if (!container) return;
+
+    const items = container.querySelectorAll('.task-item');
+    items.forEach(item => {
+        const handle = item.querySelector('.task-drag-handle');
+
+        item.addEventListener('dragstart', (e) => {
+            draggedItem = item;
+            draggedProject = projectName;
+            item.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', item.getAttribute('data-task-id'));
+        });
+
+        item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+            container.querySelectorAll('.task-item').forEach(el => el.classList.remove('drag-over'));
+            draggedItem = null;
+            draggedProject = null;
+        });
+
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (item !== draggedItem) {
+                item.classList.add('drag-over');
+            }
+        });
+
+        item.addEventListener('dragleave', () => {
+            item.classList.remove('drag-over');
+        });
+
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            item.classList.remove('drag-over');
+
+            if (!draggedItem || draggedItem === item || draggedProject !== projectName) return;
+
+            // Determine position
+            const rect = item.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            const insertBefore = e.clientY < midY;
+
+            if (insertBefore) {
+                container.insertBefore(draggedItem, item);
+            } else {
+                container.insertBefore(draggedItem, item.nextSibling);
+            }
+
+            // Save new order to localStorage
+            saveTaskOrder(projectName);
+        });
+
+        // Only allow drag from handle
+        item.addEventListener('mousedown', (e) => {
+            if (!e.target.closest('.task-drag-handle')) {
+                item.draggable = false;
+            }
+        });
+
+        item.addEventListener('mouseup', () => {
+            item.draggable = true;
+        });
+
+        if (handle) {
+            handle.addEventListener('mousedown', () => {
+                item.draggable = true;
+            });
+        }
+    });
+}
+
+function saveTaskOrder(projectName) {
+    const container = document.getElementById('displayTaskList');
+    const orderedIds = [];
+    container.querySelectorAll('.task-item').forEach(item => {
+        orderedIds.push(Number(item.getAttribute('data-task-id')));
+    });
+
+    let savedProjects = JSON.parse(localStorage.getItem('studyverse_projects')) || [];
+    const pIdx = savedProjects.findIndex(p => p.name.trim() === projectName.trim());
+
+    if (pIdx !== -1 && savedProjects[pIdx].tasks) {
+        const taskMap = {};
+        savedProjects[pIdx].tasks.forEach(t => taskMap[t.id] = t);
+        savedProjects[pIdx].tasks = orderedIds.map(id => taskMap[id]).filter(Boolean);
+        localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
+    }
+}
+
 function renderTasks(projectName) {
     const taskListContainer = document.getElementById('displayTaskList');
     if (!taskListContainer) return;
@@ -136,10 +257,16 @@ function renderTasks(projectName) {
         project.tasks.forEach((task) => {
             const taskItem = document.createElement('div');
             taskItem.className = 'task-item';
-            taskItem.style.cssText = "display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 12px;";
+            taskItem.draggable = true;
+            taskItem.setAttribute('data-task-id', task.id);
+            taskItem.style.cssText = "display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 12px; transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease; border-radius: 8px;";
 
             taskItem.innerHTML = `
                 <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0;">
+                    <div class="task-drag-handle" 
+                         style="cursor: grab; color: rgba(255,255,255,0.15); font-size: 12px; flex-shrink: 0; margin-top: 3px; padding: 2px 4px; border-radius: 4px; transition: color 0.2s, background 0.2s; user-select: none;">
+                         <i class="fa-solid fa-grip-vertical"></i>
+                    </div>
                     <div class="task-check ${task.completed ? 'completed' : ''}" 
                          data-task-id="${task.id}" 
                          style="width: 18px; height: 18px; border: 1.5px solid #808080; border-radius: 50%; cursor: pointer; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 10px;">
@@ -161,6 +288,9 @@ function renderTasks(projectName) {
             taskListContainer.appendChild(taskItem);
         });
     }
+
+    // Initialize drag-and-drop for this project
+    initDragAndDrop(projectName);
 }
 
 // --- 4. XỬ LÝ SỰ KIỆN CLICK ---
@@ -204,6 +334,7 @@ document.addEventListener('click', function (event) {
         if (taskAreaContainer) taskAreaContainer.style.display = 'block';
 
         renderTasks(name);
+        updateProgressBar(name);
         localStorage.setItem('lastSelectedProject', name);
     }
 
@@ -238,6 +369,7 @@ document.addEventListener('click', function (event) {
 
                 localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
                 renderTasks(currentProjectName);
+                updateProgressBar(currentProjectName);
 
                 taskInputCard.style.display = 'none';
                 btnShowInput.style.display = 'flex';
@@ -263,6 +395,7 @@ document.addEventListener('click', function (event) {
                 task.completed = !task.completed;
                 localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
                 renderTasks(currentProjectName);
+                updateProgressBar(currentProjectName);
             }
         }
     }
@@ -448,6 +581,7 @@ document.addEventListener('click', function (event) {
     if (event.target.classList.contains('btn-cancel-edit')) {
         const currentProjectName = document.getElementById('mainProjectName').getAttribute('data-old-name');
         renderTasks(currentProjectName);
+        updateProgressBar(currentProjectName);
         if (event.target.id === 'btnCancelTask') {
             document.getElementById('taskNameInput').value = "";
             document.getElementById('taskDeadlineInput').value = "";
@@ -472,6 +606,7 @@ document.addEventListener('click', function (event) {
 
             localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
             renderTasks(currentProjectName);
+            updateProgressBar(currentProjectName);
 
             const btnShowInput = document.getElementById('btnShowInput');
             const taskInputCard = document.getElementById('taskInputCard');
@@ -492,11 +627,15 @@ document.addEventListener('click', function (event) {
 
             localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
             renderTasks(currentProjectName);
+            updateProgressBar(currentProjectName);
         }
     }
 });
 
 function renderProjectListMain() {
+    const progressBar = document.getElementById('progressBarContainer');
+    if (progressBar) progressBar.style.display = 'none';
+
     const listToHide = ['taskInputBox', 'btnShowInput', 'editTaskBox', 'taskInputCard'];
     listToHide.forEach(id => {
         const el = document.getElementById(id);
@@ -617,6 +756,7 @@ function openProject(name) {
     if (taskAreaContainer) taskAreaContainer.style.display = 'block';
 
     renderTasks(name);
+    updateProgressBar(name);
     localStorage.setItem('lastSelectedProject', name);
     renderSidebar();
 }
