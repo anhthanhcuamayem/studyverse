@@ -4,6 +4,8 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_from_directory
 from openai import OpenAI
 
+from schedule.schedule_utils import create_timetable_with_preferences
+
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024
 BASE_DIR = Path(__file__).resolve().parent
@@ -119,6 +121,50 @@ def suggest_study():
     except Exception:
         app.logger.exception('Invalid study suggestion request')
         return jsonify({'error': 'Yêu cầu không thể xử lý.'}), 500
+
+# ==================== XẾP LỊCH REAL (SCHEDULE OPTIMIZE) ====================
+@app.route('/api/schedule-optimize', methods=['POST'])
+def schedule_optimize():
+    data, error = get_json_body()
+    if error:
+        return error
+
+    subjects = data.get('subjects', [])
+    availability = data.get('availability', {})
+    breaks = data.get('breaks', [])
+    preferences = data.get('preferences', {})
+
+    if not isinstance(subjects, list) or not isinstance(availability, dict) or not isinstance(breaks, list) or not isinstance(preferences, dict):
+        return jsonify({'error': 'Dữ liệu không hợp lệ'}), 400
+
+    # Chuyển availability key sang string cho Python
+    availability_str = {str(k): v for k, v in availability.items()}
+
+    try:
+        result = create_timetable_with_preferences(subjects, availability_str, breaks, preferences)
+    except Exception:
+        app.logger.exception('schedule_optimize failed')
+        return jsonify({'error': 'Xếp lịch thất bại'}), 500
+
+    # Map tên tiếng Việt → tiếng Anh (index JS)
+    day_map = {
+        "Thứ 2": "Monday",
+        "Thứ 3": "Tuesday",
+        "Thứ 4": "Wednesday",
+        "Thứ 5": "Thursday",
+        "Thứ 6": "Friday",
+        "Thứ 7": "Saturday",
+        "Chủ nhật": "Sunday"
+    }
+
+    timetable = {}
+    for vi_name, lessons in result.items():
+        en_name = day_map.get(vi_name)
+        if en_name:
+            timetable[en_name] = lessons
+
+    return jsonify({'timetable': timetable})
+
 
 # ==================== KHỞI CHẠY APP ====================
 if __name__ == '__main__':

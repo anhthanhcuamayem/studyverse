@@ -2,9 +2,10 @@
  * Studyverse - Interactive Schedule Dashboard Module
  * --------------------------------------------------
  * File: create.js
- * Description: Quản lý thời khóa biểu tương tác thế hệ mới: Kéo - Thả (Drag & Drop),
- *              Màu sắc riêng từng môn (Color Tagging), In/Xuất TKB, Tự động xếp lịch AI,
- *              và Tự động lưu dữ liệu LocalStorage.
+ * Description: Quản lý thời khóa biểu tương tác: Kéo - Thả (Drag & Drop),
+ *              Màu sắc riêng từng môn, In + Lưu ảnh PNG, Tự động xếp lịch
+ *              (gọi backend real nếu có, fallback random nếu không),
+ *              và tự động lưu LocalStorage.
  */
 
 // --- CẤU HÌNH KHUNG GIỜ VÀ CÁC NGÀY TRONG TUẦN ---
@@ -53,9 +54,7 @@ class ScheduleDashboard {
         }
     }
 
-    /**
-     * Khởi chạy ứng dụng
-     */
+    /** Khởi chạy ứng dụng */
     init() {
         this.loadData();
         this.registerEvents();
@@ -68,9 +67,7 @@ class ScheduleDashboard {
         window.removeSubject = (name) => this.removeSubject(name);
     }
 
-    /**
-     * Tự động lưu vào LocalStorage
-     */
+    /** Tự động lưu vào LocalStorage */
     saveData() {
         try {
             const dataToSave = {
@@ -85,9 +82,7 @@ class ScheduleDashboard {
         }
     }
 
-    /**
-     * Tải dữ liệu từ LocalStorage
-     */
+    /** Tải dữ liệu từ LocalStorage */
     loadData() {
         try {
             const savedData = localStorage.getItem('studyverse_schedule_dashboard_data');
@@ -110,9 +105,7 @@ class ScheduleDashboard {
         this.initTimetable();
     }
 
-    /**
-     * Tạo ma trận TKB rỗng
-     */
+    /** Tạo ma trận TKB rỗng */
     initTimetable() {
         this.timetableData = [];
         for (let i = 0; i < DAYS.length; i++) {
@@ -120,9 +113,7 @@ class ScheduleDashboard {
         }
     }
 
-    /**
-     * Lắng nghe sự kiện nút bấm & phím tắt
-     */
+    /** Lắng nghe sự kiện nút bấm & phím tắt */
     registerEvents() {
         const addSubBtn = document.getElementById('add-subject-btn');
         if (addSubBtn) addSubBtn.addEventListener('click', () => this.addSubject());
@@ -133,6 +124,9 @@ class ScheduleDashboard {
         const exportBtn = document.getElementById('export-print-btn');
         if (exportBtn) exportBtn.addEventListener('click', () => this.exportOrPrint());
 
+        const exportImgBtn = document.getElementById('export-img-btn');
+        if (exportImgBtn) exportImgBtn.addEventListener('click', () => this.exportImg());
+
         const clearAllBtn = document.getElementById('clear-all');
         if (clearAllBtn) clearAllBtn.addEventListener('click', () => this.clearAll());
 
@@ -141,9 +135,7 @@ class ScheduleDashboard {
         });
     }
 
-    /**
-     * Thiết lập chọn màu sắc nhanh trong form thêm môn học
-     */
+    /** Thiết lập chọn màu sắc nhanh trong form thêm môn học */
     initColorPresetPicker() {
         const dots = document.querySelectorAll('.preset-colors .color-dot');
         const colorInput = document.getElementById('new-subject-color');
@@ -159,44 +151,97 @@ class ScheduleDashboard {
         });
 
         if (colorInput) {
-            colorInput.addEventListener('input', (e) => {
+            colorInput.addEventListener('input', () => {
                 dots.forEach(d => d.classList.remove('active'));
             });
         }
     }
 
-    /**
-     * Xuất file / In thời khóa biểu
-     */
+    /** In thời khóa biểu (dùng cửa sổ in trình duyệt) */
     exportOrPrint() {
         this.closePicker();
+        this._hideExportChrome();
         window.print();
+        // Khôi phục UI sau khi in (print dialog mở thì không cần ngay, nhưng tốt hơn là khôi phục sớm)
+        setTimeout(() => this._showExportChrome(), 400);
     }
 
-    /**
-     * Đóng Picker Popup
-     */
-    closePicker() {
-        if (this.currentPicker) {
-            this.currentPicker.remove();
-            this.currentPicker = null;
+    /** Lưu ảnh PNG của bảng TKB */
+    exportImg() {
+        this.closePicker();
+        this._hideExportChrome();
+
+        const area = document.getElementById('printable-area');
+        if (!area) {
+            this._showExportChrome();
+            return;
         }
+
+        if (typeof html2canvas === 'undefined') {
+            this._showExportChrome();
+            alert('Thư viện chụp ảnh chưa sẵn sàng. Vui lòng refresh lại trang.');
+            return;
+        }
+
+        html2canvas(area, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false
+        }).then(canvas => {
+            this._showExportChrome();
+            const link = document.createElement('a');
+            link.download = 'studyverse-schedule.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }).catch(err => {
+            this._showExportChrome();
+            console.error('Lỗi chụp ảnh TKB:', err);
+            alert('Không thể lưu ảnh. Vui lòng thử lại hoặc dùng In.');
+        });
     }
 
-    /**
-     * Vẽ bảng thời khóa biểu
-     */
+    /** Ẩn các phần không cần thiết khi xuất ảnh / in */
+    _hideExportChrome() {
+        const hideList = document.querySelectorAll(
+            '.navbar, .sidebar-panel, .schedule-banner, .timetable-toolbar'
+        );
+        hideList.forEach(el => {
+            if (el) {
+                el.dataset.exportHidden = '1';
+                el.style.transition = 'opacity 0.15s ease';
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+            }
+        });
+    }
+
+    /** Khôi phục UI sau khi xuất ảnh / in */
+    _showExportChrome() {
+        const hideList = document.querySelectorAll(
+            '.navbar, .sidebar-panel, .schedule-banner, .timetable-toolbar'
+        );
+        hideList.forEach(el => {
+            if (el && el.dataset.exportHidden === '1') {
+                el.style.opacity = '';
+                el.style.pointerEvents = '';
+                try { delete el.dataset.exportHidden; } catch(e) { /* ignore */ }
+            }
+        });
+    }
+
+    /** Vẽ bảng thời khóa biểu */
     renderTable() {
         const thead = document.getElementById('table-header');
         const tbody = document.getElementById('table-body');
         if (!thead || !tbody) return;
 
         // 1. Header Row
-        let headerRow = `<tr><th>Thời gian / Ngày</th>`;
+        let headerRow = '<tr><th>Thời gian / Ngày</th>';
         for (let i = 0; i < DAYS.length; i++) {
             headerRow += `<th data-day="${i}">${DAYS[i]}</th>`;
         }
-        headerRow += `</tr>`;
+        headerRow += '</tr>';
         thead.innerHTML = headerRow;
 
         // 2. Body Rows
@@ -238,16 +283,14 @@ class ScheduleDashboard {
                 }
                 bodyHtml += `<td class="${cellClass}" ${cellStyle} data-day="${d}" data-slot="${s}">${content}</td>`;
             }
-            bodyHtml += `</tr>`;
+            bodyHtml += '</tr>';
         }
         tbody.innerHTML = bodyHtml;
 
         this.attachTableEvents();
     }
 
-    /**
-     * Đăng ký sự kiện Click, ContextMenu & DRAG & DROP trên các ô TKB
-     */
+    /** Đăng ký sự kiện Click, ContextMenu & DRAG & DROP trên các ô TKB */
     attachTableEvents() {
         // Toggle ngày học trên Header
         document.querySelectorAll('th[data-day]').forEach(th => {
@@ -300,9 +343,7 @@ class ScheduleDashboard {
         });
     }
 
-    /**
-     * Gán môn học vào một ô TKB
-     */
+    /** Gán môn học vào một ô TKB */
     assignSubjectToCell(subjectName, day, slot) {
         const subjObj = this.subjects.find(s => s.name === subjectName);
         if (!subjObj) return;
@@ -329,9 +370,7 @@ class ScheduleDashboard {
         this.updateStatus();
     }
 
-    /**
-     * Bật / Tắt cả ngày học
-     */
+    /** Bật / Tắt cả ngày học */
     toggleDisableDay(day) {
         this.disabledDays[day] = !this.disabledDays[day];
 
@@ -353,9 +392,7 @@ class ScheduleDashboard {
         this.closePicker();
     }
 
-    /**
-     * Xử lý Click trên ô TKB
-     */
+    /** Xử lý Click trên ô TKB */
     handleCellClick(day, slot, tdElement) {
         const current = this.timetableData[day][slot];
 
@@ -380,9 +417,7 @@ class ScheduleDashboard {
         this.showSubjectPicker(day, slot, tdElement);
     }
 
-    /**
-     * Bật/Tắt dấu X
-     */
+    /** Bật/Tắt dấu X */
     toggleXMark(day, slot) {
         const current = this.timetableData[day][slot];
         if (current && current.type === 'subject') {
@@ -400,9 +435,7 @@ class ScheduleDashboard {
         this.renderTable();
     }
 
-    /**
-     * Hiển thị bảng chọn môn Popup (Fallback cho Click / Touch)
-     */
+    /** Hiển thị bảng chọn môn Popup (Fallback cho Click / Touch) */
     showSubjectPicker(day, slot, tdElement) {
         if (this.subjects.length === 0) {
             alert("Vui lòng thêm ít nhất một môn học trước!");
@@ -503,9 +536,7 @@ class ScheduleDashboard {
         setTimeout(() => document.addEventListener('click', outsideClick, true), 10);
     }
 
-    /**
-     * Thêm mới môn học với màu sắc riêng
-     */
+    /** Thêm mới môn học với màu sắc riêng */
     addSubject() {
         const nameInput = document.getElementById('new-subject-name');
         const sessInput = document.getElementById('new-subject-sessions');
@@ -538,9 +569,7 @@ class ScheduleDashboard {
         this.renderTable();
     }
 
-    /**
-     * Render danh sách các thẻ môn học Kéo - Thả (Draggable Subject Cards)
-     */
+    /** Render danh sách các thẻ môn học Kéo - Thả (Draggable Subject Cards) */
     renderSubjectList() {
         const container = document.getElementById('subjects-list');
         if (!container) return;
@@ -592,9 +621,7 @@ class ScheduleDashboard {
         });
     }
 
-    /**
-     * Xóa môn học
-     */
+    /** Xóa môn học */
     removeSubject(name) {
         if (confirm(`Bạn có chắc muốn xóa môn "${name}"? Các tiết đã xếp của môn này trên TKB sẽ bị dọn dẹp.`)) {
             for (let d = 0; d < DAYS.length; d++) {
@@ -616,10 +643,56 @@ class ScheduleDashboard {
         }
     }
 
-    /**
-     * Xếp lịch tự động phía trình duyệt.
-     */
-    autoSchedule() {
+    /** Xếp lịch tự động (ưu tiên gọi backend real, nếu không có thì xếp ngẫu nhiên) */
+    async autoSchedule() {
+        let needSchedule = [];
+        this.subjects.forEach(subj => {
+            const scheduled = this.subjectCounts[subj.name] || 0;
+            const remaining = subj.sessions - scheduled;
+            for (let i = 0; i < remaining; i++) {
+                needSchedule.push(subj.name);
+            }
+        });
+
+        if (needSchedule.length === 0) {
+            alert("Tất cả các môn học đã được xếp đầy đủ!");
+            return;
+        }
+
+        const body = this._buildScheduleRequest();
+
+        // Yêu cầu backend xêt lịch thông minh
+        try {
+            const response = await fetch('/api/schedule-optimize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Backend schedule failed (${response.status})`);
+            }
+
+            const result = await response.json();
+            if (!result || !result.timetable) {
+                throw new Error('Invalid schedule response');
+            }
+
+            this._applyOptimizedSchedule(result.timetable);
+            this.saveData();
+            this.renderTable();
+            this.renderSubjectList();
+            this.updateStatus();
+            return;
+        } catch (err) {
+            // Nếu backend không có hoặc lỗi, fallback về cách xếp ngẫu nhiên cũ
+            console.warn('Auto schedule backend failed, fallback to random scheduling:', err);
+            this._autoScheduleRandom();
+        }
+    }
+
+    /** Xếp lịch tự động ngẫu nhiên (fallback) */
+    _autoScheduleRandom() {
         let needSchedule = [];
         this.subjects.forEach(subj => {
             const scheduled = this.subjectCounts[subj.name] || 0;
@@ -666,9 +739,96 @@ class ScheduleDashboard {
         this.updateStatus();
     }
 
-    /**
-     * Cập nhật trạng thái thống kê
+    /** Áp dụng lịch tối ưu từ backend vào trạng thái hiện tại
+     * timetable: { "Monday": [{start, end, subject}, ...], ... }
      */
+    _applyOptimizedSchedule(timetable) {
+        // Map day name → index
+        const dayIndex = {};
+        DAYS.forEach((d, i) => { dayIndex[d] = i; });
+
+        // Khởi tạo lại toàn bộ grid cho gọn
+        this.timetableData = [];
+        for (let d = 0; d < DAYS.length; d++) {
+            this.timetableData[d] = new Array(SCHEDULE_SLOTS.length).fill(null);
+        }
+        this.subjectCounts = {};
+        this.subjects.forEach(sub => { this.subjectCounts[sub.name] = 0; });
+
+        // Lấp lịch từ backend vào ô phù hợp
+        const slotKeyMap = this._buildSlotKeyMap();
+
+        for (const [dayName, lessons] of Object.entries(timetable)) {
+            const d = dayIndex[dayName];
+            if (d === undefined) continue;
+
+            for (const lesson of lessons) {
+                const key = `${lesson.start}-${lesson.end}`;
+                const slotIndex = slotKeyMap[key];
+                if (slotIndex === undefined) continue;
+
+                const subjName = lesson.subject;
+                const subj = this.subjects.find(s => s.name === subjName);
+                if (!subj) continue;
+
+                // Gán nếu ô trống
+                if (this.timetableData[d][slotIndex] === null) {
+                    this.timetableData[d][slotIndex] = { type: 'subject', name: subjName };
+                    this.subjectCounts[subjName] = (this.subjectCounts[subjName] || 0) + 1;
+                }
+            }
+        }
+    }
+
+    /** Xây bảng ánh xạ "giờ bắt đầu - giờ kết thúc" → chỉ số slot */
+    _buildSlotKeyMap() {
+        const map = {};
+        SCHEDULE_SLOTS.forEach((slot, idx) => {
+            if (slot.type === 'lesson') {
+                map[`${slot.start}-${slot.end}`] = idx;
+            }
+        });
+        return map;
+    }
+
+    /** Tạo body yêu cầu gửi backend */
+    _buildScheduleRequest() {
+        const subjects = this.subjects.map(s => ({
+            name: s.name,
+            sessions: s.sessions
+        }));
+
+        // Xác định khung giờ sẵn sàng theo ngày currently enabled
+        const availability = {};
+        for (let d = 0; d < DAYS.length; d++) {
+            if (!this.disabledDays[d]) {
+                // Mặc định: khung giờ học trong bài cho ngày này
+                availability[d] = [];
+                SCHEDULE_SLOTS.forEach(slot => {
+                    if (slot.type === 'lesson') {
+                        availability[d].push({ start: slot.start, end: slot.end });
+                    }
+                });
+            }
+        }
+
+        return {
+            subjects,
+            availability,
+            breaks: [
+                { start: '11:40', end: '13:30' }, // Nghỉ trưa
+                { start: '08:50', end: '09:15' }, // Ra chơi lớn
+                { start: '15:05', end: '15:20' }  // Giải lao chiều
+            ],
+            preferences: {
+                preferred_slots: ['morning', 'afternoon'],
+                avoid_days: [],
+                subject_preferences: {}
+            }
+        };
+    }
+
+    /** Cập nhật trạng thái thống kê */
     updateStatus() {
         let totalPlanned = 0;
         let totalScheduled = 0;
@@ -702,9 +862,23 @@ class ScheduleDashboard {
         statusDiv.innerHTML = statusHtml;
     }
 
-    /**
-     * Xóa toàn bộ dữ liệu
-     */
+    /** Thống kê nhanh helper để debug/xác nhận */
+    _logScheduleState() {
+        console.log('[Schedule] subjects:', this.subjects);
+        console.log('[Schedule] subjectCounts:', this.subjectCounts);
+        console.log('[Schedule] disabledDays:', this.disabledDays);
+        console.log('[Schedule] timetableData:', this.timetableData);
+    }
+
+    /** Đóng picker hiện tại */
+    closePicker() {
+        if (this.currentPicker) {
+            this.currentPicker.remove();
+            this.currentPicker = null;
+        }
+    }
+
+    /** Xóa toàn bộ dữ liệu */
     clearAll() {
         if (confirm("Xóa toàn bộ thời khóa biểu và tất cả danh sách môn học?")) {
             this.initTimetable();
