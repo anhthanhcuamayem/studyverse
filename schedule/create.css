@@ -576,6 +576,147 @@ input[type="color"] {
     color: white;
 }
 
+/* --- SV MODAL POPUP (thay alert/confirm mặc định) --- */
+.sv-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(3, 5, 9, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+    animation: svOverlayIn 0.2s ease-out;
+}
+
+@keyframes svOverlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.sv-modal {
+    width: 100%;
+    max-width: 400px;
+    background: #121824;
+    border: 1px solid var(--border-highlight);
+    border-radius: 20px;
+    padding: 28px 26px 22px;
+    text-align: center;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 40px rgba(0, 122, 255, 0.08);
+    animation: svModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes svModalIn {
+    from { opacity: 0; transform: scale(0.9) translateY(14px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.sv-modal-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: var(--primary-blue);
+    background: rgba(0, 122, 255, 0.12);
+    border: 1px solid rgba(0, 122, 255, 0.3);
+}
+
+.sv-modal.warn .sv-modal-icon {
+    color: #ffb340;
+    background: rgba(255, 149, 0, 0.12);
+    border-color: rgba(255, 149, 0, 0.35);
+}
+
+.sv-modal.success .sv-modal-icon {
+    color: #34C759;
+    background: rgba(52, 199, 89, 0.12);
+    border-color: rgba(52, 199, 89, 0.35);
+}
+
+.sv-modal.danger .sv-modal-icon {
+    color: #ff6b6b;
+    background: rgba(255, 59, 48, 0.12);
+    border-color: rgba(255, 59, 48, 0.35);
+}
+
+.sv-modal-title {
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: var(--text-white);
+    margin-bottom: 8px;
+}
+
+.sv-modal-message {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--text-gray);
+    margin-bottom: 20px;
+    word-break: break-word;
+}
+
+.sv-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.sv-modal-btn {
+    flex: 1;
+    max-width: 160px;
+    padding: 11px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.sv-modal-btn-confirm {
+    background: linear-gradient(135deg, #007AFF, #5856D6);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+}
+
+.sv-modal-btn-confirm:hover {
+    filter: brightness(1.12);
+    transform: translateY(-1px);
+}
+
+.sv-modal-btn-confirm:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-blue-glow);
+}
+
+.sv-modal.danger .sv-modal-btn-confirm {
+    background: #ff3b30;
+    box-shadow: 0 4px 15px rgba(255, 59, 48, 0.35);
+}
+
+.sv-modal-btn-cancel {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--border-soft);
+    color: var(--text-gray);
+}
+
+.sv-modal-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--border-highlight);
+    color: white;
+}
+
+.sv-modal-btn-cancel:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15);
+}
+
 /* --- RESPONSIVE --- */
 @media (max-width: 1024px) {
     .schedule-workspace {

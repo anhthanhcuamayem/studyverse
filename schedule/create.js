@@ -47,6 +47,7 @@ class ScheduleDashboard {
         this.subjects = [];
         this.subjectCounts = {};
         this.currentPicker = null;
+        this.currentModal = null;
         this.draggedSubjectName = null;
 
         if (typeof document !== 'undefined') {
@@ -131,7 +132,10 @@ class ScheduleDashboard {
         if (clearAllBtn) clearAllBtn.addEventListener('click', () => this.clearAll());
 
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') this.closePicker();
+            if (e.key === 'Escape') {
+                this.closePicker();
+                this.closeModal();
+            }
         });
     }
 
@@ -179,7 +183,7 @@ class ScheduleDashboard {
 
         if (typeof html2canvas === 'undefined') {
             this._showExportChrome();
-            alert('Thư viện chụp ảnh chưa sẵn sàng. Vui lòng refresh lại trang.');
+            this.showNotice('Thư viện chụp ảnh chưa sẵn sàng. Vui lòng tải lại trang (F5).', { title: 'Lưu ảnh', icon: 'fa-triangle-exclamation', tone: 'warn' });
             return;
         }
 
@@ -197,7 +201,7 @@ class ScheduleDashboard {
         }).catch(err => {
             this._showExportChrome();
             console.error('Lỗi chụp ảnh TKB:', err);
-            alert('Không thể lưu ảnh. Vui lòng thử lại hoặc dùng In.');
+            this.showNotice('Không thể lưu ảnh. Vui lòng thử lại hoặc dùng chức năng In.', { title: 'Lưu ảnh', icon: 'fa-triangle-exclamation', tone: 'warn' });
         });
     }
 
@@ -350,7 +354,7 @@ class ScheduleDashboard {
 
         const currentCount = this.subjectCounts[subjectName] || 0;
         if (currentCount >= subjObj.sessions && (!this.timetableData[day][slot] || this.timetableData[day][slot].name !== subjectName)) {
-            alert(`Môn "${subjectName}" đã đủ số tiết (${subjObj.sessions} tiết/tuần)!`);
+            this.showNotice(`Môn "${subjectName}" đã đủ số tiết (${subjObj.sessions} tiết/tuần)!`, { title: 'Môn học đã đủ tiết' });
             return;
         }
 
@@ -421,7 +425,7 @@ class ScheduleDashboard {
     toggleXMark(day, slot) {
         const current = this.timetableData[day][slot];
         if (current && current.type === 'subject') {
-            alert("Vui lòng xóa môn học trước khi đánh dấu X.");
+            this.showNotice('Vui lòng xóa môn học trước khi đánh dấu nghỉ tiết (✕).', { title: 'Không thể đánh dấu' });
             return;
         }
 
@@ -438,13 +442,13 @@ class ScheduleDashboard {
     /** Hiển thị bảng chọn môn Popup (Fallback cho Click / Touch) */
     showSubjectPicker(day, slot, tdElement) {
         if (this.subjects.length === 0) {
-            alert("Vui lòng thêm ít nhất một môn học trước!");
+            this.showNotice('Vui lòng thêm ít nhất một môn học trước!', { title: 'Chưa có môn học' });
             return;
         }
 
         const availableSubjects = this.subjects.filter(subj => (this.subjectCounts[subj.name] || 0) < subj.sessions);
         if (availableSubjects.length === 0 && this.subjects.length > 0) {
-            alert("Tất cả các môn học đã được xếp đủ tiết!");
+            this.showNotice('Tất cả các môn học đã được xếp đủ tiết!', { title: 'Hoàn tất!', icon: 'fa-circle-check', tone: 'success' });
             return;
         }
 
@@ -536,6 +540,99 @@ class ScheduleDashboard {
         setTimeout(() => document.addEventListener('click', outsideClick, true), 10);
     }
 
+    /** Hiển thị popup thông báo (thay cho alert() mặc định của trình duyệt) */
+    showNotice(message, opts = {}) {
+        const { title = 'Thông báo', icon = 'fa-circle-info', tone = '', confirmText = 'Đã hiểu' } = opts;
+        this._showModal({ title, message, icon, tone, confirmText });
+    }
+
+    /** Hiển thị popup xác nhận (thay cho confirm()). Trả về Promise<boolean> */
+    showConfirmDialog(message, opts = {}) {
+        return new Promise(resolve => {
+            const {
+                title = 'Xác nhận', icon = 'fa-circle-question', tone = '',
+                confirmText = 'Đồng ý', cancelText = 'Hủy', danger = false
+            } = opts;
+            this._showModal({
+                title, message, icon, tone, confirmText, cancelText, danger,
+                withCancel: true,
+                onResult: resolve
+            });
+        });
+    }
+
+    /** Hàm dựng popup modal dùng chung */
+    _showModal({ title, message, icon, tone = '', confirmText = 'OK', cancelText = 'Hủy', withCancel = false, danger = false, onResult = null }) {
+        this.closeModal();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'sv-modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = `sv-modal ${danger ? 'danger' : ''} ${tone}`.trim();
+
+        const iconEl = document.createElement('div');
+        iconEl.className = 'sv-modal-icon';
+        iconEl.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+
+        const titleEl = document.createElement('h3');
+        titleEl.className = 'sv-modal-title';
+        titleEl.textContent = title;
+
+        const msgEl = document.createElement('p');
+        msgEl.className = 'sv-modal-message';
+        msgEl.textContent = message;
+
+        const actions = document.createElement('div');
+        actions.className = 'sv-modal-actions';
+
+        const finish = (value) => {
+            document.removeEventListener('keydown', onKey);
+            overlay.remove();
+            if (this.currentModal === overlay) this.currentModal = null;
+            if (onResult) onResult(value);
+        };
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'sv-modal-btn sv-modal-btn-confirm';
+        confirmBtn.type = 'button';
+        confirmBtn.textContent = confirmText;
+        confirmBtn.addEventListener('click', () => finish(true));
+        actions.appendChild(confirmBtn);
+
+        if (withCancel) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'sv-modal-btn sv-modal-btn-cancel';
+            cancelBtn.type = 'button';
+            cancelBtn.textContent = cancelText;
+            cancelBtn.addEventListener('click', () => finish(false));
+            actions.insertBefore(cancelBtn, confirmBtn);
+        }
+
+        const onKey = (e) => {
+            if (e.key === 'Escape') finish(false);
+            if (e.key === 'Enter' && !danger) finish(true);
+        };
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) finish(withCancel ? false : null);
+        });
+
+        modal.appendChild(iconEl);
+        modal.appendChild(titleEl);
+        modal.appendChild(msgEl);
+        modal.appendChild(actions);
+        overlay.appendChild(modal);
+
+        // Append vào documentElement để position: fixed không bị ảnh hưởng
+        // bởi transform animation trên body (giống subject-picker)
+        document.documentElement.appendChild(overlay);
+        this.currentModal = overlay;
+
+        document.addEventListener('keydown', onKey);
+        setTimeout(() => confirmBtn.focus(), 30);
+    }
+
     /** Thêm mới môn học với màu sắc riêng */
     addSubject() {
         const nameInput = document.getElementById('new-subject-name');
@@ -548,12 +645,12 @@ class ScheduleDashboard {
         const color = colorInput ? colorInput.value : DEFAULT_COLORS[this.subjects.length % DEFAULT_COLORS.length];
 
         if (!name || isNaN(sessions) || sessions < 1) {
-            alert("Tên môn học không được trống và số tiết phải > 0!");
+            this.showNotice('Tên môn học không được trống và số tiết phải lớn hơn 0!', { title: 'Thiếu thông tin', icon: 'fa-triangle-exclamation', tone: 'warn' });
             return;
         }
 
         if (this.subjects.find(s => s.name.toLowerCase() === name.toLowerCase())) {
-            alert("Môn học này đã tồn tại trong danh sách!");
+            this.showNotice('Môn học này đã tồn tại trong danh sách!', { title: 'Môn học trùng lặp', icon: 'fa-triangle-exclamation', tone: 'warn' });
             return;
         }
 
@@ -622,8 +719,12 @@ class ScheduleDashboard {
     }
 
     /** Xóa môn học */
-    removeSubject(name) {
-        if (confirm(`Bạn có chắc muốn xóa môn "${name}"? Các tiết đã xếp của môn này trên TKB sẽ bị dọn dẹp.`)) {
+    async removeSubject(name) {
+        const confirmed = await this.showConfirmDialog(
+            `Bạn có chắc muốn xóa môn "${name}"? Các tiết đã xếp của môn này trên TKB sẽ bị dọn dẹp.`,
+            { title: 'Xóa môn học', confirmText: 'Xóa môn', icon: 'fa-trash-can', danger: true }
+        );
+        if (confirmed) {
             for (let d = 0; d < DAYS.length; d++) {
                 for (let s = 0; s < SCHEDULE_SLOTS.length; s++) {
                     const cell = this.timetableData[d][s];
@@ -655,7 +756,7 @@ class ScheduleDashboard {
         });
 
         if (needSchedule.length === 0) {
-            alert("Tất cả các môn học đã được xếp đầy đủ!");
+            this.showNotice('Tất cả các môn học đã được xếp đầy đủ!', { title: 'Hoàn tất!', icon: 'fa-circle-check', tone: 'success' });
             return;
         }
 
@@ -703,7 +804,7 @@ class ScheduleDashboard {
         });
 
         if (needSchedule.length === 0) {
-            alert("Tất cả các môn học đã được xếp đầy đủ!");
+            this.showNotice('Tất cả các môn học đã được xếp đầy đủ!', { title: 'Hoàn tất!', icon: 'fa-circle-check', tone: 'success' });
             return;
         }
 
@@ -718,7 +819,7 @@ class ScheduleDashboard {
         }
 
         if (emptySlots.length < needSchedule.length) {
-            alert(`Cần xếp ${needSchedule.length} tiết nhưng chỉ còn ${emptySlots.length} ô trống khả dụng.`);
+            this.showNotice(`Cần xếp ${needSchedule.length} tiết nhưng chỉ còn ${emptySlots.length} ô trống khả dụng.`, { title: 'Không đủ chỗ trống', icon: 'fa-triangle-exclamation', tone: 'warn' });
             return;
         }
 
@@ -878,9 +979,21 @@ class ScheduleDashboard {
         }
     }
 
+    /** Đóng modal popup hiện tại (nếu có) */
+    closeModal() {
+        if (this.currentModal) {
+            this.currentModal.remove();
+            this.currentModal = null;
+        }
+    }
+
     /** Xóa toàn bộ dữ liệu */
-    clearAll() {
-        if (confirm("Xóa toàn bộ thời khóa biểu và tất cả danh sách môn học?")) {
+    async clearAll() {
+        const confirmed = await this.showConfirmDialog(
+            'Xóa toàn bộ thời khóa biểu và tất cả danh sách môn học?',
+            { title: 'Xóa tất cả', confirmText: 'Xóa hết', icon: 'fa-trash-can', danger: true }
+        );
+        if (confirmed) {
             this.initTimetable();
             this.subjects = [];
             this.subjectCounts = {};

@@ -14,17 +14,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return document.querySelector('.list.active');
     }
     
-    // Hover: di chuyển đến tab được trỏ
+    // Hover: di chuyển indicator đến tab được trỏ + nâng icon lên (đồng bộ với trang Schedule)
     list.forEach(item => {
-        item.addEventListener('mouseenter', () => moveTo(item, '0.2s ease-out'));
+        item.addEventListener('mouseenter', () => {
+            moveTo(item, '0.2s ease-out');
+            list.forEach(li => li.classList.remove('hover-effect'));
+            item.classList.add('hover-effect');
+        });
     });
     
-    // Khi chuột rời khỏi toàn bộ thanh navbar, trả về active
+    // Khi chuột rời khỏi toàn bộ thanh navbar, trả về active và bỏ hiệu ứng hover
     const navbar = document.querySelector('.navbar');
     if (navbar) {
         navbar.addEventListener('mouseleave', () => {
             const active = getActive();
             if (active) moveTo(active, '0.3s ease-out');
+            list.forEach(li => li.classList.remove('hover-effect'));
         });
     }
     
