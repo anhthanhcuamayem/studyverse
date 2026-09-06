@@ -19,6 +19,136 @@ function escapeHtml(value) {
     }[char]));
 }
 
+// --- SV MODAL POPUP (thay alert/confirm/prompt mặc định của trình duyệt) ---
+let svModalState = null;
+
+function svCloseModal() {
+    if (svModalState) {
+        document.removeEventListener('keydown', svModalState.onKey);
+        svModalState.overlay.remove();
+        svModalState = null;
+    }
+}
+
+function _svShowModal({ title, message, icon = 'fa-circle-info', tone = '', confirmText = 'OK', cancelText = 'Cancel', withCancel = false, danger = false, withInput = false, defaultValue = '', placeholder = '', onResult = null }) {
+    svCloseModal();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'sv-modal-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = `sv-modal ${danger ? 'danger' : ''} ${tone}`.trim();
+
+    const iconEl = document.createElement('div');
+    iconEl.className = 'sv-modal-icon';
+    iconEl.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+
+    const titleEl = document.createElement('h3');
+    titleEl.className = 'sv-modal-title';
+    titleEl.textContent = title;
+
+    const msgEl = document.createElement('p');
+    msgEl.className = 'sv-modal-message';
+    msgEl.textContent = message;
+
+    const actions = document.createElement('div');
+    actions.className = 'sv-modal-actions';
+
+    let inputEl = null;
+
+    const finish = (value) => {
+        svCloseModal();
+        if (onResult) onResult(value);
+    };
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'sv-modal-btn sv-modal-btn-confirm';
+    confirmBtn.type = 'button';
+    confirmBtn.textContent = confirmText;
+    confirmBtn.addEventListener('click', () => finish(withInput ? (inputEl ? inputEl.value : '') : true));
+    actions.appendChild(confirmBtn);
+
+    if (withCancel) {
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'sv-modal-btn sv-modal-btn-cancel';
+        cancelBtn.type = 'button';
+        cancelBtn.textContent = cancelText;
+        cancelBtn.addEventListener('click', () => finish(null));
+        actions.insertBefore(cancelBtn, confirmBtn);
+    }
+
+    const onKey = (e) => {
+        if (e.key === 'Escape') {
+            e.stopPropagation();
+            finish(null);
+            return;
+        }
+        if (e.key === 'Enter') {
+            if (withInput) {
+                e.preventDefault();
+                finish(inputEl ? inputEl.value : '');
+            } else if (!danger) {
+                finish(true);
+            }
+        }
+    };
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) finish(null);
+    });
+
+    modal.appendChild(iconEl);
+    modal.appendChild(titleEl);
+    modal.appendChild(msgEl);
+
+    if (withInput) {
+        inputEl = document.createElement('input');
+        inputEl.type = 'text';
+        inputEl.className = 'sv-modal-input';
+        inputEl.value = defaultValue || '';
+        inputEl.placeholder = placeholder || '';
+        modal.appendChild(inputEl);
+    }
+
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
+
+    // Append vào documentElement để position: fixed không bị ảnh hưởng
+    // bởi animation transform trên main/body
+    document.documentElement.appendChild(overlay);
+
+    svModalState = { overlay, onKey };
+    document.addEventListener('keydown', onKey);
+
+    if (inputEl) {
+        setTimeout(() => { inputEl.focus(); inputEl.select(); }, 30);
+    } else {
+        setTimeout(() => confirmBtn.focus(), 30);
+    }
+}
+
+/** Popup thông báo (thay alert) */
+function svNotice(message, opts = {}) {
+    const { title = 'Notice', icon = 'fa-circle-info', tone = '', confirmText = 'OK' } = opts;
+    _svShowModal({ title, message, icon, tone, confirmText });
+}
+
+/** Popup xác nhận (thay confirm). Trả về Promise<boolean> */
+function svConfirm(message, opts = {}) {
+    return new Promise(resolve => {
+        const { title = 'Confirm', icon = 'fa-circle-question', tone = '', confirmText = 'Yes', cancelText = 'Cancel', danger = false } = opts;
+        _svShowModal({ title, message, icon, tone, confirmText, cancelText, danger, withCancel: true, onResult: resolve });
+    });
+}
+
+/** Popup nhập liệu (thay prompt). Trả về Promise<string|null> */
+function svPrompt(message, opts = {}) {
+    return new Promise(resolve => {
+        const { title = 'Input', icon = 'fa-pen', tone = '', confirmText = 'Save', cancelText = 'Cancel', defaultValue = '', placeholder = '' } = opts;
+        _svShowModal({ title, message, icon, tone, confirmText, cancelText, withCancel: true, withInput: true, defaultValue, placeholder, onResult: resolve });
+    });
+}
+
 // --- 1. HÀM KHỞI TẠO HỆ THỐNG ---
 function initPage() {
     const mainTitle = document.getElementById('mainProjectName');
@@ -340,7 +470,7 @@ function renderTasks(projectName) {
 }
 
 // --- 4. XỬ LÝ SỰ KIỆN CLICK ---
-document.addEventListener('click', function (event) {
+document.addEventListener('click', async function (event) {
     const mainTitle = document.getElementById('mainProjectName');
     const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
     const btnEditName = document.querySelector('.btn-edit-name');
@@ -423,7 +553,7 @@ document.addEventListener('click', function (event) {
                 document.getElementById('taskDeadlineInput').value = "";
             }
         } else {
-            alert("Please enter a task name!");
+            svNotice("Please enter a task name!", { title: 'Missing task name', icon: 'fa-triangle-exclamation', tone: 'warn' });
         }
     }
 
@@ -448,8 +578,8 @@ document.addEventListener('click', function (event) {
 
     if (event.target.id === 'mainProjectName' && mainTitle.hasAttribute('data-old-name')) {
         const oldName = mainTitle.getAttribute('data-old-name');
-        const newName = prompt("Enter new project name:", oldName);
-        
+        const newName = await svPrompt('Enter new project name:', { title: 'Rename Project', defaultValue: oldName, confirmText: 'Save' });
+
         if (newName && newName.trim() !== "" && newName !== oldName) {
             const trimmedNewName = newName.trim();
             const pIdx = projects.findIndex(p => p.name === oldName);
@@ -472,7 +602,7 @@ document.addEventListener('click', function (event) {
         
         if (pIdx !== -1) {
             const currentDeadline = projects[pIdx].deadline || "";
-            const newDate = prompt("Enter new deadline (e.g., 30/04/2026):", currentDeadline);
+            const newDate = await svPrompt('Enter new deadline (e.g., 30/04/2026):', { title: 'Edit Deadline', defaultValue: currentDeadline, confirmText: 'Save' });
             
             if (newDate !== null) {
                 projects[pIdx].deadline = newDate.trim() || "Not set";
@@ -487,7 +617,7 @@ document.addEventListener('click', function (event) {
     }
 
     if (event.target.classList.contains('btn-delete')) {
-        if (confirm("Delete this project?")) {
+        if (await svConfirm("Delete this project?", { title: 'Delete Project', confirmText: 'Delete', icon: 'fa-trash-can', danger: true })) {
             const index = event.target.getAttribute('data-index');
             let saved = loadProjects();
             saved.splice(index, 1);
@@ -540,7 +670,7 @@ document.addEventListener('click', function (event) {
     }
 
     if (event.target.id === 'btnDeleteProject') {
-        if (confirm("Are you sure you want to delete this Project?")) {
+        if (await svConfirm("Are you sure you want to delete this Project?", { title: 'Delete Project', confirmText: 'Delete', icon: 'fa-trash-can', danger: true })) {
             const currentName = document.getElementById('mainProjectName').getAttribute('data-old-name');
             projects = projects.filter(p => p.name !== currentName);
             localStorage.setItem('studyverse_projects', JSON.stringify(projects));
@@ -662,7 +792,7 @@ document.addEventListener('click', function (event) {
     }
 
     if (event.target.classList.contains('btn-delete-task')) {
-        if (confirm("Delete this task?")) {
+        if (await svConfirm("Delete this task?", { title: 'Delete Task', confirmText: 'Delete', icon: 'fa-trash-can', danger: true })) {
             const taskId = event.target.getAttribute('data-task-id');
             const currentProjectName = document.getElementById('mainProjectName').getAttribute('data-old-name');
 
@@ -814,8 +944,8 @@ function openProject(name) {
     renderSidebar();
 }
 
-function deleteProject(name) {
-    if (confirm(`Are you sure you want to delete project "${name}"?`)) {
+async function deleteProject(name) {
+    if (await svConfirm(`Are you sure you want to delete project "${name}"?`, { title: 'Delete Project', confirmText: 'Delete', icon: 'fa-trash-can', danger: true })) {
         let saved = loadProjects();
         saved = saved.filter(p => p.name !== name);
         localStorage.setItem('studyverse_projects', JSON.stringify(saved));
