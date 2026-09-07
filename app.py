@@ -5,6 +5,66 @@ from flask import Flask, abort, jsonify, request, send_from_directory
 from openai import OpenAI
 
 from schedule.schedule_utils import create_timetable_with_preferences
+#python -m http.server 8000
+# ==================== PHẦN CẤU HÌNH API ĐA NHÀ CUNG CẤP ====================
+# Mỗi provider khai báo qua biến môi trường: <TEN>_API_KEY (+ tùy chọn <TEN>_BASE_URL, <TEN>_MODEL).
+# Tất cả đều dùng giao thức OpenAI-compatible (chat.completions).
+AI_PROVIDERS = {
+    'freellm': {
+        'key': os.environ.get('FREELLM_API_KEY'),
+        'base_url': (os.environ.get('FREELLM_BASE_URL') or '').strip() or 'http://localhost:3001/v1',
+        'model': (os.environ.get('FREELLM_MODEL') or '').strip() or 'auto:fast',
+    },
+    'openai': {
+        'key': os.environ.get('OPENAI_API_KEY'),
+        'base_url': (os.environ.get('OPENAI_BASE_URL') or '').strip() or 'https://api.openai.com/v1',
+        'model': (os.environ.get('OPENAI_MODEL') or '').strip() or 'gpt-4o-mini',
+    },
+    'gemini': {
+        # Google Gemini mở endpoint OpenAI-compatible, không cần thư viện riêng.
+        'key': os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY'),
+        'base_url': (os.environ.get('GEMINI_BASE_URL') or '').strip() or 'https://generativelanguage.googleapis.com/v1beta/openai',
+        'model': (os.environ.get('GEMINI_MODEL') or '').strip() or 'gemini-2.0-flash',
+    },
+    'groq': {
+        'key': os.environ.get('GROQ_API_KEY'),
+        'base_url': (os.environ.get('GROQ_BASE_URL') or '').strip() or 'https://api.groq.com/openai/v1',
+        'model': (os.environ.get('GROQ_MODEL') or '').strip() or 'llama-3.3-70b-versatile',
+    },
+    'openrouter': {
+        'key': os.environ.get('OPENROUTER_API_KEY'),
+        'base_url': (os.environ.get('OPENROUTER_BASE_URL') or '').strip() or 'https://openrouter.ai/api/v1',
+        'model': (os.environ.get('OPENROUTER_MODEL') or '').strip() or 'openrouter/auto',
+    },
+    'anthropic': {
+        # Anthropic có endpoint OpenAI-compatible (giao thức /v1/chat/completions).
+        'key': os.environ.get('ANTHROPIC_API_KEY'),
+        'base_url': (os.environ.get('ANTHROPIC_BASE_URL') or '').strip() or 'https://api.anthropic.com/v1',
+        'model': (os.environ.get('ANTHROPIC_MODEL') or '').strip() or 'claude-sonnet-4-20250514',
+    },
+}
+
+# Thứ tự ưu tiên khi nhiều key được cấu hình cùng lúc (đổi nếu muốn ưu tiên nhà khác).
+AI_PROVIDER_ORDER = [name for name in (os.environ.get('AI_PROVIDER_ORDER') or '').split(',') if name.strip()]
+AI_PROVIDER_ORDER += [name for name in AI_PROVIDERS if name not in AI_PROVIDER_ORDER]
+
+
+def detect_available_providers():
+    """Nhận diện các provider đã cấu hình API key, sắp theo thứ tự ưu tiên."""
+    return [name for name in AI_PROVIDER_ORDER if (AI_PROVIDERS[name].get('key') or '').strip()]
+
+
+def _get_provider_client(provider):
+    """Tạo OpenAI client cho provider (dùng lại nếu đã tạo)."""
+    cfg = AI_PROVIDERS[provider]
+    client = cfg.get('_client')
+    if client is None:
+        client = OpenAI(api_key=cfg['key'].strip(), base_url=cfg['base_url'])
+        cfg['_client'] = client
+    return client
+
+
+DEFAULT_PROVIDER = (os.environ.get('AI_PROVIDER') or '').strip().lower() or None
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024
@@ -16,12 +76,7 @@ PUBLIC_FILES = {
     'todo/mylist.html', 'todo/mylist.js', 'todo/mylist.css',
 }
 
-# ==================== PHẦN CẤU HÌNH API ====================
-# Lấy biến môi trường cho FreeLLMAPI
-FREELLM_API_KEY = os.environ.get("FREELLM_API_KEY")
-FREELLM_BASE_URL = os.environ.get("FREELLM_BASE_URL", "http://localhost:3001/v1")
 
-client = OpenAI(api_key=FREELLM_API_KEY, base_url=FREELLM_BASE_URL) if FREELLM_API_KEY else None
 
 
 def get_json_body():
@@ -31,20 +86,44 @@ def get_json_body():
     return data, None
 
 
-def request_ai(messages, max_tokens):
-    if client is None:
-        return None, (jsonify(error='Dịch vụ AI chưa được cấu hình.'), 503)
-    try:
-        response = client.chat.completions.create(
-            model='auto:fast', messages=messages, temperature=0.7, max_tokens=max_tokens
-        )
-        reply = response.choices[0].message.content
-        if not reply:
-            raise ValueError('AI provider returned an empty reply')
-        return reply, None
-    except Exception:
-        app.logger.exception('AI provider request failed')
-        return None, (jsonify(error='Dịch vụ AI hiện không phản hồi. Vui lòng thử lại sau.'), 502)
+def request_ai(messages, max_tokens, provider=None):
+    """Gọi AI qua provider được chỉ định (hoặc tự nhận diện nếu không chỉ định).
+
+    Trả về (reply, None) khi thành công, hoặc (None, (response_json, http_status)) khi lỗi.
+    """
+    available = detect_available_providers()
+    if not available:
+        return None, (jsonify(error='Chưa cấu hình API key cho bất kỳ nhà cung cấp AI nào.'), 503)
+
+    # Chọn provider: từ request > env AI_PROVIDER > provider đầu tiên còn key.
+    wanted = (provider or DEFAULT_PROVIDER or '').strip().lower() or None
+    if wanted:
+        if wanted not in AI_PROVIDERS:
+            return None, (jsonify(error=f'Không hỗ trợ provider "{wanted}". Các provider khả dụng: {", ".join(available)}.'), 400)
+        if wanted not in available:
+            return None, (jsonify(error=f'Provider "{wanted}" chưa được cấu hình API key.'), 503)
+        chain = [wanted]
+    else:
+        chain = available
+
+    last_error = None
+    for name in chain:
+        cfg = AI_PROVIDERS[name]
+        try:
+            client = _get_provider_client(name)
+            response = client.chat.completions.create(
+                model=cfg['model'], messages=messages, temperature=0.7, max_tokens=max_tokens
+            )
+            reply = response.choices[0].message.content
+            if not reply:
+                raise ValueError('AI provider returned an empty reply')
+            return reply, None
+        except Exception as exc:
+            app.logger.warning('AI provider "%s" failed: %s', name, exc)
+            last_error = exc
+
+    app.logger.exception('All AI providers failed', exc_info=last_error)
+    return None, (jsonify(error='Dịch vụ AI hiện không phản hồi. Vui lòng thử lại sau.'), 502)
  
 # ==================== PHẦN SERVE FILE TĨNH ====================
 @app.route('/')
@@ -67,6 +146,7 @@ def career_chat():
             return error
         user_message = data.get('message', '')
         history = data.get('history', [])
+        provider = data.get('provider')  # tùy chọn: 'openai', 'gemini', 'groq', ...
         
         if not isinstance(user_message, str) or not user_message.strip():
             return jsonify({'success': False, 'error': 'Vui lòng nhập nội dung cần tư vấn'}), 400
@@ -89,8 +169,8 @@ def career_chat():
         # Add current user message
         messages.append({"role": "user", "content": user_message.strip()})
         
-        # Gọi FreeLLMAPI
-        ai_reply, error = request_ai(messages, 500)
+        # Gọi AI (tự nhận diện provider nếu không chỉ định)
+        ai_reply, error = request_ai(messages, 500, provider=provider)
         if error:
             return error
         return jsonify({'success': True, 'reply': ai_reply})
@@ -106,21 +186,34 @@ def suggest_study():
         if error:
             return error
         topic = data.get('topic', '')
+        provider = data.get('provider')  # tùy chọn
         
         if not isinstance(topic, str) or not topic.strip() or len(topic) > 1000:
             return jsonify({'error': 'Vui lòng nhập chủ đề cần tư vấn'}), 400
         
-        # Gọi FreeLLMAPI
+        # Gọi AI (tự nhận diện provider nếu không chỉ định)
         ai_suggestion, error = request_ai([
             {"role": "system", "content": "Bạn là một người hướng dẫn học tập, hãy đưa ra các phương pháp học hiệu quả cho chủ đề được hỏi."},
             {"role": "user", "content": f"Hãy gợi ý cách học tốt môn/chủ đề: {topic.strip()}"}
-        ], 600)
+        ], 600, provider=provider)
         if error:
             return error
         return jsonify({'suggestion': ai_suggestion})
     except Exception:
         app.logger.exception('Invalid study suggestion request')
         return jsonify({'error': 'Yêu cầu không thể xử lý.'}), 500
+
+# ==================== TRẠNG THÁI PROVIDER AI ====================
+@app.route('/api/ai-providers', methods=['GET'])
+def ai_providers_status():
+    """Danh sách provider đã nhận diện được (đã cấu hình key) theo thứ tự ưu tiên."""
+    available = detect_available_providers()
+    return jsonify({
+        'available': available,
+        'default': DEFAULT_PROVIDER or (available[0] if available else None),
+        'supported': list(AI_PROVIDERS.keys()),
+    })
+
 
 # ==================== XẾP LỊCH REAL (SCHEDULE OPTIMIZE) ====================
 @app.route('/api/schedule-optimize', methods=['POST'])

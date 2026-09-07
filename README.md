@@ -35,12 +35,42 @@ Yêu cầu: Python 3.10+.
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 pip install -r requirements.txt
-export FREELLM_API_KEY="your-key"
-export FREELLM_BASE_URL="http://localhost:3001/v1"  # tùy chọn
+# Chỉ cần cấu hình ít nhất MỘT provider (đều theo chuẩn OpenAI-compatible)
+export FREELLM_API_KEY="your-key"            # FreeLLM local (http://localhost:3001/v1)
+# export OPENAI_API_KEY="sk-..."
+# export GEMINI_API_KEY="..."                # Google AI Studio
+# export GROQ_API_KEY="gsk_..."
+# export OPENROUTER_API_KEY="sk-or-..."
+# export ANTHROPIC_API_KEY="sk-ant-..."
+# export AI_PROVIDER="gemini"                # tùy chọn: ép dùng provider mặc định
+# export AI_PROVIDER_ORDER="gemini,openai,freellm"  # tùy chọn: thứ tự failover
 python app.py
 ```
 
-Mở `http://localhost:5000`. Nếu chưa cấu hình `FREELLM_API_KEY`, các tính năng AI sẽ trả về thông báo cấu hình thay vì gọi dịch vụ bên ngoài.
+Mở `http://localhost:5000`. Nếu chưa cấu hình API key nào, các tính năng AI sẽ trả về thông báo cấu hình thay vì gọi dịch vụ bên ngoài.
+
+## Nhận diện & chọn AI provider
+
+Backend hỗ trợ nhiều nhà cung cấp AI cùng lúc và **tự nhận diện** provider nào khả dụng dựa trên biến môi trường đã đặt:
+
+| Provider | Biến bắt buộc | Tùy chọn |
+|----------|---------------|----------|
+| FreeLLM  | `FREELLM_API_KEY` | `FREELLM_BASE_URL`, `FREELLM_MODEL` (mặc định `auto:fast`) |
+| OpenAI   | `OPENAI_API_KEY` | `OPENAI_BASE_URL`, `OPENAI_MODEL` (mặc định `gpt-4o-mini`) |
+| Gemini   | `GEMINI_API_KEY` (hoặc `GOOGLE_API_KEY`) | `GEMINI_BASE_URL`, `GEMINI_MODEL` (mặc định `gemini-2.0-flash`) |
+| Groq     | `GROQ_API_KEY` | `GROQ_BASE_URL`, `GROQ_MODEL` (mặc định `llama-3.3-70b-versatile`) |
+| OpenRouter | `OPENROUTER_API_KEY` | `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL` (mặc định `openrouter/auto`) |
+| Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL` |
+
+Cách chọn provider khi có nhiều key:
+1. Trường `provider` trong body request (xem bên dưới).
+2. Biến môi trường `AI_PROVIDER` (provider mặc định cho toàn app).
+3. Provider đầu tiên còn key theo `AI_PROVIDER_ORDER` (mặc định: freellm → openai → gemini → groq → openrouter → anthropic).
+
+Nếu provider được chọn lỗi, backend **tự failover** sang provider tiếp theo còn key.
+
+- `GET /api/ai-providers` — xem danh sách provider đã nhận diện được.
+- Body request cho `/api/career-ai` và `/api/suggest` có thể kèm `"provider": "groq"` để ép dùng một provider cụ thể cho request đó.
 
 ## Lưu ý dữ liệu
 
