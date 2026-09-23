@@ -157,6 +157,7 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None):
         chain = available
 
     last_error = None
+    streamed_any = False  # Đã gửi ít nhất một mảnh stream cho client chưa?
     for name in chain:
         cfg = AI_PROVIDERS[name]
         try:
@@ -174,6 +175,7 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None):
                     piece = getattr(event.choices[0].delta, 'content', None)
                     if piece:
                         chunks.append(piece)
+                        streamed_any = True
                         on_delta(piece)
                 reply = ''.join(chunks)
             else:
@@ -184,6 +186,14 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None):
         except Exception as exc:
             app.logger.warning('AI provider "%s" failed: %s', name, exc)
             last_error = exc
+            if streamed_any:
+                # Đã stream một phần văn bản cho client. Failover sang provider khác
+                # sẽ khiến client nhận phần cũ + câu trả lời mới từ đầu (trùng lặp),
+                # nên dừng ngay và báo lỗi.
+                return None, ({
+                    'error': 'Mất kết nối tới AI giữa lúc phản hồi. Vui lòng thử lại.',
+                    'partial': True,
+                }, 502)
 
     app.logger.exception('All AI providers failed', exc_info=last_error)
     return None, (jsonify(error='Dịch vụ AI hiện không phản hồi. Vui lòng thử lại sau.'), 502)

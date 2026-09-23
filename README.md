@@ -1,7 +1,7 @@
 studyverse/ (Root)
 ├── app.py                  <-- File điều khiển chính (Backend Server - Flask)
 ├── index.html              <-- Trang chủ của ứng dụng
-├── script.js               <-- Logic JavaScript trang chủ
+├── shared.js               <-- Logic JS dùng chung 4 trang (modal, navbar, escapeHtml)
 ├── style.css               <-- Định nghĩa giao diện (CSS) trang chủ
 ├── requirements.txt        <-- Danh sách các thư viện Python (như Flask, OpenAI, ...)
 ├── pockup.png              <-- Hình ảnh mockup / giao diện tổng quan
@@ -16,8 +16,8 @@ studyverse/ (Root)
 │   ├── create.js           <-- Xử lý logic xếp lịch, chia tiết, nghỉ giải lao
 │   └── schedule_utils.py   <-- Các tiện ích phụ trợ xử lý thời gian/thuật toán lịch
 └── todo/                   <-- Thư mục chứa tính năng quản lý công việc (My Projects / Todo)
-    ├── create.html         <-- Trang phụ trợ giao diện tạo công việc
     ├── mylist.css          <-- Giao diện danh sách project & task (Todo)
+    ├── mylist.js           <-- Logic quản lý dự án & công việc (LocalStorage)
     └── mylist.html         <-- Trang quản lý dự án cá nhân
 
 

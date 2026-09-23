@@ -538,7 +538,9 @@ document.addEventListener('click', async function (event) {
 
         let savedProjects = loadProjects();
         const project = savedProjects.find(p => p.name === currentProjectName);
-        const task = project.tasks.find(t => t.id == taskId);
+        const task = project && Array.isArray(project.tasks)
+            ? project.tasks.find(t => t.id == taskId)
+            : undefined;
 
         if (task) {
             const taskItem = btnEditTask.closest('.task-item');
@@ -590,14 +592,18 @@ document.addEventListener('click', async function (event) {
         if (newName !== "") {
             let savedProjects = loadProjects();
             const pIdx = savedProjects.findIndex(p => p.name === currentProjectName);
-            const tIdx = savedProjects[pIdx].tasks.findIndex(t => t.id == taskId);
+            const tIdx = (pIdx !== -1 && Array.isArray(savedProjects[pIdx].tasks))
+                ? savedProjects[pIdx].tasks.findIndex(t => t.id == taskId)
+                : -1;
 
-            savedProjects[pIdx].tasks[tIdx].name = newName;
-            savedProjects[pIdx].tasks[tIdx].deadline = newDate;
+            if (tIdx !== -1) {
+                savedProjects[pIdx].tasks[tIdx].name = newName;
+                savedProjects[pIdx].tasks[tIdx].deadline = newDate;
 
-            localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
-            renderTasks(currentProjectName);
-            updateProgressBar(currentProjectName);
+                localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
+                renderTasks(currentProjectName);
+                updateProgressBar(currentProjectName);
+            }
 
             const btnShowInput = document.getElementById('btnShowInput');
             const taskInputCard = document.getElementById('taskInputCard');
@@ -614,11 +620,13 @@ document.addEventListener('click', async function (event) {
             let savedProjects = loadProjects();
             const pIdx = savedProjects.findIndex(p => p.name === currentProjectName);
 
-            savedProjects[pIdx].tasks = savedProjects[pIdx].tasks.filter(t => t.id != taskId);
+            if (pIdx !== -1 && Array.isArray(savedProjects[pIdx].tasks)) {
+                savedProjects[pIdx].tasks = savedProjects[pIdx].tasks.filter(t => t.id != taskId);
 
-            localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
-            renderTasks(currentProjectName);
-            updateProgressBar(currentProjectName);
+                localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
+                renderTasks(currentProjectName);
+                updateProgressBar(currentProjectName);
+            }
         }
     }
 });
