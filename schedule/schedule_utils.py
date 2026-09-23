@@ -105,7 +105,3 @@ def create_timetable_with_preferences(subjects, availability, breaks, preference
             for l in timetable[day]
         ]
     return result
-
-# Giữ lại hàm cũ làm alias nếu app.py cần
-def create_timetable(subjects, availability, breaks, special_req=""):
-    return create_timetable_with_preferences(subjects, availability, breaks)

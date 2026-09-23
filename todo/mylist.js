@@ -10,160 +10,14 @@ function loadProjects() {
 }
 
 let projects = loadProjects();
-const list = document.querySelectorAll('.list');
-const indicator = document.querySelector('.indicator');
 
-function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>'"]/g, char => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-    }[char]));
-}
-
-// --- SV MODAL POPUP (thay alert/confirm/prompt mặc định của trình duyệt) ---
-let svModalState = null;
-
-function svCloseModal() {
-    if (svModalState) {
-        document.removeEventListener('keydown', svModalState.onKey);
-        svModalState.overlay.remove();
-        svModalState = null;
-    }
-}
-
-function _svShowModal({ title, message, icon = 'fa-circle-info', tone = '', confirmText = 'OK', cancelText = 'Cancel', withCancel = false, danger = false, withInput = false, defaultValue = '', placeholder = '', onResult = null }) {
-    svCloseModal();
-
-    const overlay = document.createElement('div');
-    overlay.className = 'sv-modal-overlay';
-
-    const modal = document.createElement('div');
-    modal.className = `sv-modal ${danger ? 'danger' : ''} ${tone}`.trim();
-
-    const iconEl = document.createElement('div');
-    iconEl.className = 'sv-modal-icon';
-    iconEl.innerHTML = `<i class="fa-solid ${icon}"></i>`;
-
-    const titleEl = document.createElement('h3');
-    titleEl.className = 'sv-modal-title';
-    titleEl.textContent = title;
-
-    const msgEl = document.createElement('p');
-    msgEl.className = 'sv-modal-message';
-    msgEl.textContent = message;
-
-    const actions = document.createElement('div');
-    actions.className = 'sv-modal-actions';
-
-    let inputEl = null;
-
-    const finish = (value) => {
-        svCloseModal();
-        if (onResult) onResult(value);
-    };
-
-    const confirmBtn = document.createElement('button');
-    confirmBtn.className = 'sv-modal-btn sv-modal-btn-confirm';
-    confirmBtn.type = 'button';
-    confirmBtn.textContent = confirmText;
-    confirmBtn.addEventListener('click', () => finish(withInput ? (inputEl ? inputEl.value : '') : true));
-    actions.appendChild(confirmBtn);
-
-    if (withCancel) {
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'sv-modal-btn sv-modal-btn-cancel';
-        cancelBtn.type = 'button';
-        cancelBtn.textContent = cancelText;
-        cancelBtn.addEventListener('click', () => finish(null));
-        actions.insertBefore(cancelBtn, confirmBtn);
-    }
-
-    const onKey = (e) => {
-        if (e.key === 'Escape') {
-            e.stopPropagation();
-            finish(null);
-            return;
-        }
-        if (e.key === 'Enter') {
-            if (withInput) {
-                e.preventDefault();
-                finish(inputEl ? inputEl.value : '');
-            } else if (!danger) {
-                finish(true);
-            }
-        }
-    };
-
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) finish(null);
-    });
-
-    modal.appendChild(iconEl);
-    modal.appendChild(titleEl);
-    modal.appendChild(msgEl);
-
-    if (withInput) {
-        inputEl = document.createElement('input');
-        inputEl.type = 'text';
-        inputEl.className = 'sv-modal-input';
-        inputEl.value = defaultValue || '';
-        inputEl.placeholder = placeholder || '';
-        modal.appendChild(inputEl);
-    }
-
-    modal.appendChild(actions);
-    overlay.appendChild(modal);
-
-    // Append vào documentElement để position: fixed không bị ảnh hưởng
-    // bởi animation transform trên main/body
-    document.documentElement.appendChild(overlay);
-
-    svModalState = { overlay, onKey };
-    document.addEventListener('keydown', onKey);
-
-    if (inputEl) {
-        setTimeout(() => { inputEl.focus(); inputEl.select(); }, 30);
-    } else {
-        setTimeout(() => confirmBtn.focus(), 30);
-    }
-}
-
-/** Popup thông báo (thay alert) */
-function svNotice(message, opts = {}) {
-    const { title = 'Notice', icon = 'fa-circle-info', tone = '', confirmText = 'OK' } = opts;
-    _svShowModal({ title, message, icon, tone, confirmText });
-}
-
-/** Popup xác nhận (thay confirm). Trả về Promise<boolean> */
-function svConfirm(message, opts = {}) {
-    return new Promise(resolve => {
-        const { title = 'Confirm', icon = 'fa-circle-question', tone = '', confirmText = 'Yes', cancelText = 'Cancel', danger = false } = opts;
-        _svShowModal({ title, message, icon, tone, confirmText, cancelText, danger, withCancel: true, onResult: resolve });
-    });
-}
-
-/** Popup nhập liệu (thay prompt). Trả về Promise<string|null> */
-function svPrompt(message, opts = {}) {
-    return new Promise(resolve => {
-        const { title = 'Input', icon = 'fa-pen', tone = '', confirmText = 'Save', cancelText = 'Cancel', defaultValue = '', placeholder = '' } = opts;
-        _svShowModal({ title, message, icon, tone, confirmText, cancelText, withCancel: true, withInput: true, defaultValue, placeholder, onResult: resolve });
-    });
-}
+// escapeHtml + SV Modal (svNotice/svConfirm/svPrompt): dùng bản dùng chung trong shared.js
 
 // --- 1. HÀM KHỞI TẠO HỆ THỐNG ---
 function initPage() {
     const mainTitle = document.getElementById('mainProjectName');
     const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
     const taskAreaContainer = document.getElementById('taskAreaContainer');
-    const activeItem = document.querySelector('.list.active');
-    renderSidebar();
-
-    // Xử lý Indicator thanh menu
-    if (activeItem && indicator) {
-        indicator.style.transition = 'none';
-        indicator.style.transform = `translateX(${activeItem.offsetLeft}px)`;
-        void indicator.offsetWidth;
-        setTimeout(() => { if (indicator) indicator.style.transition = '0.5s'; }, 50);
-    }
 
     // Vẽ danh sách dự án bên Sidebar
     renderSidebar();
@@ -220,46 +74,7 @@ try {
     document.body.style.visibility = 'visible';
 }
 
-// --- 2. HIỆU ỨNG THANH NAVBAR (đồng bộ 100% với trang Schedule) ---
-function moveIndicator(element, speed = '0.3s') {
-    if (!element || !indicator) return;
-    indicator.style.transition = `transform ${speed} ease-out`;
-    indicator.style.transform = `translateX(${element.offsetLeft}px)`;
-}
-
-list.forEach(item => {
-    item.addEventListener('mouseenter', function () {
-        moveIndicator(this, '0.2s');
-        // Nâng icon của tab đang hover + trượt indicator (giống trang Schedule)
-        list.forEach(li => li.classList.remove('hover-effect'));
-        this.classList.add('hover-effect');
-    });
-
-    item.addEventListener('click', function () {
-        list.forEach(li => li.classList.remove('active'));
-        this.classList.add('active');
-        moveIndicator(this, '0.3s');
-    });
-});
-
-const navigation = document.querySelector('.navigation');
-if (navigation) {
-    navigation.addEventListener('mouseleave', () => {
-        const activeItem = document.querySelector('.list.active');
-        moveIndicator(activeItem, '0.3s');
-        list.forEach(li => li.classList.remove('hover-effect'));
-    });
-}
-
-function setIndicatorPosition() {
-    const activeItem = document.querySelector('.navigation ul li.active');
-    if (activeItem && indicator) {
-        moveIndicator(activeItem, '0s');
-    }
-}
-
-window.addEventListener('load', setIndicatorPosition);
-window.addEventListener('resize', setIndicatorPosition);
+// --- 2. HIỆU ỨNG THANH NAVBAR: đã gom vào shared.js (initNavbarIndicator) ---
 
 // --- 3. CÁC HÀM BỔ TRỢ ---
 function formatDate(dateString) {

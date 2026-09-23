@@ -163,6 +163,34 @@
     background: var(--primary-blue, #007AFF);
     border-radius: 10px;
 }
+.quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 24px 12px;
+    background: var(--card-bg, #0d1117);
+}
+.quick-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 122, 255, 0.12);
+    border: 1px solid rgba(0, 122, 255, 0.35);
+    color: #7cbcff;
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: inherit;
+}
+.quick-action-btn:hover {
+    background: var(--primary-blue, #007AFF);
+    color: white;
+    border-color: var(--primary-blue, #007AFF);
+    transform: translateY(-1px);
+}
 @media (max-width: 768px) {
     .main-career { padding-top: 130px; }
     .chat-card { height: calc(100vh - 170px); }

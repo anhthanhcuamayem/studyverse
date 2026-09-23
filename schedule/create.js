@@ -34,11 +34,7 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 // PALETTE MÀU MẶC ĐỊNH CHO MÔN HỌC MỚI
 const DEFAULT_COLORS = ["#007AFF", "#34C759", "#AF52DE", "#FF9500", "#FF2D55", "#5856D6", "#00C7BE"];
 
-function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, char => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[char]));
-}
+// escapeHtml: dùng bản dùng chung trong shared.js
 
 class ScheduleDashboard {
     constructor() {
@@ -47,7 +43,6 @@ class ScheduleDashboard {
         this.subjects = [];
         this.subjectCounts = {};
         this.currentPicker = null;
-        this.currentModal = null;
         this.draggedSubjectName = null;
 
         if (typeof document !== 'undefined') {
@@ -134,7 +129,6 @@ class ScheduleDashboard {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closePicker();
-                this.closeModal();
             }
         });
     }
@@ -540,97 +534,19 @@ class ScheduleDashboard {
         setTimeout(() => document.addEventListener('click', outsideClick, true), 10);
     }
 
-    /** Hiển thị popup thông báo (thay cho alert() mặc định của trình duyệt) */
+    /** Hiển thị popup thông báo (dùng SV Modal dùng chung trong shared.js) */
     showNotice(message, opts = {}) {
         const { title = 'Thông báo', icon = 'fa-circle-info', tone = '', confirmText = 'Đã hiểu' } = opts;
-        this._showModal({ title, message, icon, tone, confirmText });
+        svNotice(message, { title, icon, tone, confirmText });
     }
 
-    /** Hiển thị popup xác nhận (thay cho confirm()). Trả về Promise<boolean> */
+    /** Hiển thị popup xác nhận (dùng SV Modal dùng chung trong shared.js). Trả về Promise<boolean> */
     showConfirmDialog(message, opts = {}) {
-        return new Promise(resolve => {
-            const {
-                title = 'Xác nhận', icon = 'fa-circle-question', tone = '',
-                confirmText = 'Đồng ý', cancelText = 'Hủy', danger = false
-            } = opts;
-            this._showModal({
-                title, message, icon, tone, confirmText, cancelText, danger,
-                withCancel: true,
-                onResult: resolve
-            });
-        });
-    }
-
-    /** Hàm dựng popup modal dùng chung */
-    _showModal({ title, message, icon, tone = '', confirmText = 'OK', cancelText = 'Hủy', withCancel = false, danger = false, onResult = null }) {
-        this.closeModal();
-
-        const overlay = document.createElement('div');
-        overlay.className = 'sv-modal-overlay';
-
-        const modal = document.createElement('div');
-        modal.className = `sv-modal ${danger ? 'danger' : ''} ${tone}`.trim();
-
-        const iconEl = document.createElement('div');
-        iconEl.className = 'sv-modal-icon';
-        iconEl.innerHTML = `<i class="fa-solid ${icon}"></i>`;
-
-        const titleEl = document.createElement('h3');
-        titleEl.className = 'sv-modal-title';
-        titleEl.textContent = title;
-
-        const msgEl = document.createElement('p');
-        msgEl.className = 'sv-modal-message';
-        msgEl.textContent = message;
-
-        const actions = document.createElement('div');
-        actions.className = 'sv-modal-actions';
-
-        const finish = (value) => {
-            document.removeEventListener('keydown', onKey);
-            overlay.remove();
-            if (this.currentModal === overlay) this.currentModal = null;
-            if (onResult) onResult(value);
-        };
-
-        const confirmBtn = document.createElement('button');
-        confirmBtn.className = 'sv-modal-btn sv-modal-btn-confirm';
-        confirmBtn.type = 'button';
-        confirmBtn.textContent = confirmText;
-        confirmBtn.addEventListener('click', () => finish(true));
-        actions.appendChild(confirmBtn);
-
-        if (withCancel) {
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'sv-modal-btn sv-modal-btn-cancel';
-            cancelBtn.type = 'button';
-            cancelBtn.textContent = cancelText;
-            cancelBtn.addEventListener('click', () => finish(false));
-            actions.insertBefore(cancelBtn, confirmBtn);
-        }
-
-        const onKey = (e) => {
-            if (e.key === 'Escape') finish(false);
-            if (e.key === 'Enter' && !danger) finish(true);
-        };
-
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) finish(withCancel ? false : null);
-        });
-
-        modal.appendChild(iconEl);
-        modal.appendChild(titleEl);
-        modal.appendChild(msgEl);
-        modal.appendChild(actions);
-        overlay.appendChild(modal);
-
-        // Append vào documentElement để position: fixed không bị ảnh hưởng
-        // bởi transform animation trên body (giống subject-picker)
-        document.documentElement.appendChild(overlay);
-        this.currentModal = overlay;
-
-        document.addEventListener('keydown', onKey);
-        setTimeout(() => confirmBtn.focus(), 30);
+        const {
+            title = 'Xác nhận', icon = 'fa-circle-question', tone = '',
+            confirmText = 'Đồng ý', cancelText = 'Hủy', danger = false
+        } = opts;
+        return svConfirm(message, { title, icon, tone, confirmText, cancelText, danger });
     }
 
     /** Thêm mới môn học với màu sắc riêng */
@@ -979,14 +895,6 @@ class ScheduleDashboard {
         }
     }
 
-    /** Đóng modal popup hiện tại (nếu có) */
-    closeModal() {
-        if (this.currentModal) {
-            this.currentModal.remove();
-            this.currentModal = null;
-        }
-    }
-
     /** Xóa toàn bộ dữ liệu */
     async clearAll() {
         const confirmed = await this.showConfirmDialog(
@@ -1009,55 +917,7 @@ class ScheduleDashboard {
     }
 }
 
-// KHỞI TẠO DASHBOARD VÀ NAVBAR INDICATOR
+// KHỞI TẠO DASHBOARD (navbar indicator đã dùng chung trong shared.js)
 document.addEventListener('DOMContentLoaded', () => {
     new ScheduleDashboard();
-
-    // Hiệu ứng Indicator cho Navigation Header
-    const lists = document.querySelectorAll('.list');
-    const indicator = document.querySelector('.indicator');
-
-    function moveIndicator(element, speed = '0.3s') {
-        if (!element || !indicator) return;
-        indicator.style.transition = `transform ${speed} ease-out`;
-        indicator.style.transform = `translateX(${element.offsetLeft}px)`;
-    }
-
-    const activeItem = document.querySelector('.list.active');
-    if (activeItem) {
-        moveIndicator(activeItem, '0s');
-    }
-
-    lists.forEach((item) => {
-        item.addEventListener('mouseenter', function() {
-            moveIndicator(this, '0.2s');
-            lists.forEach(li => li.classList.remove('hover-effect'));
-            this.classList.add('hover-effect');
-        });
-
-        item.addEventListener('click', function() {
-            lists.forEach(li => li.classList.remove('active'));
-            this.classList.add('active');
-            moveIndicator(this, '0.3s');
-        });
-    });
-
-    const navigation = document.querySelector('.navigation');
-    if (navigation) {
-        navigation.addEventListener('mouseleave', () => {
-            const activeItem = document.querySelector('.list.active');
-            moveIndicator(activeItem, '0.3s');
-            lists.forEach(li => li.classList.remove('hover-effect'));
-        });
-    }
-
-    function setIndicatorPosition() {
-        const activeItem = document.querySelector('.navigation ul li.active');
-        if (activeItem && indicator) {
-            moveIndicator(activeItem, '0s');
-        }
-    }
-
-    window.addEventListener('load', setIndicatorPosition);
-    window.addEventListener('resize', setIndicatorPosition);
 });

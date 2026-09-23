@@ -1,11 +1,49 @@
+import json
 import os
+import threading
 from pathlib import Path
+from queue import Empty, Queue
 
-from flask import Flask, abort, jsonify, request, send_from_directory
+from dotenv import load_dotenv
+from flask import Flask, Response, abort, jsonify, request, send_from_directory
 from openai import OpenAI
+
+# Một số môi trường (sandbox/CI) export sẵn placeholder rỗng kiểu "PASTE_..._HERE"
+# vào biến môi trường, khiến load_dotenv() mặc định không ghi đè và app dùng nhầm
+# placeholder thay cho key thật trong .env. Ta tự nạp .env và chỉ ghi đè khi giá trị
+# hiện tại trống hoặc là placeholder như vậy — key export thật từ shell vẫn được ưu tiên.
+_PLACEHOLDER_MARKERS = ('PASTE_', 'YOUR_', 'CHANGE_ME', 'XXX', 'xxxxxxxx', '<', '>')
+
+
+def _looks_like_placeholder(value):
+    v = (value or '').strip()
+    if not v:
+        return True
+    upper = v.upper()
+    return any(marker.upper() in upper for marker in _PLACEHOLDER_MARKERS)
+
+
+def _load_env_file(path='.env'):
+    env_path = Path(__file__).resolve().parent / path
+    if not env_path.is_file():
+        return
+    for raw_line in env_path.read_text(encoding='utf-8').splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, _, value = line.partition('=')
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and _looks_like_placeholder(os.environ.get(key)):
+            os.environ[key] = value
+
+
+# Nạp biến môi trường từ file .env (nếu có) — để dev local, không commit lên git.
+_load_env_file()
 
 from schedule.schedule_utils import create_timetable_with_preferences
 #python -m http.server 8000
+#.venv/bin/python app.py
 # ==================== PHẦN CẤU HÌNH API ĐA NHÀ CUNG CẤP ====================
 # Mỗi provider khai báo qua biến môi trường: <TEN>_API_KEY (+ tùy chọn <TEN>_BASE_URL, <TEN>_MODEL).
 # Tất cả đều dùng giao thức OpenAI-compatible (chat.completions).
@@ -20,11 +58,16 @@ AI_PROVIDERS = {
         'base_url': (os.environ.get('OPENAI_BASE_URL') or '').strip() or 'https://api.openai.com/v1',
         'model': (os.environ.get('OPENAI_MODEL') or '').strip() or 'gpt-4o-mini',
     },
+    'deepseek': {
+        'key': os.environ.get('DEEPSEEK_API_KEY'),
+        'base_url': (os.environ.get('DEEPSEEK_BASE_URL') or '').strip() or 'https://api.deepseek.com/v1',
+        'model': (os.environ.get('DEEPSEEK_MODEL') or '').strip() or 'deepseek-chat',
+    },
     'gemini': {
         # Google Gemini mở endpoint OpenAI-compatible, không cần thư viện riêng.
         'key': os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY'),
         'base_url': (os.environ.get('GEMINI_BASE_URL') or '').strip() or 'https://generativelanguage.googleapis.com/v1beta/openai',
-        'model': (os.environ.get('GEMINI_MODEL') or '').strip() or 'gemini-2.0-flash',
+        'model': (os.environ.get('GEMINI_MODEL') or '').strip() or 'gemini-3.6-flash',
     },
     'groq': {
         'key': os.environ.get('GROQ_API_KEY'),
@@ -70,7 +113,7 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_FILES = {
-    'index.html', 'script.js', 'shared.css', 'style.css', 'pockup.png',
+    'index.html', 'shared.js', 'shared.css', 'style.css', 'pockup.png',
     'career/chat.html', 'career/chat.js', 'career/chat.css',
     'schedule/create.html', 'schedule/create.js', 'schedule/create.css',
     'todo/mylist.html', 'todo/mylist.js', 'todo/mylist.css',
@@ -86,22 +129,29 @@ def get_json_body():
     return data, None
 
 
-def request_ai(messages, max_tokens, provider=None):
+DAYS_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+def request_ai(messages, max_tokens, provider=None, on_delta=None):
     """Gọi AI qua provider được chỉ định (hoặc tự nhận diện nếu không chỉ định).
 
     Trả về (reply, None) khi thành công, hoặc (None, (response_json, http_status)) khi lỗi.
+    Nếu `on_delta` được truyền, dùng chế độ stream và gọi lại on_delta(text) cho từng mảnh,
+    rồi trả về văn bản đầy đủ đã ghép.
     """
+    # Lỗi trả về dạng (dict, status) thay vì jsonify để an toàn khi gọi từ thread
+    # không có application context (ví dụ worker của endpoint streaming).
     available = detect_available_providers()
     if not available:
-        return None, (jsonify(error='Chưa cấu hình API key cho bất kỳ nhà cung cấp AI nào.'), 503)
+        return None, ({'error': 'Chưa cấu hình API key cho bất kỳ nhà cung cấp AI nào.'}, 503)
 
     # Chọn provider: từ request > env AI_PROVIDER > provider đầu tiên còn key.
     wanted = (provider or DEFAULT_PROVIDER or '').strip().lower() or None
     if wanted:
         if wanted not in AI_PROVIDERS:
-            return None, (jsonify(error=f'Không hỗ trợ provider "{wanted}". Các provider khả dụng: {", ".join(available)}.'), 400)
+            return None, ({'error': f'Không hỗ trợ provider "{wanted}". Các provider khả dụng: {", ".join(available)}.'}, 400)
         if wanted not in available:
-            return None, (jsonify(error=f'Provider "{wanted}" chưa được cấu hình API key.'), 503)
+            return None, ({'error': f'Provider "{wanted}" chưa được cấu hình API key.'}, 503)
         chain = [wanted]
     else:
         chain = available
@@ -111,10 +161,23 @@ def request_ai(messages, max_tokens, provider=None):
         cfg = AI_PROVIDERS[name]
         try:
             client = _get_provider_client(name)
+            stream = on_delta is not None
             response = client.chat.completions.create(
-                model=cfg['model'], messages=messages, temperature=0.7, max_tokens=max_tokens
+                model=cfg['model'], messages=messages, temperature=0.7, max_tokens=max_tokens,
+                stream=stream,
             )
-            reply = response.choices[0].message.content
+            if stream:
+                chunks = []
+                for event in response:
+                    if not getattr(event, 'choices', None):
+                        continue
+                    piece = getattr(event.choices[0].delta, 'content', None)
+                    if piece:
+                        chunks.append(piece)
+                        on_delta(piece)
+                reply = ''.join(chunks)
+            else:
+                reply = response.choices[0].message.content
             if not reply:
                 raise ValueError('AI provider returned an empty reply')
             return reply, None
@@ -152,25 +215,14 @@ def career_chat():
             return jsonify({'success': False, 'error': 'Vui lòng nhập nội dung cần tư vấn'}), 400
         if len(user_message) > 2000 or not isinstance(history, list):
             return jsonify({'success': False, 'error': 'Nội dung gửi lên không hợp lệ'}), 400
-        
-        # Build messages array with conversation history
-        messages = [
-            {"role": "system", "content": "Bạn là một chuyên gia tư vấn hướng nghiệp cho học sinh. Hãy trả lời câu hỏi một cách chi tiết, thực tế và dễ hiểu."}
-        ]
-        
-        # Add conversation history if provided
-        for msg in history[-20:]:
-            if not isinstance(msg, dict):
-                continue
-            content = msg.get('content')
-            if msg.get('role') in ('user', 'assistant') and isinstance(content, str) and content.strip():
-                messages.append({"role": msg['role'], "content": content[:2000]})
-        
-        # Add current user message
-        messages.append({"role": "user", "content": user_message.strip()})
-        
+
+        # Ngữ cảnh người dùng (todo/schedule) để AI tư vấn sát thực tế hơn
+        user_context = _summarize_projects(data.get('projects'))
+        schedule_ctx = _summarize_schedule(data.get('schedule'))
+        messages = _build_career_messages(user_message, history, user_context, schedule_ctx)
+
         # Gọi AI (tự nhận diện provider nếu không chỉ định)
-        ai_reply, error = request_ai(messages, 500, provider=provider)
+        ai_reply, error = request_ai(messages, 900, provider=provider)
         if error:
             return error
         return jsonify({'success': True, 'reply': ai_reply})
@@ -178,7 +230,113 @@ def career_chat():
         app.logger.exception('Invalid career AI request')
         return jsonify({'success': False, 'error': 'Yêu cầu không thể xử lý.'}), 500
 
-# ==================== PHẦN GỢI Ý HỌC TẬP (NẾU CÓ) ====================
+# ==================== AI CAREER - STREAMING (SSE) ====================
+CAREER_SYSTEM_PROMPT = (
+    "Bạn là một chuyên gia tư vấn hướng nghiệp cho học sinh. "
+    "Hãy trả lời câu hỏi một cách chi tiết, thực tế và dễ hiểu."
+)
+
+
+def _build_career_messages(user_message, history, user_context, schedule_ctx):
+    """Dựng mảng messages dùng chung cho các endpoint career-ai."""
+    system = CAREER_SYSTEM_PROMPT
+    if user_context or schedule_ctx:
+        system += (
+            "\n\nDưới đây là dữ liệu học tập thực tế của người dùng (danh sách dự án/công việc và thời khóa biểu) "
+            "để bạn tham khảo khi tư vấn. Hãy dựa vào đó nếu câu hỏi liên quan, và không liệt kê lại toàn bộ trừ khi được yêu cầu:\n"
+            + json.dumps({'projects': user_context, 'schedule': schedule_ctx}, ensure_ascii=False)
+        )
+    messages = [{'role': 'system', 'content': system}]
+    for msg in history[-20:]:
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get('content')
+        if msg.get('role') in ('user', 'assistant') and isinstance(content, str) and content.strip():
+            messages.append({'role': msg['role'], 'content': content[:2000]})
+    messages.append({'role': 'user', 'content': user_message.strip()})
+    return messages
+
+
+@app.route('/api/career-ai-stream', methods=['POST'])
+def career_chat_stream():
+    """Phiên bản streaming (Server-Sent Events) của /api/career-ai.
+
+    Body JSON: message, history, projects, schedule, provider (tùy chọn).
+    Trả về text/event-stream: mỗi mảnh text là 'data: {"delta": "..."}\n\n',
+    kết thúc bằng 'data: {"success": true}\n\n' rồi 'data: [DONE]\n\n'.
+    Nếu lỗi xảy ra trước/khi stream, gửi 'data: {"error": "..."}\n\n' rồi [DONE].
+    """
+    data, error = get_json_body()
+    if error:
+        return error
+    user_message = data.get('message', '')
+    history = data.get('history', [])
+    provider = data.get('provider')
+
+    if (not isinstance(user_message, str) or not user_message.strip()
+            or len(user_message) > 2000 or not isinstance(history, list)):
+        return jsonify({'success': False, 'error': 'Nội dung gửi lên không hợp lệ'}), 400
+
+    user_context = _summarize_projects(data.get('projects'))
+    schedule_ctx = _summarize_schedule(data.get('schedule'))
+    messages = _build_career_messages(user_message, history, user_context, schedule_ctx)
+
+    def generate():
+        queue = Queue()
+
+        def on_delta(piece):
+            queue.put(('delta', piece))
+
+        def worker():
+            try:
+                reply, err = request_ai(messages, 900, provider=provider, on_delta=on_delta)
+                queue.put(('done', (reply, err)))
+            except Exception as exc:  # phòng hờ: lỗi ngoài request_ai
+                app.logger.exception('career stream worker failed')
+                queue.put(('done', (None, exc)))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+        reply, err = None, None
+        try:
+            while True:
+                try:
+                    kind, payload = queue.get(timeout=120)
+                except Empty:
+                    yield f"data: {json.dumps({'error': 'Hết thời gian chờ phản hồi AI.'}, ensure_ascii=False)}\n\n"
+                    break
+                if kind == 'delta':
+                    yield f"data: {json.dumps({'delta': payload}, ensure_ascii=False)}\n\n"
+                else:  # 'done'
+                    reply, err = payload
+                    break
+
+            if err is None:
+                yield f"data: {json.dumps({'success': True}, ensure_ascii=False)}\n\n"
+            else:
+                # err là (dict lỗi, status) từ request_ai, hoặc Exception ngoài dự kiến
+                if isinstance(err, tuple) and len(err) == 2 and isinstance(err[0], dict):
+                    detail = err[0]
+                    status = err[1]
+                else:
+                    detail = {'error': 'Dịch vụ AI hiện không phản hồi. Vui lòng thử lại sau.'}
+                    status = 502
+                yield f"data: {json.dumps({'success': False, 'error': detail.get('error', 'AI error'), 'status': status}, ensure_ascii=False)}\n\n"
+        except GeneratorExit:
+            # Client ngắt kết nối — worker dừng tự nhiên khi stream bị đóng.
+            raise
+        except Exception:
+            app.logger.exception('career_ai_stream generate failed')
+            yield f"data: {json.dumps({'error': 'Lỗi khi stream phản hồi AI.'}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+    })
+
+
+# ==================== PHẦN GỢI Ý HỌC TẬP (NẾU CÕN) ====================
 @app.route('/api/suggest', methods=['POST'])
 def suggest_study():
     try:
@@ -257,6 +415,84 @@ def schedule_optimize():
             timetable[en_name] = lessons
 
     return jsonify({'timetable': timetable})
+
+
+# ==================== NGỮ CẢNH NGƯỜI DÙNG CHO AI ====================
+LOCALSTORAGE_KEYS = {
+    'projects': 'studyverse_projects',
+    'schedule': 'studyverse_schedule_dashboard_data',
+    'last_project': 'lastSelectedProject',
+}
+
+
+def _clamp_str(value, limit):
+    """Ép kiểu chuỗi, giới hạn độ dài để tránh phình to ngữ cảnh AI."""
+    if not isinstance(value, str):
+        return ''
+    return value.strip()[:limit]
+
+
+def _summarize_projects(raw):
+    """Rút gọn danh sách project/todo thành ngữ cảnh gọn cho AI."""
+    if not isinstance(raw, list):
+        return []
+    out = []
+    for proj in raw[:25]:
+        if not isinstance(proj, dict):
+            continue
+        tasks = proj.get('tasks') if isinstance(proj.get('tasks'), list) else []
+        out.append({
+            'name': _clamp_str(proj.get('name'), 80),
+            'deadline': _clamp_str(proj.get('deadline'), 20) or None,
+            'total_tasks': len(tasks),
+            'completed_tasks': sum(1 for t in tasks if isinstance(t, dict) and t.get('completed')),
+            'open_tasks': [
+                _clamp_str(t.get('name'), 60)
+                for t in tasks
+                if isinstance(t, dict) and not t.get('completed')
+            ][:10],
+        })
+    return out
+
+
+def _summarize_schedule(raw):
+    """Rút gọn dữ liệu thời khóa biểu thành ngữ cảnh gọn cho AI."""
+    if not isinstance(raw, dict):
+        return None
+    subjects = raw.get('subjects') if isinstance(raw.get('subjects'), list) else []
+    grid = raw.get('timetableData') if isinstance(raw.get('timetableData'), list) else []
+    timetable = []
+    for day_idx, day_slots in enumerate(grid[:7]):
+        if not isinstance(day_slots, list):
+            continue
+        lessons = [
+            _clamp_str(slot.get('name'), 40)
+            for slot in day_slots
+            if isinstance(slot, dict) and slot.get('type') == 'subject' and slot.get('name')
+        ]
+        if lessons:
+            timetable.append({'day': DAYS_EN[day_idx], 'lessons': lessons})
+    return {
+        'subjects': [_clamp_str(s, 40) for s in subjects if isinstance(s, str)][:20],
+        'timetable': timetable,
+    }
+
+
+@app.route('/api/ai-context', methods=['POST'])
+def ai_context():
+    """Thu thập + rút gọn dữ liệu LocalStorage của người dùng thành ngữ cảnh AI.
+
+    Client gửi LocalStorage (projects + schedule), server trả về JSON gọn nhẹ
+    để nhúng vào system prompt. Server không lưu dữ liệu này.
+    """
+    data, error = get_json_body()
+    if error:
+        return error
+    context = {
+        'projects': _summarize_projects(data.get('projects')),
+        'schedule': _summarize_schedule(data.get('schedule')),
+    }
+    return jsonify(context)
 
 
 # ==================== KHỞI CHẠY APP ====================

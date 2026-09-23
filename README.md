@@ -35,15 +35,18 @@ Yêu cầu: Python 3.10+.
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 pip install -r requirements.txt
-# Chỉ cần cấu hình ít nhất MỘT provider (đều theo chuẩn OpenAI-compatible)
-export FREELLM_API_KEY="your-key"            # FreeLLM local (http://localhost:3001/v1)
+# Chỉ cần cấu hình ít nhất MỘT provider (đều theo chuẩn OpenAI-compatible).
+# Cách khuyến nghị: copy .env.example thành .env rồi điền key vào đó (file .env không được commit).
+cp .env.example .env
+# Hoặc export trực tiếp:
+# export DEEPSEEK_API_KEY="sk-..."
 # export OPENAI_API_KEY="sk-..."
 # export GEMINI_API_KEY="..."                # Google AI Studio
 # export GROQ_API_KEY="gsk_..."
 # export OPENROUTER_API_KEY="sk-or-..."
 # export ANTHROPIC_API_KEY="sk-ant-..."
-# export AI_PROVIDER="gemini"                # tùy chọn: ép dùng provider mặc định
-# export AI_PROVIDER_ORDER="gemini,openai,freellm"  # tùy chọn: thứ tự failover
+# export AI_PROVIDER="deepseek"              # tùy chọn: ép dùng provider mặc định
+# export AI_PROVIDER_ORDER="deepseek,openai,freellm"  # tùy chọn: thứ tự failover
 python app.py
 ```
 
@@ -55,9 +58,10 @@ Backend hỗ trợ nhiều nhà cung cấp AI cùng lúc và **tự nhận diệ
 
 | Provider | Biến bắt buộc | Tùy chọn |
 |----------|---------------|----------|
+| DeepSeek | `DEEPSEEK_API_KEY` | `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL` (mặc định `deepseek-chat`) |
 | FreeLLM  | `FREELLM_API_KEY` | `FREELLM_BASE_URL`, `FREELLM_MODEL` (mặc định `auto:fast`) |
 | OpenAI   | `OPENAI_API_KEY` | `OPENAI_BASE_URL`, `OPENAI_MODEL` (mặc định `gpt-4o-mini`) |
-| Gemini   | `GEMINI_API_KEY` (hoặc `GOOGLE_API_KEY`) | `GEMINI_BASE_URL`, `GEMINI_MODEL` (mặc định `gemini-2.0-flash`) |
+| Gemini   | `GEMINI_API_KEY` (hoặc `GOOGLE_API_KEY`) | `GEMINI_BASE_URL`, `GEMINI_MODEL` (mặc định `gemini-3.6-flash`) |
 | Groq     | `GROQ_API_KEY` | `GROQ_BASE_URL`, `GROQ_MODEL` (mặc định `llama-3.3-70b-versatile`) |
 | OpenRouter | `OPENROUTER_API_KEY` | `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL` (mặc định `openrouter/auto`) |
 | Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL` |
@@ -71,6 +75,8 @@ Nếu provider được chọn lỗi, backend **tự failover** sang provider ti
 
 - `GET /api/ai-providers` — xem danh sách provider đã nhận diện được.
 - Body request cho `/api/career-ai` và `/api/suggest` có thể kèm `"provider": "groq"` để ép dùng một provider cụ thể cho request đó.
+- `POST /api/career-ai-stream` — phiên bản streaming (SSE) của career chat: AI trả lời từng mảnh thay vì chờ cả câu. Body chấp nhận thêm `projects` và `schedule` (đọc từ LocalStorage của Todo/Schedule) để AI tư vấn dựa trên dữ liệu học tập thật của người dùng.
+- `POST /api/ai-context` — rút gọn dữ liệu projects/schedule gửi lên thành ngữ cảnh gọn nhẹ cho AI (server không lưu dữ liệu).
 
 ## Lưu ý dữ liệu
 
