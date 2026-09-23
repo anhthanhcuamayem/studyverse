@@ -421,6 +421,7 @@ input[type="color"] {
 /* --- TIMETABLE TABLE --- */
 .timetable-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* momentum scroll trên iOS */
     border-radius: 20px;
     border: 1px solid var(--border-soft);
     background: #080c14;
@@ -684,6 +685,11 @@ input[type="color"] {
         height: 44px;
     }
 
+    /* 16px để iOS Safari không tự zoom khi focus vào input tên môn học */
+    input[type="text"], input[type="number"] {
+        font-size: 16px;
+    }
+
     .timetable th {
         font-size: 0.68rem;
     }
@@ -717,6 +723,10 @@ input[type="color"] {
     .timetable {
         min-width: 600px;
         font-size: 0.7rem;
+    }
+
+    .main-schedule {
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
     }
 }
 

@@ -35,6 +35,7 @@ html {
     width: 280px;
     background: rgba(26, 32, 44, 0.6);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 25px;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -102,6 +103,7 @@ html {
 .detail-card {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 35px;
@@ -423,12 +425,26 @@ html {
     }
 
     .detail-card {
-        padding: 20px;
+        padding: 20px 16px;
         border-radius: 14px;
+    }
+
+    .detail-header {
+        /* cho tên dự án và deadline xuống dòng riêng thay vì đè lên nhau */
+        flex-wrap: wrap !important;
+        row-gap: 8px;
     }
 
     .detail-header h2 {
         font-size: 1.3rem;
+    }
+
+    /* 16px để iOS Safari không tự zoom khi focus vào ô nhập task */
+    #taskNameInput,
+    #taskDeadlineInput,
+    #editTaskName,
+    #editTaskDate {
+        font-size: 16px;
     }
 
     .project-list-row {
@@ -440,5 +456,9 @@ html {
         width: 90%;
         min-width: 0;
         padding: 20px;
+    }
+
+    main {
+        padding-bottom: env(safe-area-inset-bottom);
     }
 }/* SV MODAL POPUP: đã gom vào shared.css (dùng chung cả 4 trang) */

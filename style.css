@@ -202,7 +202,11 @@ main {
 /* --- RESPONSIVE (HOMEPAGE) --- */
 @media (max-width: 768px) {
     .main-content {
-        padding-top: 140px;
+        padding-top: 165px;
+    }
+
+    .desktop-only {
+        display: none;
     }
 
     .hero-title {
