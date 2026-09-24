@@ -397,7 +397,7 @@ html {
 @media (max-width: 768px) {
     .project-wrapper {
         flex-direction: column;
-        margin-top: 160px;
+        margin-top: 100px; /* navbar mobile cao 64px */
         padding: 0 15px;
         gap: 15px;
     }

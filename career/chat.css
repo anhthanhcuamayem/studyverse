@@ -195,11 +195,11 @@
     transform: translateY(-1px);
 }
 @media (max-width: 768px) {
-    .main-career { padding-top: 150px; padding-bottom: 16px; }
+    .main-career { padding-top: 100px; padding-bottom: 16px; } /* navbar mobile cao 64px */
     .container { padding: 0 12px; }
     .chat-card {
-        height: calc(100vh - 190px);
-        height: calc(100dvh - 190px);
+        height: calc(100vh - 132px);
+        height: calc(100dvh - 132px);
         min-height: 420px;
         border-radius: 20px;
     }

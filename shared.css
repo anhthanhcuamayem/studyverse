@@ -355,30 +355,48 @@ body {
 }
 
 @media (max-width: 768px) {
-    /* height 75px cứng bị tràn vì logo + pill menu xếp dọc cao hơn;
-       chuyển sang min-height và cho body đệm theo */
-    .navbar { height: auto; min-height: 97px; }
+    /* Navbar mobile 1 hàng gọn: logo trái - pill icon phải.
+       Icon đứng yên trong pill, label ẩn (pill 50px không đủ chỗ cho
+       icon nhảy + label nên trước đây bị tràn xuống), indicator chạy
+       bên trong pill thay vì nhô lên trên. */
+    .navbar { height: 64px; align-items: center; padding-bottom: 0; }
     .nav-container {
-        flex-direction: column;
-        gap: 8px;
-        padding-top: 10px;
-        padding-bottom: 10px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 16px;
     }
-    .logo { font-size: 24px; }
-    .navigation { width: 260px; height: 50px; }
-    .navigation ul li { width: 65px; height: 50px; }
-    .navigation ul li a .icon { font-size: 1.1rem; line-height: 50px; }
-    .navigation ul li.active a .icon { transform: translateY(-24px); }
-    .indicator { width: 50px; height: 50px; top: -35%; }
+    .logo { font-size: 22px; }
+    .navigation {
+        width: auto;
+        height: 44px;
+        border-radius: 22px;
+        padding: 0 6px;
+    }
+    .navigation ul { gap: 2px; }
+    .navigation ul li { width: 46px; height: 44px; }
+    .navigation ul li a .icon {
+        font-size: 1.05rem;
+        line-height: 44px;
+        transform: none !important; /* icon đứng yên, không nhảy ra ngoài pill */
+    }
+    .navigation ul li a .text { display: none; }
+    .navigation ul li.active a .icon,
+    .navigation ul li.hover-effect a .icon { color: #fff; }
+    .indicator {
+        width: 40px;
+        height: 36px;
+        top: 50%;
+        margin-top: -18px;
+        border-width: 4px;
+        border-radius: 18px;
+    }
 }
 
 @media (max-width: 480px) {
     .logo { font-size: 20px; }
-    .navigation { width: 220px; height: 45px; }
-    .navigation ul li { width: 55px; height: 45px; }
-    .navigation ul li a .icon { font-size: 1rem; line-height: 45px; }
-    .navigation ul li.active a .icon { transform: translateY(-20px); }
-    .indicator { width: 45px; height: 45px; }
+    .navigation ul li { width: 44px; }
+    .indicator { width: 38px; }
 }
 
 /* --- SHARED ANIMATIONS --- */

@@ -595,7 +595,7 @@ input[type="color"] {
 
 @media (max-width: 768px) {
     .main-schedule {
-        padding-top: 130px;
+        padding-top: 100px; /* navbar mobile cao 64px */
         padding-bottom: 30px;
     }
 

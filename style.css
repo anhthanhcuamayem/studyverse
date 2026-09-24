@@ -202,7 +202,7 @@ main {
 /* --- RESPONSIVE (HOMEPAGE) --- */
 @media (max-width: 768px) {
     .main-content {
-        padding-top: 165px;
+        padding-top: 100px; /* navbar mobile cao 64px */
     }
 
     .desktop-only {
