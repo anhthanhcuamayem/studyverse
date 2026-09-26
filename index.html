@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home - Studyverse</title>
+    <title data-i18n="home.title">Home - Studyverse</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="/shared.css">
@@ -17,28 +17,28 @@
             
             <nav class="navigation">
                 <ul>
-                    <li class="list active" id="li-create" data-index="0" >
-                        <a href="index.html">
+                    <li class="list active" id="li-home" data-index="0" >
+                        <a href="/index.html">
                             <span class="icon"><i class="fa-solid fa-house"></i></span>
-                            <span class="text">Home</span>
+                            <span class="text" data-i18n="nav.home">Home</span>
                         </a>
                     </li>
-                    <li class="list" id="li-create" data-index="1" >
-                        <a href="todo/mylist.html"> 
+                    <li class="list" id="li-project" data-index="1" >
+                        <a href="/todo/mylist.html"> 
                             <span class="icon"><i class="fa-solid fa-list-check"></i></span>
-                            <span class="text">My Project</span>
+                            <span class="text" data-i18n="nav.project">My Project</span>
                         </a>
                     </li>
-                    <li class="list" id="li-create" data-index="2" >
-                        <a href="schedule/create.html">
+                    <li class="list" id="li-schedule" data-index="2" >
+                        <a href="/schedule/create.html">
                             <span class="icon"><i class="fa-regular fa-calendar"></i></span>
-                            <span class="text">Schedule</span>
+                            <span class="text" data-i18n="nav.schedule">Schedule</span>
                         </a>
                     </li>
-                    <li class="list" id="li-create"  data-index="3">
-                        <a href="career/chat.html">
+                    <li class="list" id="li-career"  data-index="3">
+                        <a href="/career/chat.html">
                             <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
-                            <span class="text">AI Career</span>
+                            <span class="text" data-i18n="nav.career">AI Career</span>
                         </a>
                     </li>
                     <div class="indicator"></div>
@@ -50,15 +50,15 @@
     <main class="main-content">
         <section class="hero container">
             <h1 class="hero-title">
-                <span class="white-text">A simple list to</span>
-                <span class="blue-text draw-underline">manage everything</span>
+                <span class="white-text" data-i18n="home.hero1">A simple list to</span>
+                <span class="blue-text draw-underline" data-i18n="home.hero2">manage everything</span>
             </h1>
             <p class="hero-subtitle">
-                Organize your work and life every day in a scientific <br class="desktop-only"> 
-                and most effective way with Studyverse.
+                <span data-i18n="home.desc1">Organize your work and life every day in a scientific</span> <br class="desktop-only"> 
+                <span data-i18n="home.desc2">and most effective way with Studyverse.</span>
             </p>
-            <a href="todo/mylist.html" style="text-decoration: none;">
-                <button class="btn-start">Get Started</button>
+            <a href="/todo/mylist.html" class="cta-link">
+                <button class="btn-start" data-i18n="home.cta">Get Started</button>
                 <div class="big-illustration-container">
                     <img src="pockup.png" alt="Studyverse Illustration" class="img-large">
                 </div>
@@ -68,18 +68,18 @@
         <section class="features container">
             <div class="feature-box">
                 <div class="icon-wrapper"><i class="fa-solid fa-bolt-lightning"></i></div>
-                <h3>Planning</h3>
-                <p>Build a personalized to-do list, helping you stay proactive in your studies.</p>
+                <h3 data-i18n="home.f1.title">Planning</h3>
+                <p data-i18n="home.f1.desc">Build a personalized to-do list, helping you stay proactive in your studies.</p>
             </div>
             <div class="feature-box">
                 <div class="icon-wrapper"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-                <h3>Eye-friendly Interface</h3>
-                <p>"Dark Mode reduces eye strain and boosts focus for long study sessions."</p>
+                <h3 data-i18n="home.f2.title">Eye-friendly Interface</h3>
+                <p data-i18n="home.f2.desc">"Dark Mode reduces eye strain and boosts focus for long study sessions."</p>
             </div>
             <div class="feature-box">
                 <div class="icon-wrapper"><i class="fa-solid fa-user-shield"></i></div>
-                <h3>Security & Speed</h3>
-                <p>Data is stored securely right on the browser, ensuring instant access.</p>
+                <h3 data-i18n="home.f3.title">Security & Speed</h3>
+                <p data-i18n="home.f3.desc">Data is stored securely right on the browser, ensuring instant access.</p>
             </div>
         </section>
     </main>

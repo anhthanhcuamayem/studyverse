@@ -78,9 +78,9 @@ body {
 }
 
 .btn-ai {
-    background: linear-gradient(135deg, #007AFF, #5856D6);
+    background: linear-gradient(135deg, var(--primary-blue), var(--accent-secondary));
     color: white;
-    box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.3);
 }
 
 .btn-export {
@@ -250,11 +250,11 @@ input[type="color"] {
     cursor: pointer;
     margin-top: 4px;
     transition: all 0.2s;
-    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+    box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.3);
 }
 
 .btn-add:hover {
-    background: #0062cc;
+    filter: brightness(1.12);
     transform: translateY(-1px);
 }
 
@@ -264,7 +264,7 @@ input[type="color"] {
     color: var(--text-gray);
     margin-bottom: 12px;
     line-height: 1.4;
-    background: rgba(0, 122, 255, 0.06);
+    background: rgba(var(--primary-rgb), 0.06);
     border-left: 3px solid var(--primary-blue);
     padding: 8px 10px;
     border-radius: 0 8px 8px 0;
@@ -482,7 +482,7 @@ input[type="color"] {
 }
 
 .timetable td.drag-over {
-    background: rgba(0, 122, 255, 0.25) !important;
+    background: rgba(var(--primary-rgb), 0.25) !important;
     border: 2px dashed var(--primary-blue) !important;
     transform: scale(1.02);
     z-index: 2;

@@ -11,6 +11,10 @@ function loadProjects() {
 
 let projects = loadProjects();
 
+// Bỏ qua sự kiện sv:langchange phát ra lúc khởi tạo (trước khi trang vẽ xong),
+// chỉ vẽ lại nội dung động khi người dùng thực sự đổi ngôn ngữ trong panel Cài đặt.
+let pageI18nReady = false;
+
 // escapeHtml + SV Modal (svNotice/svConfirm/svPrompt): dùng bản dùng chung trong shared.js
 
 // --- 1. HÀM KHỞI TẠO HỆ THỐNG ---
@@ -39,9 +43,9 @@ function initPage() {
             }
 
             if (mainDeadlineDisp) {
-                mainDeadlineDisp.innerText = project.deadline && project.deadline !== "Not set"
-                    ? `Deadline: ${formatDate(project.deadline)}`
-                    : "Deadline: Not set";
+                mainDeadlineDisp.innerText = project.deadline && project.deadline !== svT('todo.notSet')
+                    ? `${svT('todo.deadline')}: ${formatDate(project.deadline)}`
+                    : `${svT('todo.deadline')}: ${svT('todo.notSet')}`;
             }
 
             if (taskAreaContainer) {
@@ -55,6 +59,7 @@ function initPage() {
         document.getElementById('taskAreaContainer').style.display = 'block';
         renderProjectListMain();
     }
+    pageI18nReady = true;
     requestAnimationFrame(() => {
         document.body.style.opacity = '1';
         document.body.style.visibility = 'visible';
@@ -74,11 +79,35 @@ try {
     document.body.style.visibility = 'visible';
 }
 
-// --- 2. HIỆU ỨNG THANH NAVBAR: đã gom vào shared.js (initNavbarIndicator) ---
+// --- 2. ĐỔI NGÔN NGỮ (từ panel Cài đặt): vẽ lại nội dung do JS sinh ra ---
+document.addEventListener('sv:langchange', () => {
+    if (!pageI18nReady) return;
+    const mainTitle = document.getElementById('mainProjectName');
+    const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
+    const current = mainTitle ? mainTitle.getAttribute('data-old-name') : null;
 
-// --- 3. CÁC HÀM BỔ TRỢ ---
+    renderSidebar();
+
+    if (current) {
+        const proj = loadProjects().find(p => p.name.trim() === current.trim());
+        if (mainDeadlineDisp && proj) {
+            const deadline = proj.deadline;
+            mainDeadlineDisp.innerText = (deadline && deadline !== svT('todo.notSet'))
+                ? `${svT('todo.deadline')}: ${formatDate(deadline)}`
+                : `${svT('todo.deadline')}: ${svT('todo.notSet')}`;
+        }
+        renderTasks(current);
+        updateProgressBar(current);
+    } else {
+        renderProjectListMain();
+    }
+});
+
+// --- 3. HIỆU ỨNG THANH NAVBAR: đã gom vào shared.js (initNavbarIndicator) ---
+
+// --- 4. CÁC HÀM BỔ TRỢ ---
 function formatDate(dateString) {
-    if (!dateString || dateString === "Not set" || dateString === "Chưa đặt") return "Not set";
+    if (!dateString || dateString === svT('todo.notSet') || dateString === "Chưa đặt") return svT('todo.notSet');
     if (dateString.includes('/')) return dateString;
     const parts = dateString.split('-');
     return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateString;
@@ -99,15 +128,15 @@ function renderSidebar() {
         const isActive = (lastProjectName && proj.name.trim() === lastProjectName.trim());
         
         item.className = `sidebar-item ${isActive ? 'active-item' : ''}`;
-        item.setAttribute('data-deadline', proj.deadline || "Not set");
+        item.setAttribute('data-deadline', proj.deadline || svT('todo.notSet'));
         item.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 10px; cursor: pointer;";
         
         item.innerHTML = `
             <div class="project-info" style="display: flex; align-items: center; flex: 1;">
-                <i class="fa-solid fa-folder" style="color: #3b82f6; margin-right: 10px;"></i>
+                <i class="fa-solid fa-folder" style="color: var(--primary-blue); margin-right: 10px;"></i>
                 <div style="display: flex; flex-direction: column;">
                     <span class="project-name-text" style="color: white; font-weight: 500;">${escapeHtml(proj.name)}</span>
-                    <small style="color: rgba(255,255,255,0.4); font-size: 11px;">Deadline: ${escapeHtml(formatDate(proj.deadline))}</small>
+                    <small style="color: rgba(255,255,255,0.4); font-size: 11px;">${svT('todo.deadline')}: ${escapeHtml(formatDate(proj.deadline))}</small>
                 </div>
             </div>
         `;
@@ -284,7 +313,7 @@ function renderTasks(projectName) {
     initDragAndDrop(projectName);
 }
 
-// --- 4. XỬ LÝ SỰ KIỆN CLICK ---
+// --- 5. XỬ LÝ SỰ KIỆN CLICK ---
 document.addEventListener('click', async function (event) {
     const mainTitle = document.getElementById('mainProjectName');
     const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
@@ -300,7 +329,7 @@ document.addEventListener('click', async function (event) {
         const currentOldName = mainTitle.getAttribute('data-old-name');
 
         if (name === currentOldName) {
-            mainTitle.innerText = "My Projects";
+            mainTitle.innerText = svT('todo.sidebar');
             mainTitle.removeAttribute('data-old-name');
             
             if (mainDeadlineDisp) mainDeadlineDisp.innerText = "";
@@ -318,7 +347,7 @@ document.addEventListener('click', async function (event) {
         const deadline = sidebarItem.getAttribute('data-deadline');
         mainTitle.innerText = name;
         mainTitle.setAttribute('data-old-name', name);
-        mainDeadlineDisp.innerText = (deadline !== "Not set") ? `Deadline: ${formatDate(deadline)}` : "Deadline: Not set";
+        mainDeadlineDisp.innerText = (deadline !== svT('todo.notSet')) ? `${svT('todo.deadline')}: ${formatDate(deadline)}` : `${svT('todo.deadline')}: ${svT('todo.notSet')}`;
 
         if (btnShowInput) btnShowInput.style.display = 'flex';
         if (taskInputCard) taskInputCard.style.display = 'none';
@@ -368,7 +397,7 @@ document.addEventListener('click', async function (event) {
                 document.getElementById('taskDeadlineInput').value = "";
             }
         } else {
-            svNotice("Please enter a task name!", { title: 'Missing task name', icon: 'fa-triangle-exclamation', tone: 'warn' });
+            svNotice(svT('todo.needName'), { title: svT('todo.missingName'), icon: 'fa-triangle-exclamation', tone: 'warn' });
         }
     }
 
@@ -393,7 +422,7 @@ document.addEventListener('click', async function (event) {
 
     if (event.target.id === 'mainProjectName' && mainTitle.hasAttribute('data-old-name')) {
         const oldName = mainTitle.getAttribute('data-old-name');
-        const newName = await svPrompt('Enter new project name:', { title: 'Rename Project', defaultValue: oldName, confirmText: 'Save' });
+        const newName = await svPrompt(svT('todo.renameProject'), { title: svT('todo.renameTitle'), defaultValue: oldName, confirmText: svT('common.save') });
 
         if (newName && newName.trim() !== "" && newName !== oldName) {
             const trimmedNewName = newName.trim();
@@ -417,22 +446,22 @@ document.addEventListener('click', async function (event) {
         
         if (pIdx !== -1) {
             const currentDeadline = projects[pIdx].deadline || "";
-            const newDate = await svPrompt('Enter new deadline (e.g., 30/04/2026):', { title: 'Edit Deadline', defaultValue: currentDeadline, confirmText: 'Save' });
+            const newDate = await svPrompt(svT('todo.changeDeadline'), { title: svT('todo.editDeadlineTitle'), defaultValue: currentDeadline, confirmText: svT('common.save') });
             
             if (newDate !== null) {
-                projects[pIdx].deadline = newDate.trim() || "Not set";
+                projects[pIdx].deadline = newDate.trim() || svT('todo.notSet');
                 localStorage.setItem('studyverse_projects', JSON.stringify(projects));
                 
-                mainDeadlineDisp.innerText = projects[pIdx].deadline === "Not set" 
-                    ? "Deadline: Not set" 
-                    : `Deadline: ${projects[pIdx].deadline}`;
+                mainDeadlineDisp.innerText = projects[pIdx].deadline === svT('todo.notSet') 
+                    ? `${svT('todo.deadline')}: ${svT('todo.notSet')}` 
+                    : `${svT('todo.deadline')}: ${projects[pIdx].deadline}`;
                 renderSidebar();
             }
         }
     }
 
     if (event.target.classList.contains('btn-delete')) {
-        if (await svConfirm("Delete this project?", { title: 'Delete Project', confirmText: 'Delete', icon: 'fa-trash-can', danger: true })) {
+        if (await svConfirm(svT('todo.deleteProject'), { title: svT('todo.deleteProject'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
             const index = event.target.getAttribute('data-index');
             let saved = loadProjects();
             saved.splice(index, 1);
@@ -467,7 +496,7 @@ document.addEventListener('click', async function (event) {
             
             modalTitle.innerText = "Edit Project";
             nameInput.value = project.name;
-            dateInput.value = (project.deadline === "Not set") ? "" : project.deadline;
+            dateInput.value = (project.deadline === svT('todo.notSet')) ? "" : project.deadline;
 
             let btnDelete = document.getElementById('btnDeleteProject');
             if (!btnDelete) {
@@ -485,7 +514,7 @@ document.addEventListener('click', async function (event) {
     }
 
     if (event.target.id === 'btnDeleteProject') {
-        if (await svConfirm("Are you sure you want to delete this Project?", { title: 'Delete Project', confirmText: 'Delete', icon: 'fa-trash-can', danger: true })) {
+        if (await svConfirm(svT('todo.deleteProjectSure'), { title: svT('todo.deleteProject'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
             const currentName = document.getElementById('mainProjectName').getAttribute('data-old-name');
             projects = projects.filter(p => p.name !== currentName);
             localStorage.setItem('studyverse_projects', JSON.stringify(projects));
@@ -510,13 +539,13 @@ document.addEventListener('click', async function (event) {
                 const pIdx = projects.findIndex(p => p.name === oldName);
                 if (pIdx !== -1) {
                     projects[pIdx].name = n.value.trim();
-                    projects[pIdx].deadline = d.value || "Not set";
+                    projects[pIdx].deadline = d.value || svT('todo.notSet');
                     localStorage.setItem('studyverse_projects', JSON.stringify(projects));
                     openProject(projects[pIdx].name); 
                     renderSidebar();
                 }    
             } else {
-                projects.push({ name: n.value.trim(), deadline: d.value || "Not set", tasks: [] });
+                projects.push({ name: n.value.trim(), deadline: d.value || svT('todo.notSet'), tasks: [] });
                 localStorage.setItem('studyverse_projects', JSON.stringify(projects));
                 renderSidebar();
 
@@ -546,24 +575,24 @@ document.addEventListener('click', async function (event) {
             const taskItem = btnEditTask.closest('.task-item');
             taskItem.innerHTML = `
                 <div class="edit-task-card" style="width: 100%; background: #1a1d23; padding: 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 8px 0;">
-                    <input type="text" id="editTaskName-${task.id}" value="${escapeHtml(task.name)}" placeholder="Task name..."
+                    <input type="text" id="editTaskName-${task.id}" value="${escapeHtml(task.name)}" placeholder="${svT('todo.taskNamePh')}"
                         style="width: 100%; background: transparent; border: none; color: white; outline: none; font-size: 16px; margin-bottom: 12px; font-family: inherit;">
                     
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: rgba(255,255,255,0.5);">
                         <i class="fa-regular fa-clock" style="font-size: 14px;"></i>
-                        <input type="text" id="editTaskDate-${task.id}" value="${escapeHtml(task.deadline || '')}" placeholder="Deadline (e.g., Oct 20 or Mon)..."
+                        <input type="text" id="editTaskDate-${task.id}" value="${escapeHtml(task.deadline || '')}" placeholder="${svT('todo.taskDeadlinePh')}"
                             style="background: transparent; border: none; color: rgba(255,255,255,0.5); font-size: 14px; outline: none; width: 100%; font-family: inherit;">
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
                         <span class="btn-delete-task" data-task-id="${task.id}" 
-                            style="color: #ef4444; cursor: pointer; font-size: 14px; font-weight: 500; margin-right: auto;">Delete</span>
+                            style="color: #ef4444; cursor: pointer; font-size: 14px; font-weight: 500; margin-right: auto;">${svT('todo.delete')}</span>
                         
                         <span class="btn-cancel-edit" 
-                            style="color: rgba(255,255,255,0.4); cursor: pointer; font-size: 14px; font-weight: 500;">Cancel</span>
+                            style="color: rgba(255,255,255,0.4); cursor: pointer; font-size: 14px; font-weight: 500;">${svT('common.cancel')}</span>
                         
                         <button class="btn-save-edit" data-task-id="${task.id}" 
-                            style="background: #db4c3f; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">Save </button>
+                            style="background: #db4c3f; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">${svT('common.save')}</button>
                     </div>
                 </div>
             `;
@@ -613,7 +642,7 @@ document.addEventListener('click', async function (event) {
     }
 
     if (event.target.classList.contains('btn-delete-task')) {
-        if (await svConfirm("Delete this task?", { title: 'Delete Task', confirmText: 'Delete', icon: 'fa-trash-can', danger: true })) {
+        if (await svConfirm(svT('todo.deleteTask'), { title: svT('todo.deleteTask'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
             const taskId = event.target.getAttribute('data-task-id');
             const currentProjectName = document.getElementById('mainProjectName').getAttribute('data-old-name');
 
@@ -657,13 +686,13 @@ function renderProjectListMain() {
     });
 
     if (saved.length === 0) {
-        displayArea.innerHTML = `<p style="color: rgba(255,255,255,0.4); text-align: center; margin-top: 50px;">No projects found.</p>`;
+        displayArea.innerHTML = `<p style="color: rgba(255,255,255,0.4); text-align: center; margin-top: 50px;">${svT('todo.empty')}</p>`;
         return;
     }
 
     let html = '<div class="project-list-view" style="display: flex; flex-direction: column; gap: 10px; padding: 20px 0;">';
     saved.forEach(proj => {
-        const deadlineText = (proj.deadline && proj.deadline !== "Not set") ? formatDate(proj.deadline) : "Not set";
+        const deadlineText = (proj.deadline && proj.deadline !== svT('todo.notSet')) ? formatDate(proj.deadline) : svT('todo.notSet');
         const totalTasks = proj.tasks ? proj.tasks.length : 0;
         const completedTasks = proj.tasks ? proj.tasks.filter(t => t.completed).length : 0;
         const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -672,7 +701,7 @@ function renderProjectListMain() {
         html += `
             <div class="project-list-row" data-name="${escapeHtml(proj.name)}"
                  style="display: flex; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px 0px 18px 20px; cursor: pointer; transition: all 0.2s ease; min-height: 60px; position: relative;">
-                <i class="fa-solid fa-circle-dot" style="color: #3b82f6; margin-right: 15px; font-size: 14px; flex-shrink: 0;"></i>
+                <i class="fa-solid fa-circle-dot" style="color: var(--primary-blue); margin-right: 15px; font-size: 14px; flex-shrink: 0;"></i>
                 <div style="flex: 0 0 50%; max-width: 50%; padding-right: 10px; word-break: break-word;">
                     <span style="color: white; font-size: 16px; font-weight: 500; display: block; line-height: 1.4;">${escapeHtml(proj.name)}</span>
                 </div>
@@ -699,7 +728,7 @@ function renderProjectListMain() {
         row.onclick = () => {
             const projectName = row.getAttribute('data-name');
             const projectData = saved.find(p => p.name === projectName);
-            const deadline = (projectData && projectData.deadline) ? projectData.deadline : "Not set";
+            const deadline = (projectData && projectData.deadline) ? projectData.deadline : svT('todo.notSet');
             const mainTitle = document.getElementById('mainProjectName');
             const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
             
@@ -708,9 +737,9 @@ function renderProjectListMain() {
                 mainTitle.setAttribute('data-old-name', projectName);
             }
             if (mainDeadlineDisp) {
-                mainDeadlineDisp.innerText = (deadline !== "Not set") 
-                    ? `Deadline: ${formatDate(deadline)}` 
-                    : "Deadline: Not set";
+                mainDeadlineDisp.innerText = (deadline !== svT('todo.notSet')) 
+                    ? `${svT('todo.deadline')}: ${formatDate(deadline)}` 
+                    : `${svT('todo.deadline')}: ${svT('todo.notSet')}`;
             }
 
             const btnShowInput = document.getElementById('btnShowInput');
@@ -734,7 +763,7 @@ function showMainDashboard() {
     const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
     
     if (mainTitle) {
-        mainTitle.innerText = "My Projects";
+        mainTitle.innerText = svT('todo.sidebar');
         mainTitle.removeAttribute('data-old-name');
     }
     if (mainDeadlineDisp) mainDeadlineDisp.innerText = "";
@@ -752,7 +781,7 @@ function showMyProjectsTab() {
     if (btnAdd) btnAdd.style.display = 'none';
 
     const mainTitle = document.getElementById('mainProjectName');
-    if (mainTitle) mainTitle.innerText = "My Projects";
+    if (mainTitle) mainTitle.innerText = svT('todo.sidebar');
 
     renderProjectListMain();
 }
@@ -768,7 +797,7 @@ function openProject(name) {
 }
 
 async function deleteProject(name) {
-    if (await svConfirm(`Are you sure you want to delete project "${name}"?`, { title: 'Delete Project', confirmText: 'Delete', icon: 'fa-trash-can', danger: true })) {
+    if (await svConfirm(svT('todo.deleteProjectMsg', { name }), { title: svT('todo.deleteProject'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
         let saved = loadProjects();
         saved = saved.filter(p => p.name !== name);
         localStorage.setItem('studyverse_projects', JSON.stringify(saved));
@@ -786,6 +815,6 @@ async function deleteProject(name) {
 function backToMain() {
     document.getElementById('taskInputBox').style.display = 'none';
     document.getElementById('btnShowInput').style.display = 'none';
-    document.getElementById('mainProjectName').innerText = "My Projects";
+    document.getElementById('mainProjectName').innerText = svT('todo.sidebar');
     renderProjectListMain();
 }

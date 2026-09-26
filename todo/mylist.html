@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Project</title>
+    <title data-i18n="todo.pageTitle">My Project</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="/shared.css">
@@ -22,25 +22,25 @@
                     <li class="list" id="li-home" data-index="0">
                         <a href="../index.html">
                             <span class="icon"><i class="fa-solid fa-house"></i></span>
-                            <span class="text">Home</span>
+                            <span class="text" data-i18n="nav.home">Home</span>
                         </a>
                     </li>
                     <li class="list active" id="li-myproject" data-index="1">
                         <a href="mylist.html"> 
                             <span class="icon"><i class="fa-solid fa-list-check"></i></span>
-                            <span class="text">My Project</span>
+                            <span class="text" data-i18n="nav.project">My Project</span>
                         </a>
                     </li>
                     <li class="list" id="li-schedule" data-index="2">
                         <a href="/schedule/create.html">
                             <span class="icon"><i class="fa-regular fa-calendar"></i></span>
-                            <span class="text">Schedule</span>
+                            <span class="text" data-i18n="nav.schedule">Schedule</span>
                         </a>
                     </li>
                     <li class="list" id="li-career" data-index="3">
                         <a href="/career/chat.html">
                             <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
-                            <span class="text">AI Career</span>
+                            <span class="text" data-i18n="nav.career">AI Career</span>
                         </a>
                     </li>
                     <div class="indicator"></div>
@@ -53,8 +53,8 @@
     <div class="project-wrapper">
         <aside class="project-sidebar">
             <div class="sidebar-header">
-                <h2>My Projects</h2>
-                <button class="btn-new-project">+ New Project</button>
+                <h2 data-i18n="todo.sidebar">My Projects</h2>
+                <button class="btn-new-project" data-i18n="todo.newProject">+ New Project</button>
             </div>
             <div class="sidebar-list">
                 </div>
@@ -65,20 +65,20 @@
                 <div class="detail-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <h2 id="mainProjectName" style="margin: 0;">My Projects</h2>
-                        <i class="fa-solid fa-pen btn-edit-name" style="cursor: pointer; font-size: 14px; color: rgba(255,255,255,0.3); display: none;" title="Edit name"></i>
+                        <i class="fa-solid fa-pen btn-edit-name" style="cursor: pointer; font-size: 14px; color: rgba(255,255,255,0.3); display: none;" data-i18n-title="todo.editName" data-i18n-aria="todo.editName"></i>
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: rgba(255,255,255,0.5); font-weight: 500;">
                         <span id="mainProjectDeadline"></span>
-                        <i class="fa-solid fa-pen btn-edit-deadline" style="cursor: pointer; font-size: 13px; color: rgba(255,255,255,0.3); display: none;" title="Edit deadline"></i>
+                        <i class="fa-solid fa-pen btn-edit-deadline" style="cursor: pointer; font-size: 13px; color: rgba(255,255,255,0.3); display: none;" data-i18n-title="todo.editDeadline" data-i18n-aria="todo.editDeadline"></i>
                     </div>
                 </div>
                 
                 <!-- Progress Bar -->
                 <div id="progressBarContainer" style="display: none; margin-bottom: 20px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-size: 13px; color: rgba(255,255,255,0.5);">Progress</span>
-                        <span id="progressText" style="font-size: 13px; color: #4299e1; font-weight: 600;">0%</span>
+                        <span style="font-size: 13px; color: rgba(255,255,255,0.5);" data-i18n="todo.progress">Progress</span>
+                        <span id="progressText" style="font-size: 13px; color: var(--primary-blue); font-weight: 600;">0%</span>
                     </div>
                     <div class="progress-track">
                         <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
@@ -91,21 +91,21 @@
 
                     <div class="add-task-btn" id="btnShowInput" style="display: flex; align-items: center; gap: 10px; cursor: pointer; width: fit-content; padding: 8px 12px; border-radius: 8px; transition: background 0.2s;">
                         <i class="fa-solid fa-plus" style="color: #db4c3f; font-size: 16px;"></i>
-                        <span style="color: rgba(255,255,255,0.6); font-size: 15px; font-weight: 500;">Add task</span>
+                        <span style="color: rgba(255,255,255,0.6); font-size: 15px; font-weight: 500;" data-i18n="todo.addTask">Add task</span>
                     </div>
 
                     <div id="taskInputCard" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; margin-top: 5px;">
     
-                        <input type="text" id="taskNameInput" placeholder="Task name..." style="width: 100%; background: transparent; border: none; color: white; font-size: 15px; outline: none; margin-bottom: 8px;">
+                        <input type="text" id="taskNameInput" data-i18n-ph="todo.taskNamePh" placeholder="Task name..." style="width: 100%; background: transparent; border: none; color: white; font-size: 15px; outline: none; margin-bottom: 8px;">
                         
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                             <i class="fa-regular fa-clock" style="color: #ffffff; font-size: 17px;"></i>
-                            <input type="text" id="taskDeadlineInput" placeholder="Deadline (EX: 20/10 or Monday)..." style="background: transparent; border: none; color: #ffffff; font-size: 13px; outline: none; width: 100%;">
+                            <input type="text" id="taskDeadlineInput" data-i18n-ph="todo.taskDeadlinePh" placeholder="Deadline (EX: 20/10 or Monday)..." style="background: transparent; border: none; color: #ffffff; font-size: 13px; outline: none; width: 100%;">
                         </div>
 
                         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                            <button id="btnCancelTask" style="background: transparent; color: #808080; border: none; padding: 5px 10px; cursor: pointer; font-size: 13px;">Cancel</button>
-                            <button id="btnSaveTask" style="background: #db4c3f; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: 600;">Add task</button>
+                            <button id="btnCancelTask" style="background: transparent; color: #808080; border: none; padding: 5px 10px; cursor: pointer; font-size: 13px;" data-i18n="common.cancel">Cancel</button>
+                            <button id="btnSaveTask" style="background: #db4c3f; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: 600;" data-i18n="todo.addTask">Add task</button>
                         </div>
                     </div>
 
@@ -121,20 +121,20 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>New Project</h3>
+                <h3 data-i18n="todo.newProjectTitle">New Project</h3>
                 
             </div>
             <div class="input-group">
-                <label for="projectNameInput">Project name</label>
-                <input type="text" id="projectNameInput" placeholder="EX: learn Endlish,...">
+                <label for="projectNameInput" data-i18n="todo.projectName">Project name</label>
+                <input type="text" id="projectNameInput" data-i18n-ph="todo.projectNamePh" placeholder="EX: learn English,...">
             </div>
             <div class="input-group" style="margin-top: 15px;">
-                <label for="projectDeadlineInput">Deadline</label>
-                <input type="date" id="projectDeadlineInput" style="font : 20px; width: 100%; padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: white;">
+                <label for="projectDeadlineInput" data-i18n="todo.deadline">Deadline</label>
+                <input type="date" id="projectDeadlineInput">
             </div>
             <div class="modal-footer">
-                <button class="btn-modal btn-cancel" id="btnCancel">Cancel</button>
-                <button class="btn-modal btn-confirm" id="btnConfirm">create</button>
+                <button class="btn-modal btn-cancel" id="btnCancel" data-i18n="common.cancel">Cancel</button>
+                <button class="btn-modal btn-confirm" id="btnConfirm" data-i18n="todo.create">Create</button>
             </div>
             
         </div>

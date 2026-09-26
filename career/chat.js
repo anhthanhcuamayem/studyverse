@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let conversationHistory = []; // Lưu lịch sử chat
     let isSending = false;
 
-    const GREETING = "Chào bạn! Tôi là AI Career Advisor. Hãy cho tôi biết sở thích, điểm mạnh, hoặc ngành học bạn quan tâm, tôi sẽ gợi ý các nghề nghiệp phù hợp. Ví dụ: \"Tôi thích toán và lập trình\", \"Em mê vẽ và thiết kế\", \"Làm sao để trở thành bác sĩ?\"...";
+    // Đọc lời chào mỗi lần dùng (không cache) để đổi ngôn ngữ là đổi ngay
+    const greetingText = () => svT('career.greeting');
 
     // --- NGỮ CẢNH NGƯỜI DÙNG (đọc LocalStorage do Todo & Schedule lưu) ---
     function collectContext() {
@@ -58,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'message bot';
         typingDiv.id = 'typingIndicator';
-        typingDiv.innerHTML = `<div class="avatar"><i class="fa-solid fa-brain"></i></div><div class="content"><p><i class="fa-regular fa-spinner fa-pulse"></i> AI đang suy nghĩ...</p></div>`;
+        typingDiv.innerHTML = `<div class="avatar"><i class="fa-solid fa-brain"></i></div><div class="content"><p><i class="fa-regular fa-spinner fa-pulse"></i> ${svT('career.thinking')}</p></div>`;
         chatMessages.appendChild(typingDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
         return typingDiv;
@@ -81,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!response.ok || !response.body) {
             // Lỗi HTTP (400/503...) — đọc JSON lỗi để hiển thị
-            let errText = 'Không xác định';
+            let errText = svT('career.unknown');
             try {
                 const data = await response.json();
                 errText = data.error || errText;
@@ -136,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const data = await response.json();
         if (data.success) return data.reply;
-        throw new Error(data.error || 'Không xác định');
+        throw new Error(data.error || svT('career.unknown'));
     }
 
     async function sendToAI(message) {
@@ -172,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(fallbackError);
                 typingDiv.remove();
                 msgDiv.remove();
-                addMessage("Xin lỗi, tôi gặp lỗi: " + (fallbackError.message || "Không xác định"), false);
+                addMessage(svT('career.error') + (fallbackError.message || svT('career.unknown')), false);
             }
         }
     }
@@ -196,22 +197,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- QUICK ACTIONS: gợi ý câu hỏi tận dụng dữ liệu thật ---
+    // Giữ key i18n (không giữ chuỗi đã dịch) để đổi ngôn ngữ là nhãn đổi theo
     const QUICK_ACTIONS = [
-        {
-            icon: 'fa-wand-magic-sparkles',
-            label: 'Kế hoạch tuần này',
-            prompt: 'Dựa trên các dự án, công việc còn dở và thời khóa biểu của tôi, hãy đề xuất kế hoạch học tập chi tiết cho tuần này.'
-        },
-        {
-            icon: 'fa-chart-simple',
-            label: 'Phân tích tiến độ',
-            prompt: 'Hãy phân tích tiến độ các dự án của tôi: dự án nào đang chịu nhiều deadline áp lực nhất và tôi nên ưu tiên việc gì?'
-        },
-        {
-            icon: 'fa-graduation-cap',
-            label: 'Gợi ý ngành nghề',
-            prompt: 'Dựa trên các môn học trong thời khóa biểu và sở thích của tôi, hãy gợi ý 3 ngành nghề phù hợp kèm lý do cụ thể.'
-        }
+        { icon: 'fa-wand-magic-sparkles', labelKey: 'career.qa1', promptKey: 'career.q1' },
+        { icon: 'fa-chart-simple', labelKey: 'career.qa2', promptKey: 'career.q2' },
+        { icon: 'fa-graduation-cap', labelKey: 'career.qa3', promptKey: 'career.q3' }
     ];
 
     function renderQuickActions() {
@@ -221,14 +211,15 @@ document.addEventListener('DOMContentLoaded', () => {
         wrap.className = 'quick-actions';
         wrap.id = 'quickActions';
         QUICK_ACTIONS.forEach(action => {
+            const prompt = svT(action.promptKey);
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'quick-action-btn';
-            btn.innerHTML = `<i class="fa-solid ${action.icon}"></i> ${escapeHtml(action.label)}`;
+            btn.innerHTML = `<i class="fa-solid ${action.icon}"></i> ${escapeHtml(svT(action.labelKey))}`;
             btn.addEventListener('click', () => {
                 if (isSending) return;
-                addMessage(action.prompt, true);
-                sendToAI(action.prompt);
+                addMessage(prompt, true);
+                sendToAI(prompt);
             });
             wrap.appendChild(btn);
         });
@@ -249,15 +240,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     resetBtn.addEventListener('click', async () => {
-        if (await svConfirm('Xóa toàn bộ lịch sử chat?', { title: 'Xóa lịch sử', confirmText: 'Xóa', icon: 'fa-trash-can', danger: true })) {
+        if (await svConfirm(svT('career.clearChat'), { title: svT('career.clearTitle'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
             chatMessages.innerHTML = '';
             conversationHistory = [];
-            addMessage(GREETING, false);
+            addMessage(greetingText(), false);
             renderQuickActions();
         }
     });
 
+    // Đổi ngôn ngữ (panel Cài đặt) → cập nhật gợi ý nhanh, và lời chào nếu chưa chat gì
+    document.addEventListener('sv:langchange', () => {
+        renderQuickActions();
+        if (!isSending && conversationHistory.length === 0) {
+            chatMessages.innerHTML = '';
+            addMessage(greetingText(), false);
+        }
+    });
+
     // Khởi tạo
-    addMessage(GREETING, false);
+    addMessage(greetingText(), false);
     renderQuickActions();
 });

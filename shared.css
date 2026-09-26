@@ -8,14 +8,47 @@
     --bg-color: #05070a;
     --card-bg: #0d1117;
     --card-hover-bg: #141b26;
+    /* Accent: đổi theo theme qua [data-theme] ở dưới */
     --primary-blue: #007AFF;
-    --primary-blue-glow: rgba(0, 122, 255, 0.35);
+    --primary-rgb: 0, 122, 255;
+    --primary-blue-glow: rgba(var(--primary-rgb), 0.35);
+    --accent-secondary: #5856D6;
     --text-white: #ffffff;
     --text-gray: rgba(255, 255, 255, 0.6);
     --text-muted: rgba(255, 255, 255, 0.45);
     --border-soft: rgba(255, 255, 255, 0.08);
     --border-highlight: rgba(255, 255, 255, 0.15);
     --white-glow: 0 10px 30px -5px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.03);
+}
+
+/* --- THEME PALETTES (đổi --primary-* + --accent-secondary) --- */
+/* midnight = mặc định ở trên (xanh iOS) */
+[data-theme="ocean"] {
+    --primary-blue: #14b8a6;
+    --primary-rgb: 20, 184, 166;
+    --primary-blue-glow: rgba(20, 184, 166, 0.35);
+    --accent-secondary: #0ea5e9;
+}
+
+[data-theme="sunset"] {
+    --primary-blue: #f97316;
+    --primary-rgb: 249, 115, 22;
+    --primary-blue-glow: rgba(249, 115, 22, 0.35);
+    --accent-secondary: #ec4899;
+}
+
+[data-theme="royal"] {
+    --primary-blue: #8b5cf6;
+    --primary-rgb: 139, 92, 246;
+    --primary-blue-glow: rgba(139, 92, 246, 0.35);
+    --accent-secondary: #d946ef;
+}
+
+[data-theme="forest"] {
+    --primary-blue: #22c55e;
+    --primary-rgb: 34, 197, 94;
+    --primary-blue-glow: rgba(34, 197, 94, 0.35);
+    --accent-secondary: #14b8a6;
 }
 
 /* --- GLOBAL RESET --- */
@@ -133,6 +166,7 @@ body {
     opacity: 0;
     transform: translateY(20px);
     z-index: 100;
+    white-space: nowrap; /* label tiếng Việt dài không xuống dòng */
 }
 
 .navigation ul li.active a .icon,
@@ -165,6 +199,174 @@ body {
     z-index: 1;
 }
 
+/* --- SETTINGS BUTTON (navbar, inject bởi shared.js) --- */
+.nav-settings {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card-bg);
+    border: 1px solid var(--border-soft);
+    border-radius: 50%;
+    color: var(--text-gray);
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+
+.nav-settings:hover {
+    color: var(--text-white);
+    border-color: var(--border-highlight);
+    box-shadow: 0 0 14px var(--primary-blue-glow);
+}
+
+.nav-settings i { transition: transform 0.4s ease; }
+.nav-settings:hover i { transform: rotate(90deg); }
+.nav-settings.open { color: var(--primary-blue); border-color: var(--primary-blue); }
+
+@media (max-width: 768px) {
+    .nav-settings { width: 38px; height: 38px; font-size: 0.95rem; }
+}
+
+/* --- SETTINGS PANEL --- */
+.sv-settings-panel {
+    position: fixed;
+    top: 122px; /* navbar desktop cao 110px + 12px khoảng nghỉ */
+    right: 20px;
+    width: 292px;
+    max-width: calc(100vw - 24px);
+    /* Không bao giờ tràn khỏi màn hình thấp (điện thoại nằm ngang, laptop nhỏ) */
+    max-height: calc(100vh - 134px);
+    max-height: calc(100dvh - 134px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #121824;
+    border: 1px solid var(--border-highlight);
+    border-radius: 16px;
+    padding: 18px;
+    z-index: 1001;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: top right;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sv-settings-panel.open {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+}
+
+/* Navbar thu nhỏ còn 90px ở khoảng 769-900px: panel phải bám theo */
+@media (max-width: 900px) {
+    .sv-settings-panel {
+        top: 100px;
+        max-height: calc(100vh - 112px);
+        max-height: calc(100dvh - 112px);
+    }
+}
+
+@media (max-width: 768px) {
+    .sv-settings-panel {
+        top: 74px; /* navbar mobile cao 64px + 10px khoảng nghỉ */
+        right: 12px;
+        max-height: calc(100vh - 86px);
+        max-height: calc(100dvh - 86px);
+    }
+}
+
+.sv-settings-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sv-settings-title i { color: var(--primary-blue); }
+
+/* Bàn phím: nút bấm trong panel phải thấy rõ focus */
+.nav-settings:focus-visible,
+.sv-lang-btn:focus-visible,
+.sv-theme-swatch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-blue-glow);
+}
+
+.sv-settings-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin: 14px 0 8px;
+}
+
+.sv-lang-row { display: flex; gap: 6px; }
+
+.sv-lang-btn {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: 10px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-soft);
+    color: var(--text-gray);
+    font-weight: 600;
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.sv-lang-btn:hover { color: #fff; }
+.sv-lang-btn.active { background: var(--primary-blue); border-color: transparent; color: #fff; }
+
+.sv-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.sv-theme-swatch {
+    height: 40px;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+}
+
+.sv-theme-swatch:hover { transform: translateY(-2px); }
+.sv-theme-swatch.active { border-color: #fff; }
+.sv-theme-swatch[aria-pressed="false"] { opacity: 0.85; }
+.sv-theme-swatch[aria-pressed="false"]:hover { opacity: 1; }
+
+.sv-theme-swatch.active::after {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.8rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Bảng màu xem trước dùng màu CỐ ĐỊNH của từng theme — không dùng var(--primary-*)
+   vì biến đó đổi theo theme đang chọn, khiến ô "Đêm" đổi màu theo theme khác. */
+.sv-sw-midnight { background: linear-gradient(135deg, #007AFF, #5856D6); }
+.sv-sw-ocean { background: linear-gradient(135deg, #14b8a6, #0ea5e9); }
+.sv-sw-sunset { background: linear-gradient(135deg, #f97316, #ec4899); }
+.sv-sw-royal { background: linear-gradient(135deg, #8b5cf6, #d946ef); }
+.sv-sw-forest { background: linear-gradient(135deg, #22c55e, #14b8a6); }
+
 /* --- SV MODAL POPUP (thay alert/confirm/prompt mặc định, dùng chung 4 trang) --- */
 .sv-modal-overlay {
     position: fixed;
@@ -193,7 +395,7 @@ body {
     border-radius: 20px;
     padding: 28px 26px 22px;
     text-align: center;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 40px rgba(0, 122, 255, 0.08);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 40px rgba(var(--primary-rgb), 0.08);
     animation: svModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -212,8 +414,8 @@ body {
     justify-content: center;
     font-size: 1.4rem;
     color: var(--primary-blue);
-    background: rgba(0, 122, 255, 0.12);
-    border: 1px solid rgba(0, 122, 255, 0.3);
+    background: rgba(var(--primary-rgb), 0.12);
+    border: 1px solid rgba(var(--primary-rgb), 0.3);
 }
 
 .sv-modal.warn .sv-modal-icon {
@@ -290,9 +492,9 @@ body {
 }
 
 .sv-modal-btn-confirm {
-    background: linear-gradient(135deg, #007AFF, #5856D6);
+    background: linear-gradient(135deg, var(--primary-blue), var(--accent-secondary));
     color: white;
-    box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.3);
 }
 
 .sv-modal-btn-confirm:hover {
@@ -397,6 +599,35 @@ body {
     .logo { font-size: 20px; }
     .navigation ul li { width: 44px; }
     .indicator { width: 38px; }
+}
+
+/* Điện thoại hẹp (<=400px): logo + pill menu + nút Cài đặt không còn đủ chỗ trên
+   1 hàng nên trước đây nút Cài đặt bị đẩy tràn ra ngoài màn hình (bị overflow-x:
+   hidden cắt mất). Thu nhỏ từng phần để cả 3 vẫn nằm gọn trong navbar. */
+@media (max-width: 400px) {
+    .nav-container { padding: 0 10px; }
+    .logo { font-size: 17px; }
+    .navigation { padding: 0 4px; }
+    .navigation ul li { width: 39px; }
+    .nav-settings { width: 34px; height: 34px; font-size: 0.9rem; }
+}
+
+/* Màn hình rất hẹp (<=330px, vd Galaxy Fold) cần thu thêm một nấc */
+@media (max-width: 330px) {
+    .logo { font-size: 15px; }
+    .navigation { padding: 0 2px; }
+    .navigation ul li { width: 36px; }
+    .indicator { width: 34px; }
+    .nav-settings { width: 30px; height: 30px; font-size: 0.82rem; }
+}
+
+/* --- IN ẤN: nút và panel Cài đặt không bao giờ được in ra --- */
+@media print {
+    .nav-settings,
+    .sv-settings-panel,
+    .sv-modal-overlay {
+        display: none !important;
+    }
 }
 
 /* --- SHARED ANIMATIONS --- */

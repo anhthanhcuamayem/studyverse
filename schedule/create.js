@@ -10,23 +10,23 @@
 
 // --- CẤU HÌNH KHUNG GIỜ VÀ CÁC NGÀY TRONG TUẦN ---
 const SCHEDULE_SLOTS = [
-    // Buổi sáng
-    { type: "lesson", label: "Tiết 1", start: "07:15", end: "08:00" },
-    { type: "lesson", label: "Tiết 2", start: "08:05", end: "08:50" },
-    { type: "break",  label: "Ra chơi lớn", start: "08:50", end: "09:15" },
-    { type: "lesson", label: "Tiết 3", start: "09:15", end: "10:00" },
-    { type: "lesson", label: "Tiết 4", start: "10:05", end: "10:50" },
-    { type: "lesson", label: "Tiết 5", start: "10:55", end: "11:40" },
+    // Buổi sáng — label là i18n key, dịch khi render bằng svT()
+    { type: "lesson", label: "sched.period1", start: "07:15", end: "08:00" },
+    { type: "lesson", label: "sched.period2", start: "08:05", end: "08:50" },
+    { type: "break",  label: "sched.bigBreak", start: "08:50", end: "09:15" },
+    { type: "lesson", label: "sched.period3", start: "09:15", end: "10:00" },
+    { type: "lesson", label: "sched.period4", start: "10:05", end: "10:50" },
+    { type: "lesson", label: "sched.period5", start: "10:55", end: "11:40" },
 
     // Nghỉ trưa
-    { type: "break",  label: "Nghỉ trưa", start: "11:40", end: "13:30" },
+    { type: "break",  label: "sched.lunch", start: "11:40", end: "13:30" },
 
     // Buổi chiều
-    { type: "lesson", label: "Tiết 6", start: "13:30", end: "14:15" },
-    { type: "lesson", label: "Tiết 7", start: "14:20", end: "15:05" },
-    { type: "break",  label: "Giải lao chiều", start: "15:05", end: "15:20" },
-    { type: "lesson", label: "Tiết 8", start: "15:20", end: "16:05" },
-    { type: "lesson", label: "Tiết 9", start: "16:10", end: "16:55" }
+    { type: "lesson", label: "sched.period6", start: "13:30", end: "14:15" },
+    { type: "lesson", label: "sched.period7", start: "14:20", end: "15:05" },
+    { type: "break",  label: "sched.afternoonBreak", start: "15:05", end: "15:20" },
+    { type: "lesson", label: "sched.period8", start: "15:20", end: "16:05" },
+    { type: "lesson", label: "sched.period9", start: "16:10", end: "16:55" }
 ];
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -74,7 +74,7 @@ class ScheduleDashboard {
             };
             localStorage.setItem('studyverse_schedule_dashboard_data', JSON.stringify(dataToSave));
         } catch (e) {
-            console.error('Lỗi khi lưu LocalStorage:', e);
+            console.error(svT('sched.lsSaveError'), e);
         }
     }
 
@@ -95,7 +95,7 @@ class ScheduleDashboard {
                 return;
             }
         } catch (e) {
-            console.error('Lỗi khi đọc LocalStorage:', e);
+            console.error(svT('sched.lsReadError'), e);
         }
 
         this.initTimetable();
@@ -177,7 +177,7 @@ class ScheduleDashboard {
 
         if (typeof html2canvas === 'undefined') {
             this._showExportChrome();
-            this.showNotice('Thư viện chụp ảnh chưa sẵn sàng. Vui lòng tải lại trang (F5).', { title: 'Lưu ảnh', icon: 'fa-triangle-exclamation', tone: 'warn' });
+            this.showNotice(svT('sched.cameraNotReady'), { title: svT('sched.saveImage'), icon: 'fa-triangle-exclamation', tone: 'warn' });
             return;
         }
 
@@ -194,8 +194,8 @@ class ScheduleDashboard {
             link.click();
         }).catch(err => {
             this._showExportChrome();
-            console.error('Lỗi chụp ảnh TKB:', err);
-            this.showNotice('Không thể lưu ảnh. Vui lòng thử lại hoặc dùng chức năng In.', { title: 'Lưu ảnh', icon: 'fa-triangle-exclamation', tone: 'warn' });
+            console.error(svT('sched.captureError'), err);
+            this.showNotice(svT('sched.cannotSaveImage'), { title: svT('sched.saveImage'), icon: 'fa-triangle-exclamation', tone: 'warn' });
         });
     }
 
@@ -235,7 +235,7 @@ class ScheduleDashboard {
         if (!thead || !tbody) return;
 
         // 1. Header Row
-        let headerRow = '<tr><th>Thời gian / Ngày</th>';
+        let headerRow = `<tr><th>${svT('sched.timeHeader')}</th>`;
         for (let i = 0; i < DAYS.length; i++) {
             headerRow += `<th data-day="${i}">${DAYS[i]}</th>`;
         }
@@ -249,15 +249,15 @@ class ScheduleDashboard {
 
             if (slotInfo.type === 'break') {
                 bodyHtml += `<tr style="background: rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.4); font-style: italic;">`;
-                bodyHtml += `<td style="background:#0f131c; font-weight:500; font-size: 0.82em;">${slotInfo.start} - ${slotInfo.end}<br><span style="color: var(--primary-blue); font-size: 0.8em;">☕ ${slotInfo.label}</span></td>`;
+                bodyHtml += `<td style="background:#0f131c; font-weight:500; font-size: 0.82em;">${slotInfo.start} - ${slotInfo.end}<br><span style="color: var(--primary-blue); font-size: 0.8em;">☕ ${svT(slotInfo.label)}</span></td>`;
                 for (let d = 0; d < DAYS.length; d++) {
-                    bodyHtml += `<td style="text-align: center; color: rgba(255,255,255,0.2); font-size: 0.8em;" colspan="1">☕ ${slotInfo.label}</td>`;
+                    bodyHtml += `<td style="text-align: center; color: rgba(255,255,255,0.2); font-size: 0.8em;" colspan="1">☕ ${svT(slotInfo.label)}</td>`;
                 }
                 bodyHtml += `</tr>`;
                 continue;
             }
 
-            bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${slotInfo.start} - ${slotInfo.end}<br><span style="font-size: 0.75em; color: var(--text-gray);">${slotInfo.label}</span></td>`;
+            bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${slotInfo.start} - ${slotInfo.end}<br><span style="font-size: 0.75em; color: var(--text-gray);">${svT(slotInfo.label)}</span></td>`;
             for (let d = 0; d < DAYS.length; d++) {
                 const cellData = this.timetableData[d][s];
                 let cellClass = '';
@@ -266,7 +266,7 @@ class ScheduleDashboard {
 
                 if (this.disabledDays[d]) {
                     cellClass = 'disabled-day';
-                    content = '🚫 Off';
+                    content = '🚫 ' + svT('sched.offShort');
                 } else if (cellData) {
                     if (cellData.type === 'subject') {
                         cellClass = 'subject-cell';
@@ -348,7 +348,7 @@ class ScheduleDashboard {
 
         const currentCount = this.subjectCounts[subjectName] || 0;
         if (currentCount >= subjObj.sessions && (!this.timetableData[day][slot] || this.timetableData[day][slot].name !== subjectName)) {
-            this.showNotice(`Môn "${subjectName}" đã đủ số tiết (${subjObj.sessions} tiết/tuần)!`, { title: 'Môn học đã đủ tiết' });
+            this.showNotice(svT('sched.subjectFull', { name: subjectName, count: subjObj.sessions }), { title: svT('sched.enoughSessions') });
             return;
         }
 
@@ -419,7 +419,7 @@ class ScheduleDashboard {
     toggleXMark(day, slot) {
         const current = this.timetableData[day][slot];
         if (current && current.type === 'subject') {
-            this.showNotice('Vui lòng xóa môn học trước khi đánh dấu nghỉ tiết (✕).', { title: 'Không thể đánh dấu' });
+            this.showNotice(svT('sched.needRemoveFirst'), { title: svT('sched.cannotMark') });
             return;
         }
 
@@ -436,13 +436,13 @@ class ScheduleDashboard {
     /** Hiển thị bảng chọn môn Popup (Fallback cho Click / Touch) */
     showSubjectPicker(day, slot, tdElement) {
         if (this.subjects.length === 0) {
-            this.showNotice('Vui lòng thêm ít nhất một môn học trước!', { title: 'Chưa có môn học' });
+            this.showNotice(svT('sched.needOneSubject'), { title: svT('sched.noSubject') });
             return;
         }
 
         const availableSubjects = this.subjects.filter(subj => (this.subjectCounts[subj.name] || 0) < subj.sessions);
         if (availableSubjects.length === 0 && this.subjects.length > 0) {
-            this.showNotice('Tất cả các môn học đã được xếp đủ tiết!', { title: 'Hoàn tất!', icon: 'fa-circle-check', tone: 'success' });
+            this.showNotice(svT('sched.allEnough'), { title: svT('sched.done'), icon: 'fa-circle-check', tone: 'success' });
             return;
         }
 
@@ -456,7 +456,7 @@ class ScheduleDashboard {
             const remaining = subj.sessions - (this.subjectCounts[subj.name] || 0);
             btn.innerHTML = `
                 <span style="width:10px; height:10px; border-radius:50%; background:${subj.color}; display:inline-block;"></span>
-                ${escapeHtml(subj.name)} (${remaining} tiết)
+                ${escapeHtml(subj.name)} (${remaining} ${svT('sched.hoursLabel')})
             `;
             btn.onclick = (e) => {
                 e.stopPropagation();
@@ -467,7 +467,7 @@ class ScheduleDashboard {
         });
 
         const xBtn = document.createElement('button');
-        xBtn.textContent = "✗ Nghỉ tiết này (X)";
+        xBtn.textContent = svT('sched.dayOff');
         xBtn.className = 'x-btn';
         xBtn.onclick = (e) => {
             e.stopPropagation();
@@ -477,7 +477,7 @@ class ScheduleDashboard {
         pickerDiv.appendChild(xBtn);
 
         const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = "Hủy bỏ";
+        cancelBtn.textContent = svT('sched.keepBtn');
         cancelBtn.onclick = () => this.closePicker();
         pickerDiv.appendChild(cancelBtn);
 
@@ -536,15 +536,15 @@ class ScheduleDashboard {
 
     /** Hiển thị popup thông báo (dùng SV Modal dùng chung trong shared.js) */
     showNotice(message, opts = {}) {
-        const { title = 'Thông báo', icon = 'fa-circle-info', tone = '', confirmText = 'Đã hiểu' } = opts;
+        const { title = svT('common.notice'), icon = 'fa-circle-info', tone = '', confirmText = svT('sched.understood') } = opts;
         svNotice(message, { title, icon, tone, confirmText });
     }
 
     /** Hiển thị popup xác nhận (dùng SV Modal dùng chung trong shared.js). Trả về Promise<boolean> */
     showConfirmDialog(message, opts = {}) {
         const {
-            title = 'Xác nhận', icon = 'fa-circle-question', tone = '',
-            confirmText = 'Đồng ý', cancelText = 'Hủy', danger = false
+            title = svT('common.confirm'), icon = 'fa-circle-question', tone = '',
+            confirmText = svT('common.ok'), cancelText = svT('common.cancel'), danger = false
         } = opts;
         return svConfirm(message, { title, icon, tone, confirmText, cancelText, danger });
     }
@@ -561,12 +561,12 @@ class ScheduleDashboard {
         const color = colorInput ? colorInput.value : DEFAULT_COLORS[this.subjects.length % DEFAULT_COLORS.length];
 
         if (!name || isNaN(sessions) || sessions < 1) {
-            this.showNotice('Tên môn học không được trống và số tiết phải lớn hơn 0!', { title: 'Thiếu thông tin', icon: 'fa-triangle-exclamation', tone: 'warn' });
+            this.showNotice(svT('sched.invalidInputMsg'), { title: svT('sched.invalidInput'), icon: 'fa-triangle-exclamation', tone: 'warn' });
             return;
         }
 
         if (this.subjects.find(s => s.name.toLowerCase() === name.toLowerCase())) {
-            this.showNotice('Môn học này đã tồn tại trong danh sách!', { title: 'Môn học trùng lặp', icon: 'fa-triangle-exclamation', tone: 'warn' });
+            this.showNotice(svT('sched.duplicateMsg'), { title: svT('sched.duplicate'), icon: 'fa-triangle-exclamation', tone: 'warn' });
             return;
         }
 
@@ -589,7 +589,7 @@ class ScheduleDashboard {
 
         container.innerHTML = '';
         if (this.subjects.length === 0) {
-            container.innerHTML = `<p style="font-size:0.82rem; color:var(--text-muted); text-align:center; padding:12px 0;">Chưa có môn học nào. Hãy thêm ở form trên!</p>`;
+            container.innerHTML = `<p style="font-size:0.82rem; color:var(--text-muted); text-align:center; padding:12px 0;">${svT('sched.emptySubjectList')}</p>`;
             return;
         }
 
@@ -607,11 +607,11 @@ class ScheduleDashboard {
                     <span class="subject-color-tag" style="background: ${sub.color};"></span>
                     <div>
                         <div class="subject-name">${escapeHtml(sub.name)}</div>
-                        <div class="subject-count">${count}/${sub.sessions} tiết ${isFull ? '(Đủ)' : ''}</div>
+                        <div class="subject-count">${count}/${sub.sessions} ${svT('sched.hoursLabel')} ${isFull ? svT('sched.full') : ''}</div>
                     </div>
                 </div>
                 <div class="subject-actions">
-                    <button class="btn-remove-subject" title="Xóa môn">✕</button>
+                    <button class="btn-remove-subject" title="' + svT('sched.removeSubject') + '">✕</button>
                 </div>
             `;
 
@@ -637,8 +637,8 @@ class ScheduleDashboard {
     /** Xóa môn học */
     async removeSubject(name) {
         const confirmed = await this.showConfirmDialog(
-            `Bạn có chắc muốn xóa môn "${name}"? Các tiết đã xếp của môn này trên TKB sẽ bị dọn dẹp.`,
-            { title: 'Xóa môn học', confirmText: 'Xóa môn', icon: 'fa-trash-can', danger: true }
+            svT('sched.deleteSubjectMsg', { name }),
+            { title: svT('sched.deleteSubject'), confirmText: svT('sched.deleteSubjectBtn'), icon: 'fa-trash-can', danger: true }
         );
         if (confirmed) {
             for (let d = 0; d < DAYS.length; d++) {
@@ -672,7 +672,7 @@ class ScheduleDashboard {
         });
 
         if (needSchedule.length === 0) {
-            this.showNotice('Tất cả các môn học đã được xếp đầy đủ!', { title: 'Hoàn tất!', icon: 'fa-circle-check', tone: 'success' });
+            this.showNotice(svT('sched.allPlaced'), { title: svT('sched.done'), icon: 'fa-circle-check', tone: 'success' });
             return;
         }
 
@@ -720,7 +720,7 @@ class ScheduleDashboard {
         });
 
         if (needSchedule.length === 0) {
-            this.showNotice('Tất cả các môn học đã được xếp đầy đủ!', { title: 'Hoàn tất!', icon: 'fa-circle-check', tone: 'success' });
+            this.showNotice(svT('sched.allPlaced'), { title: svT('sched.done'), icon: 'fa-circle-check', tone: 'success' });
             return;
         }
 
@@ -735,7 +735,7 @@ class ScheduleDashboard {
         }
 
         if (emptySlots.length < needSchedule.length) {
-            this.showNotice(`Cần xếp ${needSchedule.length} tiết nhưng chỉ còn ${emptySlots.length} ô trống khả dụng.`, { title: 'Không đủ chỗ trống', icon: 'fa-triangle-exclamation', tone: 'warn' });
+            this.showNotice(svT('sched.notEnoughRoomMsg', { need: needSchedule.length, left: emptySlots.length }), { title: svT('sched.notEnoughRoom'), icon: 'fa-triangle-exclamation', tone: 'warn' });
             return;
         }
 
@@ -859,10 +859,10 @@ class ScheduleDashboard {
         const statusDiv = document.getElementById('status');
         if (!statusDiv) return;
 
-        let statusHtml = `<div><strong>📊 Tổng tiết học:</strong> ${totalScheduled}/${totalPlanned} tiết</div>`;
+        let statusHtml = `<div><strong>📊 ${svT('sched.totalHours')}:</strong> ${totalScheduled}/${totalPlanned} ${svT('sched.hoursLabel')}</div>`;
 
         if (totalScheduled === totalPlanned && totalPlanned > 0) {
-            statusHtml += `<div style="color:#34C759; margin-top:4px; font-weight:600;">✅ Hoàn tất 100% thời khóa biểu!</div>`;
+            statusHtml += `<div style="color:#34C759; margin-top:4px; font-weight:600;">${svT('sched.done100')}</div>`;
         }
 
         this.subjects.forEach(s => {
@@ -898,8 +898,8 @@ class ScheduleDashboard {
     /** Xóa toàn bộ dữ liệu */
     async clearAll() {
         const confirmed = await this.showConfirmDialog(
-            'Xóa toàn bộ thời khóa biểu và tất cả danh sách môn học?',
-            { title: 'Xóa tất cả', confirmText: 'Xóa hết', icon: 'fa-trash-can', danger: true }
+            svT('sched.confirmClearAll'),
+            { title: svT('sched.clearAllBtn'), confirmText: svT('sched.clearAllBtn'), icon: 'fa-trash-can', danger: true }
         );
         if (confirmed) {
             this.initTimetable();
@@ -919,5 +919,15 @@ class ScheduleDashboard {
 
 // KHỞI TẠO DASHBOARD (navbar indicator đã dùng chung trong shared.js)
 document.addEventListener('DOMContentLoaded', () => {
-    new ScheduleDashboard();
+    const dashboard = new ScheduleDashboard();
+
+    // Đổi ngôn ngữ (panel Cài đặt) → vẽ lại phần nội dung do JS sinh ra.
+    // Listener được đăng ký sau khi dashboard khởi tạo nên sự kiện i18n
+    // phát ra lúc load trang (nếu có) không làm vẽ thừa.
+    document.addEventListener('sv:langchange', () => {
+        dashboard.closePicker();
+        dashboard.renderSubjectList();
+        dashboard.renderTable();
+        dashboard.updateStatus();
+    });
 });

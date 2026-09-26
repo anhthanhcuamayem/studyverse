@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Interactive Schedule - Studyverse</title>
+    <title data-i18n="sched.pageTitle">Interactive Schedule - Studyverse</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="/shared.css">
@@ -19,25 +19,25 @@
                 <li class="list" id="li-home" data-index="0">
                     <a href="/index.html">
                         <span class="icon"><i class="fa-solid fa-house"></i></span>
-                        <span class="text">Home</span>
+                        <span class="text" data-i18n="nav.home">Home</span>
                     </a>
                 </li>
                 <li class="list" id="li-myproject" data-index="1">
                     <a href="/todo/mylist.html">
                         <span class="icon"><i class="fa-solid fa-list-check"></i></span>
-                        <span class="text">My project</span>
+                        <span class="text" data-i18n="nav.project">My project</span>
                     </a>
                 </li>
                 <li class="list active" id="li-schedule" data-index="2">
                     <a href="#">
                         <span class="icon"><i class="fa-regular fa-calendar"></i></span>
-                        <span class="text">Schedule</span>
+                        <span class="text" data-i18n="nav.schedule">Schedule</span>
                     </a>
                 </li>
                 <li class="list" id="li-career" data-index="3">
                     <a href="/career/chat.html">
                         <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
-                        <span class="text">AI Career</span>
+                        <span class="text" data-i18n="nav.career">AI Career</span>
                     </a>
                 </li>
                 <div class="indicator"></div>
@@ -51,14 +51,14 @@
         <!-- Banner tiêu đề -->
         <div class="schedule-banner">
             <div class="banner-title">
-                <h1><i class="fa-regular fa-calendar-alt"></i> Interactive Schedule</h1>
-                <p>Thiết lập thời khóa biểu thông minh: Kéo - Thả môn học, Tùy chỉnh màu sắc & Tự động xếp lịch với AI</p>
+                <h1><i class="fa-regular fa-calendar-alt"></i> <span data-i18n="sched.title">Interactive Schedule</span></h1>
+                <p data-i18n="sched.subtitle">Thiết lập thời khóa biểu thông minh: Kéo - Thả môn học, Tùy chỉnh màu sắc & Tự động xếp lịch với AI</p>
             </div>
             <div class="banner-actions">
-                <button class="btn-action btn-ai" id="auto-schedule" title="Tự động phân bổ các tiết còn trống"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Schedule</button>
-                <button class="btn-action btn-export" id="export-print-btn"><i class="fa-solid fa-print"></i> In</button>
-                <button class="btn-action btn-export" id="export-img-btn"><i class="fa-solid fa-image"></i> Lưu ảnh</button>
-                <button class="btn-action btn-danger" id="clear-all"><i class="fa-solid fa-trash-can"></i> Xóa tất cả</button>
+                <button class="btn-action btn-ai" id="auto-schedule" data-i18n-title="sched.autoTip"><i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="sched.auto">Auto Schedule</span></button>
+                <button class="btn-action btn-export" id="export-print-btn"><i class="fa-solid fa-print"></i> <span data-i18n="sched.print">In</span></button>
+                <button class="btn-action btn-export" id="export-img-btn"><i class="fa-solid fa-image"></i> <span data-i18n="sched.saveImage">Lưu ảnh</span></button>
+                <button class="btn-action btn-danger" id="clear-all"><i class="fa-solid fa-trash-can"></i> <span data-i18n="sched.clearAll">Xóa tất cả</span></button>
             </div>
         </div>
 
@@ -68,19 +68,19 @@
             <aside class="sidebar-panel">
                 <!-- Card 1: Thêm môn học -->
                 <div class="panel-card">
-                    <h3><i class="fa-solid fa-plus-circle"></i> Thêm môn học</h3>
+                    <h3><i class="fa-solid fa-plus-circle"></i> <span data-i18n="sched.addSubject">Thêm môn học</span></h3>
                     <div class="add-subject-form">
                         <div class="form-group">
-                            <label for="new-subject-name">Tên môn học</label>
-                            <input type="text" id="new-subject-name" placeholder="Ví dụ: Toán học, Tiếng Anh..." autocomplete="off">
+                            <label for="new-subject-name" data-i18n="sched.subjectName">Tên môn học</label>
+                            <input type="text" id="new-subject-name" data-i18n-ph="sched.subjectPh" placeholder="Ví dụ: Toán học, Tiếng Anh..." autocomplete="off">
                         </div>
                         <div class="form-group row-group">
                             <div>
-                                <label for="new-subject-sessions">Số tiết / tuần</label>
+                                <label for="new-subject-sessions" data-i18n="sched.sessionsWeek">Số tiết / tuần</label>
                                 <input type="number" id="new-subject-sessions" min="1" max="20" value="2">
                             </div>
                             <div>
-                                <label for="new-subject-color">Màu hiển thị</label>
+                                <label for="new-subject-color" data-i18n="sched.displayColor">Màu hiển thị</label>
                                 <div class="color-picker-wrapper">
                                     <input type="color" id="new-subject-color" value="#007AFF">
                                 </div>
@@ -98,14 +98,14 @@
                             <span class="color-dot" data-color="#00C7BE" style="background: #00C7BE;"></span>
                         </div>
 
-                        <button id="add-subject-btn" class="btn-add"><i class="fa-solid fa-plus"></i> Thêm môn học</button>
+                        <button id="add-subject-btn" class="btn-add"><i class="fa-solid fa-plus"></i> <span data-i18n="sched.addSubject">Thêm môn học</span></button>
                     </div>
                 </div>
 
                 <!-- Card 2: Danh sách môn học (Draggable Pool) -->
                 <div class="panel-card">
-                    <h3><i class="fa-solid fa-grip-vertical"></i> Danh sách môn học</h3>
-                    <p class="drag-hint"><i class="fa-solid fa-hand-pointer"></i> <strong>Kéo & Thả</strong> thẻ môn học vào thời khóa biểu hoặc nhấp trực tiếp vào ô tiết học.</p>
+                    <h3><i class="fa-solid fa-grip-vertical"></i> <span data-i18n="sched.subjectList">Danh sách môn học</span></h3>
+                    <p class="drag-hint"><i class="fa-solid fa-hand-pointer"></i> <strong data-i18n="sched.dragHint1">Kéo & Thả</strong> <span data-i18n="sched.dragHint2">thẻ môn học vào thời khóa biểu hoặc nhấp trực tiếp vào ô tiết học.</span></p>
                     <div class="subjects-list" id="subjects-list">
                         <!-- Thẻ môn học sẽ được render tự động ở đây -->
                     </div>
@@ -113,7 +113,7 @@
 
                 <!-- Card 3: Thống kê & Tiến độ -->
                 <div class="panel-card">
-                    <h3><i class="fa-solid fa-chart-pie"></i> Tiến độ phân bổ</h3>
+                    <h3><i class="fa-solid fa-chart-pie"></i> <span data-i18n="sched.progress">Tiến độ phân bổ</span></h3>
                     <div id="status" class="status-box"></div>
                 </div>
             </aside>
@@ -123,12 +123,12 @@
                 <!-- Toolbar trên bảng TKB -->
                 <div class="timetable-toolbar">
                     <div class="toolbar-info">
-                        <span><i class="fa-solid fa-info-circle"></i> Click <strong>Thứ (Mon-Sun)</strong> để bật/tắt cả ngày. Click chuột phải ô để đánh dấu <strong>Nghỉ tiết (✕)</strong>.</span>
+                        <span><i class="fa-solid fa-info-circle"></i> <span data-i18n="sched.legendClick">Click</span> <strong data-i18n="sched.legendDay">Thứ (Mon-Sun)</strong> <span data-i18n="sched.legendToggle">để bật/tắt cả ngày. Click chuột phải ô để đánh dấu</span> <strong data-i18n="sched.legendBreak">Nghỉ tiết (✕)</strong>.</span>
                     </div>
                     <div class="timetable-legend">
-                        <div><span class="legend-box subject-legend"></span> Đã xếp môn</div>
-                        <div><span class="legend-box x-legend"></span> Nghỉ tiết (✕)</div>
-                        <div><span class="legend-box off-legend"></span> Nghỉ cả ngày</div>
+                        <div><span class="legend-box subject-legend"></span> <span data-i18n="sched.legendScheduled">Đã xếp môn</span></div>
+                        <div><span class="legend-box x-legend"></span> <span data-i18n="sched.legendBreak">Nghỉ tiết (✕)</span></div>
+                        <div><span class="legend-box off-legend"></span> <span data-i18n="sched.legendOff">Nghỉ cả ngày</span></div>
                     </div>
                 </div>
 

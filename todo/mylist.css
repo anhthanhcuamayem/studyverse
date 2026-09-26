@@ -78,20 +78,20 @@ html {
 
 .sidebar-item.active {
     background: rgba(255, 255, 255, 0.1);
-    color: #4299e1;
+    color: var(--primary-blue);
     font-weight: 600;
     transform: scale(0.98);
     transition: 0.1s;
 }
 
 .sidebar-item.active-item {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(var(--primary-rgb), 0.2);
     border-left: 4px solid #ffffff;
     border-radius: 10px;
 }
 
 .sidebar-item.active i {
-    color: #4299e1;
+    color: var(--primary-blue);
 }
 
 /* --- PROJECT DETAIL (RIGHT) --- */
@@ -123,7 +123,7 @@ html {
 /* --- NEW PROJECT BUTTON --- */
 .btn-new-project {
     width: 100%;
-    background: linear-gradient(135deg, #4299e1, #3182ce);
+    background: linear-gradient(135deg, var(--primary-blue), var(--accent-secondary));
     color: white;
     border: none;
     margin-top: 15px;
@@ -133,13 +133,13 @@ html {
     padding: 14px;
     border-radius: 12px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+    box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.3);
     transition: 0.4s;
 }
 
 .btn-new-project:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(66, 153, 225, 0.5);
+    box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.5);
 }
 
 /* --- MODAL --- */
@@ -212,9 +212,9 @@ html {
 }
 
 #projectNameInput:focus {
-    border-color: #4299e1;
+    border-color: var(--primary-blue);
     background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.15);
+    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
 }
 
 .color-picker {
@@ -264,13 +264,13 @@ html {
 }
 
 .btn-confirm {
-    background: #4299e1;
+    background: var(--primary-blue);
     color: white;
-    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 .btn-confirm:hover {
-    background: #3182ce;
+    background: var(--primary-blue);
     transform: translateY(-2px);
 }
 
@@ -294,14 +294,35 @@ html {
     cursor: pointer;
 }
 
-#projectDeadlineInput::-webkit-calendar-picker-indicator {
-    display: none;
+/* Ô chọn hạn chót: style đồng bộ với #projectNameInput (trước đây là inline style
+   sai cú pháp "font : 20px" và icon lịch bị ẩn nên không có cách nào mở picker). */
+#projectDeadlineInput {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-family: inherit;
+    font-size: 1rem;
+    outline: none;
+    color-scheme: dark; /* date picker native hiển thị theo nền tối */
+    transition: 0.3s;
 }
+
+#projectDeadlineInput:focus {
+    border-color: var(--primary-blue);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
+}
+
+/* Trước đây icon lịch bị ẩn (display: none) nên không có cách nào mở date picker.
+   Để hiển thị mặc định + color-scheme: dark ở trên là đủ tương phản. */
 
 /* --- TASK COMPLETED STATE --- */
 .task-check.completed {
-    background-color: #2196f3 !important;
-    border-color: #2196f3 !important;
+    background-color: var(--primary-blue) !important;
+    border-color: var(--primary-blue) !important;
     transition: all 0.3s ease;
 }
 
@@ -349,7 +370,7 @@ html {
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #4299e1, #2196f3);
+    background: linear-gradient(90deg, var(--primary-blue), var(--accent-secondary));
     border-radius: 3px;
     transition: width 0.5s ease;
 }
@@ -372,11 +393,11 @@ html {
 .task-item.dragging {
     opacity: 0.4;
     transform: scale(0.98);
-    background: rgba(66, 153, 225, 0.05);
+    background: rgba(var(--primary-rgb), 0.05);
 }
 
 .task-item.drag-over {
-    border-top: 2px solid #4299e1;
+    border-top: 2px solid var(--primary-blue);
     margin-top: -1px;
 }
 
@@ -390,7 +411,7 @@ html {
 }
 
 .task-item.dragging .task-drag-handle {
-    color: #4299e1;
+    color: var(--primary-blue);
 }
 
 /* --- RESPONSIVE (TODO PAGE) --- */
