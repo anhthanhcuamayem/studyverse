@@ -40,6 +40,11 @@ main {
     line-height: 1.1;
 }
 
+[data-theme="light"] .white-text,
+[data-theme="pink"] .white-text {
+    color: var(--text-white);
+}
+
 .blue-text {
     color: var(--primary-blue);
     white-space: nowrap;
@@ -208,6 +213,34 @@ main {
     display: block;
     object-fit: contain;
     mix-blend-mode: screen;
+}
+
+/* Ảnh minh họa là artwork nền tối; cần một lớp nền tương phản khi dùng theme Hồng
+   để các màn hình và đường viền không bị hòa vào nền #FFD9E8. */
+[data-theme="pink"] .big-illustration-container {
+    position: relative;
+    padding: 22px;
+    border: 1px solid rgba(216, 107, 147, 0.28);
+    border-radius: 30px;
+    background: linear-gradient(135deg, rgba(9, 13, 22, 0.98), rgba(20, 27, 40, 0.98));
+    box-shadow: 0 22px 50px rgba(157, 23, 77, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .big-illustration-container {
+    position: relative;
+    padding: 22px;
+    border: 1px solid rgba(37, 99, 235, 0.22);
+    border-radius: 30px;
+    background: linear-gradient(135deg, rgba(9, 13, 22, 0.98), rgba(20, 27, 40, 0.98));
+    box-shadow: 0 22px 50px rgba(31, 41, 55, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="pink"] .img-large {
+    filter: drop-shadow(0 18px 30px rgba(157, 23, 77, 0.28));
+}
+
+[data-theme="light"] .img-large {
+    filter: drop-shadow(0 18px 30px rgba(31, 41, 55, 0.28));
 }
 
 /* --- RESPONSIVE (HOMEPAGE) --- */

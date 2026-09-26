@@ -15,7 +15,7 @@ window.SV_CONFIG = {
     // --- Panel Cài đặt (theme + ngôn ngữ) ---
     defaultLang: 'vi',                                   // 'vi' | 'en'
     defaultTheme: 'midnight',                            // phải nằm trong `themes`
-    themes: ['midnight', 'ocean', 'sunset', 'royal', 'forest'],
+    themes: ['midnight', 'ocean', 'cyan', 'sunset', 'royal', 'forest', 'light', 'pink'],
 
     // --- Khóa lưu trong localStorage (đổi = mất dữ liệu cũ) ---
     storage: {
@@ -46,18 +46,18 @@ window.SV_CONFIG = {
         // type: 'lesson' (tiết) | 'break' (giờ nghỉ)
         // label: chỉ dùng cho giờ nghỉ (khóa i18n); tiết học tự đánh số theo vị trí
         defaultSlots: [
-            { id: 'p1', type: 'lesson', label: 'sched.period1', start: '07:15', end: '08:00' },
-            { id: 'p2', type: 'lesson', label: 'sched.period2', start: '08:05', end: '08:50' },
-            { id: 'b-big', type: 'break', label: 'sched.bigBreak', start: '08:50', end: '09:15' },
-            { id: 'p3', type: 'lesson', label: 'sched.period3', start: '09:15', end: '10:00' },
-            { id: 'p4', type: 'lesson', label: 'sched.period4', start: '10:05', end: '10:50' },
-            { id: 'p5', type: 'lesson', label: 'sched.period5', start: '10:55', end: '11:40' },
-            { id: 'b-lunch', type: 'break', label: 'sched.lunch', start: '11:40', end: '13:30' },
+            { id: 'p1', type: 'lesson', label: 'sched.period1', start: '07:00', end: '07:45' },
+            { id: 'p2', type: 'lesson', label: 'sched.period2', start: '07:50', end: '08:35' },
+            { id: 'b-big', type: 'break', label: 'sched.bigBreak', start: '08:35', end: '08:55' },
+            { id: 'p3', type: 'lesson', label: 'sched.period3', start: '08:55', end: '09:40' },
+            { id: 'p4', type: 'lesson', label: 'sched.period4', start: '09:45', end: '10:30' },
+            { id: 'p5', type: 'lesson', label: 'sched.period5', start: '10:35', end: '11:20' },
+            { id: 'b-lunch', type: 'break', label: 'sched.lunch', start: '11:20', end: '13:30' },
             { id: 'p6', type: 'lesson', label: 'sched.period6', start: '13:30', end: '14:15' },
             { id: 'p7', type: 'lesson', label: 'sched.period7', start: '14:20', end: '15:05' },
-            { id: 'b-aft', type: 'break', label: 'sched.afternoonBreak', start: '15:05', end: '15:20' },
-            { id: 'p8', type: 'lesson', label: 'sched.period8', start: '15:20', end: '16:05' },
-            { id: 'p9', type: 'lesson', label: 'sched.period9', start: '16:10', end: '16:55' }
+            { id: 'b-aft', type: 'break', label: 'sched.afternoonBreak', start: '15:05', end: '15:25' },
+            { id: 'p8', type: 'lesson', label: 'sched.period8', start: '15:25', end: '16:10' },
+            { id: 'p9', type: 'lesson', label: 'sched.period9', start: '16:15', end: '17:00' }
         ]
     }
 };

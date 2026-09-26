@@ -38,7 +38,7 @@ body {
 .banner-title h1 {
     font-size: 1.75rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #ffffff, var(--primary-blue));
+    background: linear-gradient(135deg, var(--text-white), var(--primary-blue));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     display: flex;
@@ -86,7 +86,7 @@ body {
 .btn-export {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid var(--border-soft);
-    color: white;
+    color: var(--text-white);
 }
 
 .btn-export:hover {
@@ -752,7 +752,7 @@ input[type="color"] {
     max-height: calc(100dvh - 40px);
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, #151d2c 0%, #101722 100%);
+    background: var(--panel-bg);
     border: 1px solid var(--border-highlight);
     border-radius: 24px;
     padding: 24px 24px 18px;
@@ -818,9 +818,149 @@ input[type="color"] {
     font-weight: 600;
 }
 
+.time-config-settings {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 10px;
+    border: 1px solid var(--border-soft);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.tc-duration-setting,
+.tc-lock-setting {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+}
+
+.tc-duration-setting {
+    flex: 0 0 250px;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 10px 0 4px;
+    border-right: 1px solid var(--border-soft);
+}
+
+.tc-setting-copy,
+.tc-setting-copy strong,
+.tc-lock-copy strong {
+    color: var(--text-white);
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.tc-setting-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tc-setting-copy small {
+    max-width: 150px;
+    color: var(--text-muted);
+    font-size: 0.66rem;
+    font-weight: 400;
+    line-height: 1.3;
+}
+
+.tc-number-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+}
+
+.tc-lesson-duration {
+    position: relative;
+    z-index: 1;
+    width: 88px;
+    min-height: 34px;
+    padding: 5px 7px;
+    box-sizing: border-box;
+    border: 1px solid var(--border-soft);
+    border-radius: 9px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    text-align: center;
+    pointer-events: auto;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.tc-lesson-duration::-webkit-outer-spin-button,
+.tc-lesson-duration::-webkit-inner-spin-button {
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.tc-lesson-duration:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px var(--primary-blue-glow);
+}
+
+.tc-lock-setting {
+    position: relative;
+    flex: 1;
+    gap: 9px;
+    cursor: pointer;
+}
+
+.tc-lock-setting > input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tc-switch {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    flex: 0 0 38px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    transition: background 0.2s ease;
+}
+
+.tc-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.tc-lock-setting > input:checked + .tc-switch { background: var(--primary-blue); }
+.tc-lock-setting > input:checked + .tc-switch::after { transform: translateX(16px); }
+.tc-lock-setting > input:focus-visible + .tc-switch { box-shadow: 0 0 0 3px var(--primary-blue-glow); }
+
+.tc-lock-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tc-lock-copy small {
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    line-height: 1.3;
+}
+
 .time-config-columns {
     display: grid;
-    grid-template-columns: minmax(170px, 1fr) minmax(220px, auto) 128px;
+    grid-template-columns: 30px minmax(170px, 1fr) minmax(220px, auto) 84px;
     gap: 12px;
     padding: 0 12px 7px;
     color: var(--text-muted);
@@ -830,7 +970,7 @@ input[type="color"] {
     text-transform: uppercase;
 }
 
-.time-config-columns span:nth-child(2) { text-align: center; }
+.time-config-columns span:nth-child(3) { text-align: center; }
 .time-config-columns span:last-child { text-align: right; }
 
 /* Danh sách tiết: cuộn được khi màn hình thấp */
@@ -846,10 +986,10 @@ input[type="color"] {
 
 .time-config-row {
     display: grid;
-    grid-template-columns: minmax(150px, 1fr) auto auto;
+    grid-template-columns: 30px minmax(150px, 1fr) auto auto;
     grid-template-areas:
-        "main times actions"
-        "message message message";
+        "handle main times actions"
+        "message message message message";
     align-items: center;
     gap: 8px 12px;
     padding: 11px 12px 10px;
@@ -868,6 +1008,32 @@ input[type="color"] {
     border-color: rgba(var(--primary-rgb), 0.65);
     background: rgba(var(--primary-rgb), 0.055);
 }
+
+.tc-drag-handle {
+    grid-area: handle;
+    width: 28px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: grab;
+    touch-action: none;
+}
+
+.tc-drag-handle:hover { color: var(--primary-blue); background: rgba(var(--primary-rgb), 0.1); }
+.tc-drag-handle:active { cursor: grabbing; }
+.tc-drag-handle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-blue-glow);
+}
+
+.time-config-row.is-dragging { opacity: 0.42; }
+.time-config-row.is-drop-before { box-shadow: 0 -3px 0 var(--primary-blue); }
+.time-config-row.is-drop-after { box-shadow: 0 3px 0 var(--primary-blue); }
 
 .time-config-row.is-invalid {
     border-color: #ff3b30;
@@ -1072,6 +1238,13 @@ input[type="color"] {
     box-shadow: 0 0 0 3px var(--primary-blue-glow);
 }
 
+.tc-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    border-color: rgba(var(--primary-rgb), 0.35);
+    background: rgba(var(--primary-rgb), 0.08);
+}
+
 /* Icon đồng hồ trong input type=time: làm sáng cho hợp nền tối */
 .tc-input::-webkit-calendar-picker-indicator {
     filter: invert(0.8);
@@ -1126,20 +1299,24 @@ input[type="color"] {
 .tc-input:focus-visible,
 .tc-btn:focus-visible,
 .tc-icon-btn:focus-visible,
+.tc-drag-handle:focus-visible,
 .tc-add:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px var(--primary-blue-glow);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
     .time-config-modal { padding: 18px 14px 14px; border-radius: 19px; }
+    .time-config-settings { flex-direction: column; gap: 8px; }
+    .tc-duration-setting { flex-basis: auto; padding: 0 4px 9px; border-right: 0; border-bottom: 1px solid var(--border-soft); }
+    .tc-lock-setting { padding: 2px 4px 0; }
     .time-config-columns { display: none; }
     .time-config-row {
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 30px 1fr auto;
         grid-template-areas:
-            "main actions"
-            "times times"
-            "message message";
+            "handle main actions"
+            "handle times times"
+            "message message message";
     }
     .tc-times { justify-content: space-between; }
     .tc-time-field { flex: 1; }

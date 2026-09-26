@@ -482,4 +482,178 @@ html {
     main {
         padding-bottom: env(safe-area-inset-bottom);
     }
-}/* SV MODAL POPUP: đã gom vào shared.css (dùng chung cả 4 trang) */
+}
+
+/* --- TODO TRÊN NỀN SÁNG (light / pink) ---
+   Các style cũ của Todo được thiết kế cho nền tối và có nhiều màu trắng inline.
+   Đổi riêng các bề mặt/chữ tại đây để nội dung không bị chìm khi dùng theme sáng. */
+[data-theme="light"] .project-sidebar,
+[data-theme="pink"] .project-sidebar,
+[data-theme="light"] .detail-card,
+[data-theme="pink"] .detail-card {
+    background: rgba(255, 255, 255, 0.78);
+    border-color: rgba(17, 24, 39, 0.12);
+    color: var(--text-white);
+    box-shadow: 0 14px 35px rgba(157, 23, 77, 0.09);
+}
+
+[data-theme="light"] .project-sidebar h2,
+[data-theme="pink"] .project-sidebar h2,
+[data-theme="light"] .detail-header h2,
+[data-theme="pink"] .detail-header h2,
+[data-theme="light"] .sidebar-item,
+[data-theme="pink"] .sidebar-item,
+[data-theme="light"] .sidebar-item span,
+[data-theme="pink"] .sidebar-item span,
+[data-theme="light"] .project-name-text,
+[data-theme="pink"] .project-name-text,
+[data-theme="light"] .task-name,
+[data-theme="pink"] .task-name {
+    color: var(--text-white) !important;
+}
+
+[data-theme="light"] .sidebar-item:hover,
+[data-theme="pink"] .sidebar-item:hover {
+    background: rgba(var(--primary-rgb), 0.10);
+}
+
+[data-theme="light"] .sidebar-item.active-item,
+[data-theme="pink"] .sidebar-item.active-item {
+    background: rgba(var(--primary-rgb), 0.14);
+    border-left-color: var(--primary-blue);
+}
+
+[data-theme="light"] .sidebar-item i,
+[data-theme="pink"] .sidebar-item i {
+    color: var(--primary-blue) !important;
+}
+
+[data-theme="light"] .detail-header,
+[data-theme="pink"] .detail-header {
+    border-bottom-color: rgba(17, 24, 39, 0.12) !important;
+}
+
+[data-theme="light"] .task-item,
+[data-theme="pink"] .task-item {
+    border-bottom-color: rgba(17, 24, 39, 0.10) !important;
+}
+
+[data-theme="light"] .task-drag-handle,
+[data-theme="pink"] .task-drag-handle {
+    color: rgba(17, 24, 39, 0.30) !important;
+}
+
+[data-theme="light"] .task-drag-handle:hover,
+[data-theme="pink"] .task-drag-handle:hover {
+    color: var(--primary-blue) !important;
+    background: rgba(var(--primary-rgb), 0.10);
+}
+
+[data-theme="light"] .task-check,
+[data-theme="pink"] .task-check {
+    border-color: rgba(17, 24, 39, 0.35) !important;
+}
+
+[data-theme="light"] .btn-edit-task,
+[data-theme="pink"] .btn-edit-task,
+[data-theme="light"] .btn-edit-name,
+[data-theme="pink"] .btn-edit-name,
+[data-theme="light"] .btn-edit-deadline,
+[data-theme="pink"] .btn-edit-deadline {
+    color: rgba(17, 24, 39, 0.48) !important;
+}
+
+[data-theme="light"] .add-task-btn span,
+[data-theme="pink"] .add-task-btn span {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="light"] .add-task-btn i,
+[data-theme="pink"] .add-task-btn i {
+    color: var(--primary-blue) !important;
+}
+
+[data-theme="light"] .add-task-btn:hover,
+[data-theme="pink"] .add-task-btn:hover {
+    background: rgba(var(--primary-rgb), 0.10);
+}
+
+[data-theme="light"] #taskInputCard,
+[data-theme="pink"] #taskInputCard {
+    background: rgba(255, 255, 255, 0.72) !important;
+    border-color: rgba(17, 24, 39, 0.14) !important;
+}
+
+[data-theme="light"] #taskNameInput,
+[data-theme="pink"] #taskNameInput,
+[data-theme="light"] #taskDeadlineInput,
+[data-theme="pink"] #taskDeadlineInput {
+    color: var(--text-white) !important;
+}
+
+[data-theme="light"] #taskNameInput::placeholder,
+[data-theme="pink"] #taskNameInput::placeholder,
+[data-theme="light"] #taskDeadlineInput::placeholder,
+[data-theme="pink"] #taskDeadlineInput::placeholder {
+    color: var(--text-muted) !important;
+}
+
+[data-theme="light"] #taskInputCard .fa-clock,
+[data-theme="pink"] #taskInputCard .fa-clock {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="light"] #btnCancelTask,
+[data-theme="pink"] #btnCancelTask {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="light"] #btnSaveTask,
+[data-theme="pink"] #btnSaveTask {
+    background: var(--primary-blue) !important;
+}
+
+[data-theme="light"] .progress-track,
+[data-theme="pink"] .progress-track {
+    background: rgba(17, 24, 39, 0.10);
+}
+
+[data-theme="light"] #progressBarContainer span:first-child,
+[data-theme="pink"] #progressBarContainer span:first-child,
+[data-theme="light"] .detail-header > div:last-child,
+[data-theme="pink"] .detail-header > div:last-child {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="light"] .modal-content,
+[data-theme="pink"] .modal-content {
+    background: #ffffff;
+    border-color: rgba(17, 24, 39, 0.14);
+    color: var(--text-white);
+}
+
+[data-theme="light"] .modal-header h3,
+[data-theme="pink"] .modal-header h3,
+[data-theme="light"] .input-group label,
+[data-theme="pink"] .input-group label {
+    color: var(--text-white);
+}
+
+[data-theme="light"] .modal-header p,
+[data-theme="pink"] .modal-header p {
+    color: var(--text-gray);
+}
+
+[data-theme="light"] #projectNameInput,
+[data-theme="pink"] #projectNameInput {
+    background: rgba(17, 24, 39, 0.04);
+    border-color: rgba(17, 24, 39, 0.14);
+    color: var(--text-white);
+}
+
+[data-theme="light"] .color-picker,
+[data-theme="pink"] .color-picker {
+    color-scheme: light;
+}
+
+/* SV MODAL POPUP: đã gom vào shared.css (dùng chung cả 4 trang) */

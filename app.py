@@ -394,15 +394,23 @@ def schedule_optimize():
     availability = data.get('availability', {})
     breaks = data.get('breaks', [])
     preferences = data.get('preferences', {})
+    lesson_duration = data.get('lesson_duration', 45)
 
-    if not isinstance(subjects, list) or not isinstance(availability, dict) or not isinstance(breaks, list) or not isinstance(preferences, dict):
+    if (not isinstance(subjects, list) or not isinstance(availability, dict)
+            or not isinstance(breaks, list) or not isinstance(preferences, dict)
+            or isinstance(lesson_duration, bool) or not isinstance(lesson_duration, (int, float))
+            or not float(lesson_duration).is_integer()
+            or not 1 <= lesson_duration <= 240):
         return jsonify({'error': 'Dữ liệu không hợp lệ'}), 400
+    lesson_duration = int(lesson_duration)
 
     # Chuyển availability key sang string cho Python
     availability_str = {str(k): v for k, v in availability.items()}
 
     try:
-        result = create_timetable_with_preferences(subjects, availability_str, breaks, preferences)
+        result = create_timetable_with_preferences(
+            subjects, availability_str, breaks, preferences, lesson_duration=lesson_duration
+        )
     except Exception:
         app.logger.exception('schedule_optimize failed')
         return jsonify({'error': 'Xếp lịch thất bại'}), 500

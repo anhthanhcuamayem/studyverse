@@ -107,8 +107,9 @@
     font-size: 0.9rem;
 }
 .message.user .content {
-    background: var(--primary-blue, #007AFF);
-    border-color: var(--primary-blue, #007AFF);
+    background: var(--user-bubble-bg, var(--primary-blue, #007AFF));
+    border-color: var(--user-bubble-bg, var(--primary-blue, #007AFF));
+    color: #ffffff;
 }
 .message .content p {
     margin: 0;

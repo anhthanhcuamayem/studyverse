@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', initNavbarIndicator);
 const SV_FALLBACK_CONFIG = {
     defaultLang: 'vi',
     defaultTheme: 'midnight',
-    themes: ['midnight', 'ocean', 'sunset', 'royal', 'forest'],
+    themes: ['midnight', 'ocean', 'cyan', 'sunset', 'royal', 'forest', 'light', 'pink'],
     storage: {
         lang: 'sv-lang', theme: 'sv-theme', projects: 'studyverse_projects',
         schedule: 'studyverse_schedule_dashboard_data', lastProject: 'lastSelectedProject'
@@ -225,18 +225,18 @@ const SV_FALLBACK_CONFIG = {
         dayI18nKeys: ['sched.day.mon', 'sched.day.tue', 'sched.day.wed', 'sched.day.thu', 'sched.day.fri', 'sched.day.sat', 'sched.day.sun'],
         subjectColors: ['#007AFF', '#34C759', '#AF52DE', '#FF9500', '#FF2D55', '#5856D6', '#00C7BE'],
         defaultSlots: [
-            { id: 'p1', type: 'lesson', label: 'sched.period1', start: '07:15', end: '08:00' },
-            { id: 'p2', type: 'lesson', label: 'sched.period2', start: '08:05', end: '08:50' },
-            { id: 'b-big', type: 'break', label: 'sched.bigBreak', start: '08:50', end: '09:15' },
-            { id: 'p3', type: 'lesson', label: 'sched.period3', start: '09:15', end: '10:00' },
-            { id: 'p4', type: 'lesson', label: 'sched.period4', start: '10:05', end: '10:50' },
-            { id: 'p5', type: 'lesson', label: 'sched.period5', start: '10:55', end: '11:40' },
-            { id: 'b-lunch', type: 'break', label: 'sched.lunch', start: '11:40', end: '13:30' },
+            { id: 'p1', type: 'lesson', label: 'sched.period1', start: '07:00', end: '07:45' },
+            { id: 'p2', type: 'lesson', label: 'sched.period2', start: '07:50', end: '08:35' },
+            { id: 'b-big', type: 'break', label: 'sched.bigBreak', start: '08:35', end: '08:55' },
+            { id: 'p3', type: 'lesson', label: 'sched.period3', start: '08:55', end: '09:40' },
+            { id: 'p4', type: 'lesson', label: 'sched.period4', start: '09:45', end: '10:30' },
+            { id: 'p5', type: 'lesson', label: 'sched.period5', start: '10:35', end: '11:20' },
+            { id: 'b-lunch', type: 'break', label: 'sched.lunch', start: '11:20', end: '13:30' },
             { id: 'p6', type: 'lesson', label: 'sched.period6', start: '13:30', end: '14:15' },
             { id: 'p7', type: 'lesson', label: 'sched.period7', start: '14:20', end: '15:05' },
-            { id: 'b-aft', type: 'break', label: 'sched.afternoonBreak', start: '15:05', end: '15:20' },
-            { id: 'p8', type: 'lesson', label: 'sched.period8', start: '15:20', end: '16:05' },
-            { id: 'p9', type: 'lesson', label: 'sched.period9', start: '16:10', end: '16:55' }
+            { id: 'b-aft', type: 'break', label: 'sched.afternoonBreak', start: '15:05', end: '15:25' },
+            { id: 'p8', type: 'lesson', label: 'sched.period8', start: '15:25', end: '16:10' },
+            { id: 'p9', type: 'lesson', label: 'sched.period9', start: '16:15', end: '17:00' }
         ]
     }
 };
@@ -261,9 +261,12 @@ const SV_I18N = {
     'settings.theme': { vi: 'Màu chủ đề', en: 'Theme' },
     'theme.midnight': { vi: 'Đêm', en: 'Midnight' },
     'theme.ocean': { vi: 'Biển', en: 'Ocean' },
+    'theme.cyan': { vi: 'Cyan', en: 'Cyan' },
     'theme.sunset': { vi: 'Hoàng hôn', en: 'Sunset' },
     'theme.royal': { vi: 'Hoàng gia', en: 'Royal' },
     'theme.forest': { vi: 'Rừng', en: 'Forest' },
+    'theme.light': { vi: 'Trắng', en: 'Light' },
+    'theme.pink': { vi: 'Hồng', en: 'Pink' },
     // Modal chung
     'common.ok': { vi: 'Đồng ý', en: 'OK' },
     'common.save': { vi: 'Lưu', en: 'Save' },
@@ -375,6 +378,7 @@ const SV_I18N = {
     'sched.addPeriod': { vi: 'Thêm tiết', en: 'Add period' },
     'sched.moveUp': { vi: 'Di chuyển lên', en: 'Move up' },
     'sched.moveDown': { vi: 'Di chuyển xuống', en: 'Move down' },
+    'sched.dragToReorder': { vi: 'Kéo để sắp xếp', en: 'Drag to reorder' },
     'sched.removeSlot': { vi: 'Xóa khung này', en: 'Remove this slot' },
     'sched.duplicateSlot': { vi: 'Nhân bản khung này', en: 'Duplicate this slot' },
     'sched.timeOverlap': { vi: 'Khung giờ chồng lấn', en: 'Overlapping times' },
@@ -390,6 +394,12 @@ const SV_I18N = {
     'sched.addBreak': { vi: 'Thêm giờ nghỉ', en: 'Add break' },
     'sched.timeRowInvalid': { vi: 'Giờ kết thúc phải sau giờ bắt đầu', en: 'End time must be after start time' },
     'sched.timeRowOverlap': { vi: 'Đang chồng lấn với khung khác', en: 'Overlaps another time slot' },
+    'sched.lessonDuration': { vi: 'Thời lượng mỗi tiết', en: 'Lesson duration' },
+    'sched.lessonDurationHint': { vi: 'Mặc định cho tiết mới; bật khóa để áp dụng tất cả.', en: 'Default for new lessons; turn on the lock to apply to all.' },
+    'sched.minutesShort': { vi: 'phút', en: 'min' },
+    'sched.lockDuration': { vi: 'Khóa cùng thời lượng', en: 'Lock same duration' },
+    'sched.lockDurationHint': { vi: 'Bật: mọi tiết học sẽ có cùng số phút.', en: 'On: every lesson uses the same number of minutes.' },
+    'sched.durationInvalid': { vi: 'Thời lượng tiết phải là số phút từ 1 đến 240.', en: 'Lesson duration must be between 1 and 240 minutes.' },
     'sched.cannotRemove': { vi: 'Không thể xóa', en: 'Cannot remove' },
     'sched.done': { vi: 'Hoàn tất!', en: 'All done!' },
     'sched.allPlaced': { vi: 'Tất cả các môn học đã được xếp đầy đủ!', en: 'All subjects have been fully scheduled!' },

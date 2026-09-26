@@ -47,7 +47,7 @@ def generate_slots(available_slots, fixed_breaks, lesson_duration=45):
                 current += lesson_duration
     return slots
 
-def create_timetable_with_preferences(subjects, availability, breaks, preferences=None):
+def create_timetable_with_preferences(subjects, availability, breaks, preferences=None, lesson_duration=45):
     """
     Xếp lịch dựa trên cấu trúc các slot giờ khả dụng và ưu tiên người dùng.
     preferences: {'preferred_slots': ['morning','afternoon'], 'avoid_days': [0,3], 'subject_preferences': {'Toán':'morning'}}
@@ -61,7 +61,7 @@ def create_timetable_with_preferences(subjects, availability, breaks, preference
             # Lọc bỏ các ngày cần tránh
             if day in preferences.get('avoid_days', []):
                 continue
-            slots = generate_slots(availability[str(day)], breaks)
+            slots = generate_slots(availability[str(day)], breaks, lesson_duration=lesson_duration)
             all_slots.extend([(day, start, end) for (start, end) in slots])
 
     # Sắp xếp slot dựa trên ưu tiên (morning/afternoon)

@@ -19,6 +19,9 @@
     --border-soft: rgba(255, 255, 255, 0.08);
     --border-highlight: rgba(255, 255, 255, 0.15);
     --white-glow: 0 10px 30px -5px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.03);
+    --navbar-bg: rgba(5, 7, 10, 0.88);
+    --panel-bg: #121824;
+    --user-bubble-bg: var(--primary-blue);
 }
 
 /* --- THEME PALETTES (đổi --primary-* + --accent-secondary) --- */
@@ -35,6 +38,25 @@
     --primary-rgb: 20, 184, 166;
     --primary-blue-glow: rgba(20, 184, 166, 0.35);
     --accent-secondary: #0ea5e9;
+}
+
+[data-theme="cyan"] {
+    --bg-color: #06151a;
+    --card-bg: #0b2228;
+    --card-hover-bg: #10333a;
+    --primary-blue: #06b6d4;
+    --primary-rgb: 6, 182, 212;
+    --primary-blue-glow: rgba(6, 182, 212, 0.35);
+    --accent-secondary: #67e8f9;
+    --text-white: #f2fdff;
+    --text-gray: rgba(242, 253, 255, 0.72);
+    --text-muted: rgba(242, 253, 255, 0.48);
+    --border-soft: rgba(103, 232, 249, 0.14);
+    --border-highlight: rgba(103, 232, 249, 0.30);
+    --white-glow: 0 10px 30px -5px rgba(0, 30, 38, 0.40), 0 0 20px rgba(103, 232, 249, 0.05);
+    --navbar-bg: rgba(6, 21, 26, 0.90);
+    --panel-bg: #0d2930;
+    --user-bubble-bg: #06b6d4;
 }
 
 [data-theme="sunset"] {
@@ -58,6 +80,43 @@
     --accent-secondary: #14b8a6;
 }
 
+[data-theme="light"] {
+    --bg-color: #f4f7fb;
+    --card-bg: #ffffff;
+    --card-hover-bg: #eef2f7;
+    --primary-blue: #2563eb;
+    --primary-rgb: 37, 99, 235;
+    --primary-blue-glow: rgba(37, 99, 235, 0.24);
+    --accent-secondary: #7c3aed;
+    --text-white: #172033;
+    --text-gray: rgba(23, 32, 51, 0.72);
+    --text-muted: rgba(23, 32, 51, 0.52);
+    --border-soft: rgba(23, 32, 51, 0.12);
+    --border-highlight: rgba(23, 32, 51, 0.22);
+    --white-glow: 0 10px 30px -5px rgba(31, 41, 55, 0.12);
+    --navbar-bg: rgba(255, 255, 255, 0.9);
+    --panel-bg: #ffffff;
+}
+
+[data-theme="pink"] {
+    --bg-color: #ffd9e8;
+    --card-bg: #ffffff;
+    --card-hover-bg: #fff0f5;
+    --primary-blue: #d86b93;
+    --primary-rgb: 216, 107, 147;
+    --primary-blue-glow: rgba(216, 107, 147, 0.24);
+    --accent-secondary: #ff88b4;
+    --text-white: #111827;
+    --text-gray: rgba(17, 24, 39, 0.74);
+    --text-muted: rgba(17, 24, 39, 0.54);
+    --border-soft: rgba(17, 24, 39, 0.12);
+    --border-highlight: rgba(216, 107, 147, 0.3);
+    --white-glow: 0 10px 30px -5px rgba(157, 23, 77, 0.16);
+    --navbar-bg: rgba(255, 255, 255, 0.92);
+    --panel-bg: #ffffff;
+    --user-bubble-bg: #d86b93;
+}
+
 /* --- GLOBAL RESET --- */
 * {
     margin: 0;
@@ -79,7 +138,7 @@ body {
     top: 0;
     left: 0;
     height: 110px;
-    background: rgba(5, 7, 10, 0.88);
+    background: var(--navbar-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border-soft);
@@ -162,6 +221,11 @@ body {
     transition: 0.5s;
     color: #fff;
     z-index: 1000;
+}
+
+[data-theme="light"] .navigation ul li a .icon,
+[data-theme="pink"] .navigation ul li a .icon {
+    color: var(--text-white);
 }
 
 .navigation ul li a .text {
@@ -249,7 +313,7 @@ body {
     max-height: calc(100dvh - 134px);
     overflow-y: auto;
     overscroll-behavior: contain;
-    background: #121824;
+    background: var(--panel-bg);
     border: 1px solid var(--border-highlight);
     border-radius: 16px;
     padding: 18px;
@@ -334,7 +398,7 @@ body {
 
 .sv-theme-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
     gap: 8px;
 }
 
@@ -370,9 +434,12 @@ body {
    vì biến đó đổi theo theme đang chọn, khiến ô "Đêm" đổi màu theo theme khác. */
 .sv-sw-midnight { background: linear-gradient(135deg, #007AFF, #5856D6); }
 .sv-sw-ocean { background: linear-gradient(135deg, #14b8a6, #0ea5e9); }
+.sv-sw-cyan { background: linear-gradient(135deg, #06b6d4, #67e8f9); }
 .sv-sw-sunset { background: linear-gradient(135deg, #f97316, #ec4899); }
 .sv-sw-royal { background: linear-gradient(135deg, #8b5cf6, #d946ef); }
 .sv-sw-forest { background: linear-gradient(135deg, #22c55e, #14b8a6); }
+.sv-sw-light { background: linear-gradient(135deg, #ffffff, #dbeafe); border-color: rgba(15, 23, 42, 0.18); }
+.sv-sw-pink { background: linear-gradient(135deg, #ffd9e8 0%, #ff88b4 52%, #d86b93 100%); }
 
 /* --- SV MODAL POPUP (thay alert/confirm/prompt mặc định, dùng chung 4 trang) --- */
 .sv-modal-overlay {

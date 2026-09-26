@@ -34,6 +34,8 @@ const DEFAULT_COLORS = SCHED_CFG.subjectColors || ["#007AFF", "#34C759", "#AF52D
 // Thời lượng tiết + khoảng nghỉ khi thêm/nhân bản khung
 const LESSON_DURATION = SCHED_CFG.lessonDuration || 45;
 const SLOT_GAP = ('gap' in SCHED_CFG) ? SCHED_CFG.gap : 5;
+const MIN_LESSON_DURATION = 1;
+const MAX_LESSON_DURATION = 240;
 
 // Khóa lưu trữ của trang TKB
 const SCHEDULE_STORAGE_KEY = (window.SV_CONFIG && window.SV_CONFIG.storage && window.SV_CONFIG.storage.schedule)
@@ -48,6 +50,8 @@ class ScheduleDashboard {
         this.subjects = [];
         this.subjectCounts = {};
         this.slots = this._defaultSlots();
+        this.lessonDuration = this._normalizeLessonDuration(LESSON_DURATION);
+        this.lockLessonDuration = false;
         this.currentPicker = null;
         this.currentTimeModal = null;
         this.draggedSubjectName = null;
@@ -78,7 +82,9 @@ class ScheduleDashboard {
                 disabledDays: this.disabledDays,
                 subjects: this.subjects,
                 subjectCounts: this.subjectCounts,
-                slots: this.slots
+                slots: this.slots,
+                lessonDuration: this.lessonDuration,
+                lockLessonDuration: this.lockLessonDuration
             };
             localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(dataToSave));
         } catch (e) {
@@ -98,6 +104,10 @@ class ScheduleDashboard {
                 this.subjectCounts = parsed.subjectCounts || {};
                 // Khung giờ: dữ liệu cũ (chưa có slots) hoặc hỏng -> quay về mặc định
                 this.slots = this._sanitizeSlots(parsed.slots);
+                this.lessonDuration = this._normalizeLessonDuration(
+                    parsed.lessonDuration || this._inferLessonDuration(this.slots) || LESSON_DURATION
+                );
+                this.lockLessonDuration = parsed.lockLessonDuration === true;
 
                 if (this.timetableData.length !== DAYS.length || !this.timetableData[0] || this.timetableData[0].length !== this.slots.length) {
                     this.initTimetable();
@@ -114,6 +124,50 @@ class ScheduleDashboard {
     /** Bản sao khung giờ mặc định (tránh biến đổi mảng gốc) */
     _defaultSlots() {
         return DEFAULT_SCHEDULE_SLOTS.map(s => ({ ...s }));
+    }
+
+    /** Chuẩn hóa thời lượng tiết người dùng nhập (phút). */
+    _normalizeLessonDuration(value) {
+        const duration = Number(value);
+        return Number.isFinite(duration) && duration >= MIN_LESSON_DURATION && duration <= MAX_LESSON_DURATION
+            ? Math.round(duration)
+            : this._normalizeLessonDurationFallback();
+    }
+
+    _normalizeLessonDurationFallback() {
+        const fallback = Number(LESSON_DURATION);
+        return Number.isFinite(fallback) && fallback >= MIN_LESSON_DURATION && fallback <= MAX_LESSON_DURATION
+            ? Math.round(fallback)
+            : 45;
+    }
+
+    /** Lấy thời lượng của tiết đầu tiên để tương thích dữ liệu cũ chưa có setting. */
+    _inferLessonDuration(slots) {
+        const firstLesson = (slots || []).find(slot => slot.type === 'lesson'
+            && SV_TIME_RE.test(slot.start) && SV_TIME_RE.test(slot.end));
+        if (!firstLesson) return null;
+        const duration = this._toMinutes(firstLesson.end) - this._toMinutes(firstLesson.start);
+        return duration > 0 ? duration : null;
+    }
+
+    _getDraftLessonDuration(modal) {
+        const input = modal && modal.querySelector('.tc-lesson-duration');
+        const duration = input ? Number(input.value) : NaN;
+        return Number.isFinite(duration) && duration >= MIN_LESSON_DURATION && duration <= MAX_LESSON_DURATION
+            ? Math.round(duration)
+            : null;
+    }
+
+    /** Đồng bộ giờ kết thúc của mọi tiết khi đang bật khóa cùng thời lượng. */
+    _applyLockedLessonDuration(listEl, duration) {
+        if (!listEl || !Number.isFinite(duration)) return;
+        listEl.querySelectorAll('.time-config-row[data-type="lesson"]').forEach(row => {
+            const startInput = row.querySelector('.tc-start');
+            const endInput = row.querySelector('.tc-end');
+            if (!startInput || !endInput || !SV_TIME_RE.test(startInput.value)) return;
+            const endMinutes = this._toMinutes(startInput.value) + duration;
+            if (endMinutes <= 23 * 60 + 59) endInput.value = this._toHHMM(endMinutes);
+        });
     }
 
     /** Chuẩn hóa khung giờ đọc từ LocalStorage: nhận độ dài tùy ý (người dùng có
@@ -959,6 +1013,8 @@ class ScheduleDashboard {
             breaks: this.slots
                 .filter(slot => slot.type === 'break')
                 .map(slot => ({ start: slot.start, end: slot.end })),
+            // Giữ auto-schedule đồng bộ với thời lượng người dùng đang chọn.
+            lesson_duration: this.lessonDuration,
             preferences: {
                 preferred_slots: ['morning', 'afternoon'],
                 avoid_days: [],
@@ -1020,6 +1076,9 @@ class ScheduleDashboard {
         const labelAttr = isBreak ? ` data-label="${escapeHtml(slot.label || 'sched.genericBreak')}"` : '';
         return `
             <div class="time-config-row${isBreak ? ' is-break' : ''}" data-id="${escapeHtml(slot.id)}" data-type="${slot.type}"${labelAttr}>
+                <button type="button" class="tc-drag-handle" draggable="true" title="${svT('sched.dragToReorder')}" aria-label="${svT('sched.dragToReorder')}">
+                    <i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>
+                </button>
                 <div class="tc-row-main">
                     <div class="tc-row-heading">
                         <span class="tc-index" aria-hidden="true"></span>
@@ -1040,8 +1099,6 @@ class ScheduleDashboard {
                     </label>
                 </div>
                 <div class="tc-row-actions">
-                    <button type="button" class="tc-icon-btn tc-up" title="${svT('sched.moveUp')}" aria-label="${svT('sched.moveUp')}"><i class="fa-solid fa-chevron-up"></i></button>
-                    <button type="button" class="tc-icon-btn tc-down" title="${svT('sched.moveDown')}" aria-label="${svT('sched.moveDown')}"><i class="fa-solid fa-chevron-down"></i></button>
                     <button type="button" class="tc-icon-btn tc-dup" title="${svT('sched.duplicateSlot')}" aria-label="${svT('sched.duplicateSlot')}"><i class="fa-solid fa-copy"></i></button>
                     <button type="button" class="tc-icon-btn tc-del" title="${svT('sched.removeSlot')}" aria-label="${svT('sched.removeSlot')}"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
@@ -1087,12 +1144,15 @@ class ScheduleDashboard {
     _refreshTimeConfig(listEl) {
         this._refreshTimeConfigNames(listEl);
         const rows = Array.from(listEl.querySelectorAll('.time-config-row'));
-        rows.forEach((row, i) => {
-            row.querySelector('.tc-up').disabled = (i === 0);
-            row.querySelector('.tc-down').disabled = (i === rows.length - 1);
+        const modal = listEl.closest('.time-config-modal');
+        const locked = modal?.querySelector('.tc-lock-duration')?.checked === true;
+        rows.forEach(row => {
+            const endInput = row.querySelector('.tc-end');
+            if (endInput) endInput.disabled = locked && row.dataset.type === 'lesson';
+            row.classList.toggle('is-duration-locked', locked && row.dataset.type === 'lesson');
         });
 
-        const summary = listEl.closest('.time-config-modal')?.querySelector('.time-config-summary');
+        const summary = modal?.querySelector('.time-config-summary');
         if (summary) {
             const lessons = rows.filter(row => row.dataset.type === 'lesson').length;
             const breaks = rows.filter(row => row.dataset.type === 'break').length;
@@ -1111,8 +1171,8 @@ class ScheduleDashboard {
         return row;
     }
 
-    /** Thêm tiết mới nối tiếp khung cuối (+5 phút, dài 45 phút) */
-    _addTimeConfigPeriod(listEl) {
+    /** Thêm tiết mới nối tiếp khung cuối (+5 phút, theo thời lượng đang chọn). */
+    _addTimeConfigPeriod(listEl, duration = this.lessonDuration) {
         const rows = listEl.querySelectorAll('.time-config-row');
         const last = rows[rows.length - 1];
         let startMin = 7 * 60;
@@ -1124,7 +1184,7 @@ class ScheduleDashboard {
             id: this._newSlotId(),
             type: 'lesson',
             start: this._toHHMM(startMin),
-            end: this._toHHMM(startMin + LESSON_DURATION)
+            end: this._toHHMM(startMin + this._normalizeLessonDuration(duration))
         });
     }
 
@@ -1215,15 +1275,29 @@ class ScheduleDashboard {
     /** Lưu cấu hình thời gian (dùng cho nút Lưu và Ctrl/⌘+Enter) */
     _saveTimeConfig(listEl) {
         const rowEls = Array.from(listEl.querySelectorAll('.time-config-row'));
+        const modal = listEl.closest('.time-config-modal');
+        const duration = this._getDraftLessonDuration(modal);
+        const lockDuration = modal?.querySelector('.tc-lock-duration')?.checked === true;
         const oldSlots = this.slots;
         const prevById = {};
         oldSlots.forEach(s => { prevById[s.id] = s; });
+
+        if (duration === null) {
+            const durationInput = modal?.querySelector('.tc-lesson-duration');
+            if (durationInput) durationInput.focus();
+            this.showNotice(svT('sched.durationInvalid'), {
+                title: svT('sched.lessonDuration'), icon: 'fa-triangle-exclamation', tone: 'warn'
+            });
+            return;
+        }
 
         rowEls.forEach(row => {
             row.classList.remove('is-invalid', 'is-overlap');
             const message = row.querySelector('.tc-row-message');
             if (message) message.textContent = '';
         });
+
+        if (lockDuration) this._applyLockedLessonDuration(listEl, duration);
 
         const parsed = [];
         rowEls.forEach(row => {
@@ -1294,6 +1368,8 @@ class ScheduleDashboard {
         // Giữ lại các ô đã xếp môn nhờ id ổn định
         this.timetableData = this._remapTimetable(oldSlots, next, this.timetableData);
         this.slots = next;
+        this.lessonDuration = duration;
+        this.lockLessonDuration = lockDuration;
         this._recountSubjects();
         this.saveData();
         this.renderTable();
@@ -1330,10 +1406,25 @@ class ScheduleDashboard {
                 <button type="button" class="time-config-close" aria-label="${svT('common.cancel')}"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="time-config-summary" aria-live="polite"></div>
+            <div class="time-config-settings">
+                <div class="tc-duration-setting">
+                    <span class="tc-setting-copy"><strong>${svT('sched.lessonDuration')}</strong><small>${svT('sched.lessonDurationHint')}</small></span>
+                    <span class="tc-number-wrap">
+                        <input type="number" class="tc-lesson-duration" min="${MIN_LESSON_DURATION}" max="${MAX_LESSON_DURATION}" step="1" value="${this.lessonDuration}" aria-label="${svT('sched.lessonDuration')}" inputmode="numeric" autocomplete="off">
+                        <span>${svT('sched.minutesShort')}</span>
+                    </span>
+                </div>
+                <label class="tc-lock-setting">
+                    <input type="checkbox" class="tc-lock-duration"${this.lockLessonDuration ? ' checked' : ''}>
+                    <span class="tc-switch" aria-hidden="true"></span>
+                    <span class="tc-lock-copy"><strong>${svT('sched.lockDuration')}</strong><small>${svT('sched.lockDurationHint')}</small></span>
+                </label>
+            </div>
             <div class="time-config-columns" aria-hidden="true">
+                <span></span>
                 <span>${svT('sched.timeConfig')}</span>
                 <span>${svT('sched.startTime')} / ${svT('sched.endTime')}</span>
-                <span>${svT('common.edit')}</span>
+                <span>${svT('sched.dragToReorder')}</span>
             </div>
             <div class="time-config-list">${rows}</div>
             <div class="time-config-add-group">
@@ -1354,7 +1445,20 @@ class ScheduleDashboard {
         overlay.appendChild(modal);
 
         const listEl = modal.querySelector('.time-config-list');
+        const durationInput = modal.querySelector('.tc-lesson-duration');
+        const lockInput = modal.querySelector('.tc-lock-duration');
         const close = () => this.closeTimeConfig();
+
+        const syncLockedDuration = () => {
+            const duration = this._getDraftLessonDuration(modal);
+            if (lockInput.checked && duration !== null) {
+                this._applyLockedLessonDuration(listEl, duration);
+            }
+            this._refreshTimeConfig(listEl);
+        };
+
+        durationInput.addEventListener('input', syncLockedDuration);
+        lockInput.addEventListener('change', syncLockedDuration);
 
         // Gõ vào ô giờ thì gỡ lỗi dòng và cập nhật thời lượng ngay lập tức.
         listEl.addEventListener('input', (e) => {
@@ -1363,28 +1467,86 @@ class ScheduleDashboard {
                 row.classList.remove('is-invalid', 'is-overlap');
                 const message = row.querySelector('.tc-row-message');
                 if (message) message.textContent = '';
+                if (e.target.classList.contains('tc-start') && lockInput.checked) {
+                    const duration = this._getDraftLessonDuration(modal);
+                    if (duration !== null) this._applyLockedLessonDuration(listEl, duration);
+                }
                 this._refreshTimeConfig(listEl);
             }
         });
 
-        // Uỷ quyền sự kiện cho các nút trên từng dòng
+        // Kéo-thả để sắp xếp: chỉ tay nắm bên trái mới bắt đầu thao tác kéo,
+        // tránh việc người dùng vô tình kéo khi đang chỉnh giờ.
+        let draggedRow = null;
+        const clearDragState = () => {
+            listEl.querySelectorAll('.is-dragging, .is-drop-before, .is-drop-after')
+                .forEach(row => row.classList.remove('is-dragging', 'is-drop-before', 'is-drop-after'));
+            draggedRow = null;
+        };
+
+        listEl.addEventListener('dragstart', (e) => {
+            const handle = e.target.closest('.tc-drag-handle');
+            const row = handle && handle.closest('.time-config-row');
+            if (!row) {
+                e.preventDefault();
+                return;
+            }
+            draggedRow = row;
+            row.classList.add('is-dragging');
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', row.dataset.id);
+            }
+        });
+
+        listEl.addEventListener('dragover', (e) => {
+            if (!draggedRow) return;
+            const target = e.target.closest('.time-config-row');
+            if (!target || target === draggedRow) return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+
+            listEl.querySelectorAll('.is-drop-before, .is-drop-after')
+                .forEach(row => row.classList.remove('is-drop-before', 'is-drop-after'));
+            const before = e.clientY < target.getBoundingClientRect().top + target.offsetHeight / 2;
+            target.classList.add(before ? 'is-drop-before' : 'is-drop-after');
+        });
+
+        listEl.addEventListener('drop', (e) => {
+            if (!draggedRow) return;
+            const target = e.target.closest('.time-config-row');
+            if (!target || target === draggedRow) {
+                clearDragState();
+                return;
+            }
+            e.preventDefault();
+            const before = target.classList.contains('is-drop-before');
+            if (before) listEl.insertBefore(draggedRow, target);
+            else target.insertAdjacentElement('afterend', draggedRow);
+            this._refreshTimeConfig(listEl);
+            clearDragState();
+        });
+
+        listEl.addEventListener('dragend', clearDragState);
+
+        // Uỷ quyền sự kiện cho các nút nhân bản/xóa trên từng dòng.
         listEl.addEventListener('click', (e) => {
-            const upBtn = e.target.closest('.tc-up');
-            const downBtn = e.target.closest('.tc-down');
             const dupBtn = e.target.closest('.tc-dup');
             const delBtn = e.target.closest('.tc-del');
-            if (!upBtn && !downBtn && !dupBtn && !delBtn) return;
+            if (!dupBtn && !delBtn) return;
             const row = e.target.closest('.time-config-row');
             if (!row) return;
 
-            if (upBtn) this._moveTimeConfigRow(row, listEl, -1);
-            else if (downBtn) this._moveTimeConfigRow(row, listEl, 1);
-            else if (dupBtn) this._duplicateTimeConfigRow(row, listEl);
+            if (dupBtn) {
+                this._duplicateTimeConfigRow(row, listEl);
+                syncLockedDuration();
+            }
             else if (delBtn) this._deleteTimeConfigRow(row, listEl);
         });
 
         modal.querySelector('.tc-add-lesson').addEventListener('click', () => {
-            const row = this._addTimeConfigPeriod(listEl);
+            const row = this._addTimeConfigPeriod(listEl, this._getDraftLessonDuration(modal) || this.lessonDuration);
+            syncLockedDuration();
             const input = row && row.querySelector('.tc-start');
             if (input) input.focus();
         });
@@ -1401,6 +1563,8 @@ class ScheduleDashboard {
         // Khôi phục mặc định: thay cả danh sách bằng bộ mặc định (chưa áp dụng tới khi Lưu)
         modal.querySelector('.tc-reset').addEventListener('click', () => {
             listEl.innerHTML = this._defaultSlots().map(slot => this._timeRowHtml(slot)).join('');
+            durationInput.value = this._normalizeLessonDuration(LESSON_DURATION);
+            lockInput.checked = false;
             this._refreshTimeConfig(listEl);
         });
 
@@ -1423,12 +1587,14 @@ class ScheduleDashboard {
                 this._saveTimeConfig(listEl);
             } else if (!mod && e.altKey && (e.key === 'n' || e.key === 'N')) {
                 e.preventDefault();
-                const row = this._addTimeConfigPeriod(listEl);
+                const row = this._addTimeConfigPeriod(listEl, this._getDraftLessonDuration(modal) || this.lessonDuration);
+                syncLockedDuration();
                 const input = row && row.querySelector('.tc-start');
                 if (input) input.focus();
             } else if (mod && (e.key === 'd' || e.key === 'D')) {
                 e.preventDefault();
                 const row = this._duplicateTimeConfigRow(activeRow(), listEl);
+                syncLockedDuration();
                 const input = row && row.querySelector('.tc-start');
                 if (input) input.focus();
             } else if (mod && (e.key === 'Delete' || e.key === 'Backspace')) {
@@ -1447,6 +1613,7 @@ class ScheduleDashboard {
         this.currentTimeModal = overlay;
 
         // Điền tên cho các dòng và khoá nút lên/xuống ở hai đầu
+        if (lockInput.checked) this._applyLockedLessonDuration(listEl, this.lessonDuration);
         this._refreshTimeConfig(listEl);
 
         const firstInput = modal.querySelector('.tc-input');
