@@ -657,3 +657,116 @@ html {
 }
 
 /* SV MODAL POPUP: đã gom vào shared.css (dùng chung cả 4 trang) */
+
+/* Cyan là theme sáng: Todo cần đổi các màu trắng inline sang chữ tối để dễ đọc. */
+[data-theme="cyan"] .project-sidebar,
+[data-theme="cyan"] .detail-card {
+    background: rgba(255, 255, 255, 0.80);
+    border-color: rgba(18, 52, 59, 0.12);
+    color: var(--text-white);
+    box-shadow: 0 14px 35px rgba(8, 84, 102, 0.10);
+}
+
+[data-theme="cyan"] .project-sidebar h2,
+[data-theme="cyan"] .detail-header h2,
+[data-theme="cyan"] .sidebar-item,
+[data-theme="cyan"] .sidebar-item span,
+[data-theme="cyan"] .project-name-text,
+[data-theme="cyan"] .task-name {
+    color: var(--text-white) !important;
+}
+
+[data-theme="cyan"] .sidebar-item:hover,
+[data-theme="cyan"] .add-task-btn:hover {
+    background: rgba(var(--primary-rgb), 0.10);
+}
+
+[data-theme="cyan"] .sidebar-item.active-item {
+    background: rgba(var(--primary-rgb), 0.14);
+    border-left-color: var(--primary-blue);
+}
+
+[data-theme="cyan"] .sidebar-item i,
+[data-theme="cyan"] .add-task-btn i {
+    color: var(--primary-blue) !important;
+}
+
+[data-theme="cyan"] .detail-header {
+    border-bottom-color: rgba(18, 52, 59, 0.12) !important;
+}
+
+[data-theme="cyan"] .task-item {
+    border-bottom-color: rgba(18, 52, 59, 0.10) !important;
+}
+
+[data-theme="cyan"] .task-drag-handle {
+    color: rgba(18, 52, 59, 0.30) !important;
+}
+
+[data-theme="cyan"] .task-check {
+    border-color: rgba(18, 52, 59, 0.35) !important;
+}
+
+[data-theme="cyan"] .btn-edit-task,
+[data-theme="cyan"] .btn-edit-name,
+[data-theme="cyan"] .btn-edit-deadline {
+    color: rgba(18, 52, 59, 0.48) !important;
+}
+
+[data-theme="cyan"] .add-task-btn span,
+[data-theme="cyan"] #btnCancelTask,
+[data-theme="cyan"] .detail-header > div:last-child {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="cyan"] #taskInputCard {
+    background: rgba(255, 255, 255, 0.72) !important;
+    border-color: rgba(18, 52, 59, 0.14) !important;
+}
+
+[data-theme="cyan"] #taskNameInput,
+[data-theme="cyan"] #taskDeadlineInput {
+    color: var(--text-white) !important;
+}
+
+[data-theme="cyan"] #taskNameInput::placeholder,
+[data-theme="cyan"] #taskDeadlineInput::placeholder {
+    color: var(--text-muted) !important;
+}
+
+[data-theme="cyan"] #taskInputCard .fa-clock {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="cyan"] #btnSaveTask {
+    background: var(--primary-blue) !important;
+}
+
+[data-theme="cyan"] .progress-track {
+    background: rgba(18, 52, 59, 0.10);
+}
+
+[data-theme="cyan"] .modal-content {
+    background: #ffffff;
+    border-color: rgba(18, 52, 59, 0.14);
+    color: var(--text-white);
+}
+
+[data-theme="cyan"] .modal-header h3,
+[data-theme="cyan"] .input-group label {
+    color: var(--text-white);
+}
+
+[data-theme="cyan"] .modal-header p {
+    color: var(--text-gray);
+}
+
+[data-theme="cyan"] #projectNameInput {
+    background: rgba(18, 52, 59, 0.04);
+    border-color: rgba(18, 52, 59, 0.14);
+    color: var(--text-white);
+}
+
+[data-theme="cyan"] .color-picker {
+    color-scheme: light;
+}
