@@ -207,8 +207,45 @@ document.addEventListener('DOMContentLoaded', initNavbarIndicator);
    Ngôn ngữ: data-i18n (text), data-i18n-ph (placeholder), data-i18n-title
    ========================================================================== */
 
-const SV_LANG_KEY = 'sv-lang';
-const SV_THEME_KEY = 'sv-theme';
+// --- Fallback CHỈ dùng khi KHÔNG nạp được /config.js ---
+// (server chưa serve file đó, mở bằng file://, hoặc quên thẻ <script>).
+// Vẫn nên chỉnh config.js; giá trị ở đây chỉ để app không vỡ giao diện.
+const SV_FALLBACK_CONFIG = {
+    defaultLang: 'vi',
+    defaultTheme: 'midnight',
+    themes: ['midnight', 'ocean', 'sunset', 'royal', 'forest'],
+    storage: {
+        lang: 'sv-lang', theme: 'sv-theme', projects: 'studyverse_projects',
+        schedule: 'studyverse_schedule_dashboard_data', lastProject: 'lastSelectedProject'
+    },
+    schedule: {
+        lessonDuration: 45,
+        gap: 5,
+        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        dayI18nKeys: ['sched.day.mon', 'sched.day.tue', 'sched.day.wed', 'sched.day.thu', 'sched.day.fri', 'sched.day.sat', 'sched.day.sun'],
+        subjectColors: ['#007AFF', '#34C759', '#AF52DE', '#FF9500', '#FF2D55', '#5856D6', '#00C7BE'],
+        defaultSlots: [
+            { id: 'p1', type: 'lesson', label: 'sched.period1', start: '07:15', end: '08:00' },
+            { id: 'p2', type: 'lesson', label: 'sched.period2', start: '08:05', end: '08:50' },
+            { id: 'b-big', type: 'break', label: 'sched.bigBreak', start: '08:50', end: '09:15' },
+            { id: 'p3', type: 'lesson', label: 'sched.period3', start: '09:15', end: '10:00' },
+            { id: 'p4', type: 'lesson', label: 'sched.period4', start: '10:05', end: '10:50' },
+            { id: 'p5', type: 'lesson', label: 'sched.period5', start: '10:55', end: '11:40' },
+            { id: 'b-lunch', type: 'break', label: 'sched.lunch', start: '11:40', end: '13:30' },
+            { id: 'p6', type: 'lesson', label: 'sched.period6', start: '13:30', end: '14:15' },
+            { id: 'p7', type: 'lesson', label: 'sched.period7', start: '14:20', end: '15:05' },
+            { id: 'b-aft', type: 'break', label: 'sched.afternoonBreak', start: '15:05', end: '15:20' },
+            { id: 'p8', type: 'lesson', label: 'sched.period8', start: '15:20', end: '16:05' },
+            { id: 'p9', type: 'lesson', label: 'sched.period9', start: '16:10', end: '16:55' }
+        ]
+    }
+};
+
+// Mặc định lấy từ /config.js (SV_CONFIG) — sửa ở đó, không cần đụng file này.
+const SV_CFG = window.SV_CONFIG || SV_FALLBACK_CONFIG;
+const SV_LANG_KEY = (SV_CFG.storage || {}).lang || 'sv-lang';
+const SV_THEME_KEY = (SV_CFG.storage || {}).theme || 'sv-theme';
+const SV_DEFAULT_LANG = SV_CFG.defaultLang === 'en' ? 'en' : 'vi';
 
 // --- i18n dictionary: key -> { vi, en } ---
 const SV_I18N = {
@@ -295,13 +332,21 @@ const SV_I18N = {
     'sched.progress': { vi: 'Tiến độ phân bổ', en: 'Allocation progress' },
     'sched.totalHours': { vi: 'Tổng tiết học', en: 'Total sessions' },
     'sched.legendClick': { vi: 'Click', en: 'Click' },
-    'sched.legendDay': { vi: 'Thứ (Mon-Sun)', en: 'a day (Mon-Sun)' },
+    'sched.legendDay': { vi: 'Thứ (T2–CN)', en: 'a day (Mon-Sun)' },
     'sched.legendToggle': { vi: 'để bật/tắt cả ngày. Click chuột phải ô để đánh dấu', en: 'to toggle the whole day. Right-click a slot to mark' },
     'sched.legendBreak': { vi: 'Nghỉ tiết (✕)', en: 'Break (✕)' },
     'sched.legendScheduled': { vi: 'Đã xếp môn', en: 'Scheduled' },
     'sched.legendOff': { vi: 'Nghỉ cả ngày', en: 'Day off' },
     'sched.autoTip': { vi: 'Tự động phân bổ các tiết còn trống', en: 'Auto-assign remaining empty slots' },
     'sched.timeHeader': { vi: 'Thời gian / Ngày', en: 'Time / Day' },
+    // Tên thứ trong tuần (hiển thị ở đầu bảng TKB)
+    'sched.day.mon': { vi: 'Thứ 2', en: 'Monday' },
+    'sched.day.tue': { vi: 'Thứ 3', en: 'Tuesday' },
+    'sched.day.wed': { vi: 'Thứ 4', en: 'Wednesday' },
+    'sched.day.thu': { vi: 'Thứ 5', en: 'Thursday' },
+    'sched.day.fri': { vi: 'Thứ 6', en: 'Friday' },
+    'sched.day.sat': { vi: 'Thứ 7', en: 'Saturday' },
+    'sched.day.sun': { vi: 'Chủ nhật', en: 'Sunday' },
     'sched.period1': { vi: 'Tiết 1', en: 'Period 1' },
     'sched.period2': { vi: 'Tiết 2', en: 'Period 2' },
     'sched.period3': { vi: 'Tiết 3', en: 'Period 3' },
@@ -314,6 +359,38 @@ const SV_I18N = {
     'sched.bigBreak': { vi: 'Ra chơi lớn', en: 'Long break' },
     'sched.lunch': { vi: 'Nghỉ trưa', en: 'Lunch' },
     'sched.afternoonBreak': { vi: 'Giải lao chiều', en: 'Afternoon break' },
+    // Cấu hình thời gian (tùy chỉnh giờ các tiết)
+    'sched.timeConfig': { vi: 'Cấu hình thời gian', en: 'Time settings' },
+    'sched.timeConfigTip': { vi: 'Tùy chỉnh giờ bắt đầu / kết thúc các tiết học và giờ nghỉ', en: 'Customize start / end times of periods and breaks' },
+    'sched.timeConfigHint': { vi: 'Chỉnh giờ cho từng tiết và giờ nghỉ, sau đó bấm Lưu. Thời khóa biểu sẽ hiển thị theo giờ mới.', en: 'Adjust the time of each period and break, then press Save. The timetable will use the new times.' },
+    'sched.timeStart': { vi: 'Bắt đầu', en: 'Start' },
+    'sched.timeEnd': { vi: 'Kết thúc', en: 'End' },
+    'sched.timeInvalid': { vi: 'Giờ không hợp lệ', en: 'Invalid time' },
+    'sched.timeInvalidMsg': { vi: 'Giờ kết thúc phải sau giờ bắt đầu. Vui lòng kiểm tra lại.', en: 'End time must be after start time. Please check again.' },
+    'sched.resetDefaults': { vi: 'Khôi phục mặc định', en: 'Reset to defaults' },
+    'sched.timeSaved': { vi: 'Đã lưu cấu hình thời gian.', en: 'Time settings saved.' },
+    // Thêm / bớt tiết học
+    'sched.periodN': { vi: 'Tiết ${n}', en: 'Period ${n}' },
+    'sched.genericBreak': { vi: 'Giải lao', en: 'Break' },
+    'sched.addPeriod': { vi: 'Thêm tiết', en: 'Add period' },
+    'sched.moveUp': { vi: 'Di chuyển lên', en: 'Move up' },
+    'sched.moveDown': { vi: 'Di chuyển xuống', en: 'Move down' },
+    'sched.removeSlot': { vi: 'Xóa khung này', en: 'Remove this slot' },
+    'sched.duplicateSlot': { vi: 'Nhân bản khung này', en: 'Duplicate this slot' },
+    'sched.timeOverlap': { vi: 'Khung giờ chồng lấn', en: 'Overlapping times' },
+    'sched.timeOverlapMsg': { vi: 'Các khung sau bị trùng hoặc chồng lấn giờ nhau: ${names}. Vui lòng chỉnh lại trước khi lưu.', en: 'These slots overlap or share the same time: ${names}. Please adjust them before saving.' },
+    'sched.shortcutsHint': { vi: 'Phím tắt: Alt+N thêm tiết · Ctrl/⌘+D nhân bản · Ctrl/⌘+Delete xóa · Alt+↑/↓ di chuyển · Ctrl/⌘+Enter lưu', en: 'Shortcuts: Alt+N add · Ctrl/⌘+D duplicate · Ctrl/⌘+Delete remove · Alt+↑/↓ move · Ctrl/⌘+Enter save' },
+    'sched.needOneLesson': { vi: 'Cần giữ lại ít nhất một tiết học.', en: 'Keep at least one period.' },
+    'sched.lessonType': { vi: 'Tiết học', en: 'Lesson' },
+    'sched.breakType': { vi: 'Giờ nghỉ', en: 'Break' },
+    'sched.startTime': { vi: 'Bắt đầu', en: 'Start' },
+    'sched.endTime': { vi: 'Kết thúc', en: 'End' },
+    'sched.duration': { vi: '${minutes} phút', en: '${minutes} min' },
+    'sched.slotSummary': { vi: '${lessons} tiết · ${breaks} giờ nghỉ', en: '${lessons} lessons · ${breaks} breaks' },
+    'sched.addBreak': { vi: 'Thêm giờ nghỉ', en: 'Add break' },
+    'sched.timeRowInvalid': { vi: 'Giờ kết thúc phải sau giờ bắt đầu', en: 'End time must be after start time' },
+    'sched.timeRowOverlap': { vi: 'Đang chồng lấn với khung khác', en: 'Overlaps another time slot' },
+    'sched.cannotRemove': { vi: 'Không thể xóa', en: 'Cannot remove' },
     'sched.done': { vi: 'Hoàn tất!', en: 'All done!' },
     'sched.allPlaced': { vi: 'Tất cả các môn học đã được xếp đầy đủ!', en: 'All subjects have been fully scheduled!' },
     'sched.enoughSessions': { vi: 'Môn học đã đủ tiết', en: 'Enough sessions' },
@@ -373,7 +450,8 @@ const SV_I18N = {
 
 // --- Lấy ngôn ngữ hiện tại ---
 function svLang() {
-    return localStorage.getItem(SV_LANG_KEY) === 'en' ? 'en' : 'vi';
+    const saved = localStorage.getItem(SV_LANG_KEY);
+    return (saved === 'vi' || saved === 'en') ? saved : SV_DEFAULT_LANG;
 }
 
 // --- Dịch: svT('key') hoặc svT('Môn "${name}" đã đủ...', {name: 'Toán'}) ---
@@ -409,19 +487,17 @@ function svApplyI18n() {
 }
 
 // --- THEME ---
-const SV_THEMES = ['midnight', 'ocean', 'sunset', 'royal', 'forest'];
+const SV_THEMES = Array.isArray(SV_CFG.themes) && SV_CFG.themes.length ? SV_CFG.themes : ['midnight'];
+const SV_DEFAULT_THEME = SV_THEMES.includes(SV_CFG.defaultTheme) ? SV_CFG.defaultTheme : SV_THEMES[0];
 
 function svTheme() {
     const t = localStorage.getItem(SV_THEME_KEY);
-    return SV_THEMES.includes(t) ? t : 'midnight';
+    return SV_THEMES.includes(t) ? t : SV_DEFAULT_THEME;
 }
 
 function svApplyTheme() {
-    if (svTheme() === 'midnight') {
-        delete document.documentElement.dataset.theme;
-    } else {
-        document.documentElement.dataset.theme = svTheme();
-    }
+    // Luôn set data-theme (mỗi theme đều có block CSS, kể cả midnight)
+    document.documentElement.dataset.theme = svTheme();
     document.dispatchEvent(new CustomEvent('sv:themechange'));
 }
 
@@ -542,10 +618,150 @@ function initSettingsUI() {
     setPanelOpen(false);
 }
 
+/* ==========================================================================
+   KIỂM TRA /config.js LÚC KHỞI ĐỘNG
+   Trả về danh sách cảnh báo (mảng chuỗi). Gọi được từ console:
+       svValidateConfig()
+   ========================================================================== */
+const SV_CFG_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const SV_CFG_HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+function _svCfgMinutes(hhmm) {
+    const [h, m] = String(hhmm).split(':').map(Number);
+    return h * 60 + m;
+}
+
+function svValidateConfig(cfg) {
+    const target = cfg || window.SV_CONFIG;
+    const issues = [];
+    const bad = (msg) => issues.push(msg);
+
+    if (!target || typeof target !== 'object') {
+        bad('Thiếu window.SV_CONFIG — đang tạm dùng SV_FALLBACK_CONFIG. Thường do /config.js trả 404 (server Flask chưa restart sau khi thêm file config.js) hoặc mở trang bằng file://, hoặc thẻ <script src="/config.js"> không đứng TRƯỚC shared.js.');
+        return issues;
+    }
+
+    // --- Cài đặt chung ---
+    if (target.defaultLang !== 'vi' && target.defaultLang !== 'en') {
+        bad(`defaultLang phải là 'vi' hoặc 'en' (đang là ${JSON.stringify(target.defaultLang)}).`);
+    }
+    const themes = target.themes;
+    if (!Array.isArray(themes) || themes.length === 0) {
+        bad('themes phải là mảng không rỗng (vd ["midnight","ocean"]).');
+    } else {
+        themes.forEach((t, i) => {
+            if (typeof t !== 'string' || !t.trim()) bad(`themes[${i}] phải là chuỗi không rỗng.`);
+        });
+        if (!themes.includes(target.defaultTheme)) {
+            bad(`defaultTheme "${target.defaultTheme}" không nằm trong themes (${themes.join(', ')}).`);
+        }
+    }
+
+    // --- Khóa localStorage ---
+    const storage = target.storage;
+    if (!storage || typeof storage !== 'object') {
+        bad('storage phải là object chứa các khóa localStorage.');
+    } else {
+        ['lang', 'theme', 'projects', 'schedule', 'lastProject'].forEach((k) => {
+            if (typeof storage[k] !== 'string' || !storage[k].trim()) {
+                bad(`storage.${k} phải là chuỗi không rỗng.`);
+            }
+        });
+    }
+
+    // --- Lịch (schedule) ---
+    const sc = target.schedule;
+    if (!sc || typeof sc !== 'object') {
+        bad('schedule phải là object.');
+        return issues;
+    }
+    if (typeof sc.lessonDuration !== 'number' || !(sc.lessonDuration > 0)) {
+        bad('schedule.lessonDuration phải là số > 0 (phút).');
+    }
+    if (typeof sc.gap !== 'number' || !(sc.gap >= 0)) {
+        bad('schedule.gap phải là số >= 0 (phút).');
+    }
+    if (!Array.isArray(sc.days) || sc.days.length !== 7) {
+        bad('schedule.days phải là mảng đúng 7 phần tử.');
+    }
+    if (!Array.isArray(sc.dayI18nKeys) || sc.dayI18nKeys.length !== 7) {
+        bad('schedule.dayI18nKeys phải là mảng đúng 7 phần tử.');
+    }
+    if (!Array.isArray(sc.subjectColors) || sc.subjectColors.length === 0) {
+        bad('schedule.subjectColors phải là mảng không rỗng.');
+    } else {
+        sc.subjectColors.forEach((c, i) => {
+            if (typeof c !== 'string' || !SV_CFG_HEX_RE.test(c)) bad(`schedule.subjectColors[${i}] không đúng dạng #RRGGBB ("${c}").`);
+        });
+    }
+
+    const slots = sc.defaultSlots;
+    if (!Array.isArray(slots) || slots.length === 0) {
+        bad('schedule.defaultSlots phải là mảng không rỗng.');
+        return issues;
+    }
+
+    const ids = {};
+    let lessonCount = 0;
+    const parsed = [];
+    slots.forEach((slot, i) => {
+        const at = `schedule.defaultSlots[${i}]`;
+        if (!slot || typeof slot !== 'object') { bad(`${at} phải là object.`); return; }
+        if (typeof slot.id !== 'string' || !slot.id.trim()) {
+            bad(`${at}.id phải là chuỗi không rỗng.`);
+        } else if (ids[slot.id]) {
+            bad(`${at}.id "${slot.id}" bị trùng với khung khác.`);
+        } else {
+            ids[slot.id] = true;
+        }
+        if (slot.type !== 'lesson' && slot.type !== 'break') {
+            bad(`${at}.type phải là 'lesson' hoặc 'break' (đang là ${JSON.stringify(slot.type)}).`);
+        }
+        if (slot.type === 'lesson') lessonCount++;
+        if (slot.type === 'break' && (typeof slot.label !== 'string' || !slot.label.trim())) {
+            bad(`${at}.label phải là khóa i18n cho giờ nghỉ.`);
+        }
+        const okStart = typeof slot.start === 'string' && SV_CFG_TIME_RE.test(slot.start);
+        const okEnd = typeof slot.end === 'string' && SV_CFG_TIME_RE.test(slot.end);
+        if (!okStart) bad(`${at}.start phải đúng dạng HH:MM ("${slot.start}").`);
+        if (!okEnd) bad(`${at}.end phải đúng dạng HH:MM ("${slot.end}").`);
+        if (okStart && okEnd && _svCfgMinutes(slot.end) <= _svCfgMinutes(slot.start)) {
+            bad(`${at}: giờ kết thúc (${slot.end}) phải sau giờ bắt đầu (${slot.start}).`);
+        }
+        if (okStart && okEnd) parsed.push({ id: slot.id, start: _svCfgMinutes(slot.start), end: _svCfgMinutes(slot.end) });
+    });
+
+    if (lessonCount === 0) bad('schedule.defaultSlots cần ít nhất một khung type "lesson".');
+
+    // Trùng / chồng lấn giờ giữa các khung
+    for (let i = 0; i < parsed.length; i++) {
+        for (let j = i + 1; j < parsed.length; j++) {
+            if (parsed[i].start < parsed[j].end && parsed[j].start < parsed[i].end) {
+                bad(`schedule.defaultSlots: khung "${parsed[i].id}" và "${parsed[j].id}" trùng/chồng lấn giờ.`);
+            }
+        }
+    }
+
+    return issues;
+}
+
+/** Log cảnh báo config ra console (chỉ log khi có vấn đề, kèm 1 dòng OK). */
+function svLogConfigIssues(cfg) {
+    const issues = svValidateConfig(cfg);
+    if (issues.length === 0) {
+        console.info('[config.js] OK — mặc định frontend hợp lệ.');
+        return issues;
+    }
+    console.warn(`[config.js] Phát hiện ${issues.length} vấn đề — đang dùng giá trị dự phòng cho các khóa sai:`);
+    issues.forEach(msg => console.warn('  • ' + msg));
+    return issues;
+}
+
 // --- Khởi tạo: áp theme + ngôn ngữ TRƯỚC khi trang render để tránh nhấp nháy ---
 // Hỗ trợ URL param để test/share: ?svtheme=ocean&svlang=en
 (function svInitEarly() {
     try {
+        svLogConfigIssues();
         const urlParams = new URLSearchParams(location.search);
         const pTheme = urlParams.get('svtheme');
         const pLang = urlParams.get('svlang');

@@ -1,6 +1,8 @@
 studyverse/ (Root)
 ├── app.py                  <-- File điều khiển chính (Backend Server - Flask)
 ├── index.html              <-- Trang chủ của ứng dụng
+├── config.js               <-- Mặc định frontend (theme, ngôn ngữ, khóa LocalStorage, khung giờ TKB) — dev sửa ở đây
+├── config-preview.html     <-- Công cụ dev: chỉnh thử theme/khung giờ rồi xuất config.js
 ├── shared.js               <-- Logic JS dùng chung 4 trang (modal, navbar, escapeHtml)
 ├── style.css               <-- Định nghĩa giao diện (CSS) trang chủ
 ├── requirements.txt        <-- Danh sách các thư viện Python (như Flask, OpenAI, ...)
@@ -77,6 +79,18 @@ Nếu provider được chọn lỗi, backend **tự failover** sang provider ti
 - Body request cho `/api/career-ai` và `/api/suggest` có thể kèm `"provider": "groq"` để ép dùng một provider cụ thể cho request đó.
 - `POST /api/career-ai-stream` — phiên bản streaming (SSE) của career chat: AI trả lời từng mảnh thay vì chờ cả câu. Body chấp nhận thêm `projects` và `schedule` (đọc từ LocalStorage của Todo/Schedule) để AI tư vấn dựa trên dữ liệu học tập thật của người dùng.
 - `POST /api/ai-context` — rút gọn dữ liệu projects/schedule gửi lên thành ngữ cảnh gọn nhẹ cho AI (server không lưu dữ liệu).
+
+## Cấu hình mặc định
+
+Mọi mặc định của frontend gom trong **`config.js`** (`window.SV_CONFIG`), nạp trước `shared.js`:
+
+- `defaultLang`, `defaultTheme`, `themes` — panel Cài đặt.
+- `storage.*` — tên khóa LocalStorage (đổi tên = mất dữ liệu cũ).
+- `schedule.*` — khung giờ mặc định, màu môn học, độ dài tiết, khoảng nghỉ, tên thứ.
+
+Chỉ cần sửa `config.js`, không phải đụng JS/CSS.
+
+Có sẵn công cụ dev **`/config-preview.html`**: chọn theme, sửa/thêm/bớt tiết và xem trước; trang tự kiểm tra hợp lệ rồi cho **tải xuống `config.js`** (hoặc sao chép) để dán đè vào file gốc. Lúc khởi động, `shared.js` cũng tự gọi `svValidateConfig()` và in cảnh báo `[config.js] …` ra console nếu khóa nào thiếu/sai.
 
 ## Lưu ý dữ liệu
 

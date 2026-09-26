@@ -95,13 +95,13 @@ def create_timetable_with_preferences(subjects, availability, breaks, preference
         day, start, end = all_slots.pop(0)
         timetable[day].append({'start': start, 'end': end, 'subject': lesson})
 
-    # Format kết quả
-    days_map = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật']
-    result = {}
+    # Format kết quả: trả về list 7 phần tử, index 0..6 tương ứng Thứ 2..Chủ nhật.
+    # Dùng chỉ số thay vì tên thứ để không phụ thuộc ngôn ngữ ở cả hai phía.
+    result = []
     for day in range(7):
         timetable[day].sort(key=lambda x: x['start'])
-        result[days_map[day]] = [
+        result.append([
             {'start': format_time(l['start']), 'end': format_time(l['end']), 'subject': l['subject']}
             for l in timetable[day]
-        ]
+        ])
     return result

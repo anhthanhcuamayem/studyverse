@@ -8,31 +8,36 @@
  *              và tự động lưu LocalStorage.
  */
 
-// --- CẤU HÌNH KHUNG GIỜ VÀ CÁC NGÀY TRONG TUẦN ---
-const SCHEDULE_SLOTS = [
-    // Buổi sáng — label là i18n key, dịch khi render bằng svT()
-    { type: "lesson", label: "sched.period1", start: "07:15", end: "08:00" },
-    { type: "lesson", label: "sched.period2", start: "08:05", end: "08:50" },
-    { type: "break",  label: "sched.bigBreak", start: "08:50", end: "09:15" },
-    { type: "lesson", label: "sched.period3", start: "09:15", end: "10:00" },
-    { type: "lesson", label: "sched.period4", start: "10:05", end: "10:50" },
-    { type: "lesson", label: "sched.period5", start: "10:55", end: "11:40" },
+// --- CẤU HÌNH LẤY TỪ /config.js (SV_CONFIG.schedule) ---
+// Dev chỉnh mặc định ở config.js. Ở đây chỉ đọc ra, không hard-code lại.
+const SCHED_CFG = (window.SV_CONFIG && window.SV_CONFIG.schedule) || SV_FALLBACK_CONFIG.schedule;
 
-    // Nghỉ trưa
-    { type: "break",  label: "sched.lunch", start: "11:40", end: "13:30" },
+// Khung giờ mặc định; bản đang dùng nằm ở this.slots (lưu LocalStorage).
+// Mỗi khung có "id" ổn định: khi thêm/bớt/đổi thứ tự tiết, id giúp giữ nguyên
+// các ô đã xếp môn trên thời khóa biểu.
+const DEFAULT_SCHEDULE_SLOTS = SCHED_CFG.defaultSlots || [];
 
-    // Buổi chiều
-    { type: "lesson", label: "sched.period6", start: "13:30", end: "14:15" },
-    { type: "lesson", label: "sched.period7", start: "14:20", end: "15:05" },
-    { type: "break",  label: "sched.afternoonBreak", start: "15:05", end: "15:20" },
-    { type: "lesson", label: "sched.period8", start: "15:20", end: "16:05" },
-    { type: "lesson", label: "sched.period9", start: "16:10", end: "16:55" }
+// DAYS giữ nguyên tiếng Anh vì dùng làm khóa dữ liệu (timetableData, backend).
+// Tên hiển thị lấy qua i18n theo từng ngôn ngữ.
+const DAYS = SCHED_CFG.days || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAY_I18N_KEYS = SCHED_CFG.dayI18nKeys || [
+    'sched.day.mon', 'sched.day.tue', 'sched.day.wed', 'sched.day.thu',
+    'sched.day.fri', 'sched.day.sat', 'sched.day.sun'
 ];
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+// Định dạng giờ hợp lệ HH:MM (00:00 - 23:59)
+const SV_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-// PALETTE MÀU MẶC ĐỊNH CHO MÔN HỌC MỚI
-const DEFAULT_COLORS = ["#007AFF", "#34C759", "#AF52DE", "#FF9500", "#FF2D55", "#5856D6", "#00C7BE"];
+// Palette màu mặc định cho môn học mới
+const DEFAULT_COLORS = SCHED_CFG.subjectColors || ["#007AFF", "#34C759", "#AF52DE", "#FF9500", "#FF2D55", "#5856D6", "#00C7BE"];
+
+// Thời lượng tiết + khoảng nghỉ khi thêm/nhân bản khung
+const LESSON_DURATION = SCHED_CFG.lessonDuration || 45;
+const SLOT_GAP = ('gap' in SCHED_CFG) ? SCHED_CFG.gap : 5;
+
+// Khóa lưu trữ của trang TKB
+const SCHEDULE_STORAGE_KEY = (window.SV_CONFIG && window.SV_CONFIG.storage && window.SV_CONFIG.storage.schedule)
+    || 'studyverse_schedule_dashboard_data';
 
 // escapeHtml: dùng bản dùng chung trong shared.js
 
@@ -42,7 +47,9 @@ class ScheduleDashboard {
         this.disabledDays = new Array(7).fill(false);
         this.subjects = [];
         this.subjectCounts = {};
+        this.slots = this._defaultSlots();
         this.currentPicker = null;
+        this.currentTimeModal = null;
         this.draggedSubjectName = null;
 
         if (typeof document !== 'undefined') {
@@ -70,9 +77,10 @@ class ScheduleDashboard {
                 timetableData: this.timetableData,
                 disabledDays: this.disabledDays,
                 subjects: this.subjects,
-                subjectCounts: this.subjectCounts
+                subjectCounts: this.subjectCounts,
+                slots: this.slots
             };
-            localStorage.setItem('studyverse_schedule_dashboard_data', JSON.stringify(dataToSave));
+            localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(dataToSave));
         } catch (e) {
             console.error(svT('sched.lsSaveError'), e);
         }
@@ -81,15 +89,17 @@ class ScheduleDashboard {
     /** Tải dữ liệu từ LocalStorage */
     loadData() {
         try {
-            const savedData = localStorage.getItem('studyverse_schedule_dashboard_data');
+            const savedData = localStorage.getItem(SCHEDULE_STORAGE_KEY);
             if (savedData) {
                 const parsed = JSON.parse(savedData);
                 this.timetableData = parsed.timetableData || [];
                 this.disabledDays = parsed.disabledDays || new Array(7).fill(false);
                 this.subjects = parsed.subjects || [];
                 this.subjectCounts = parsed.subjectCounts || {};
+                // Khung giờ: dữ liệu cũ (chưa có slots) hoặc hỏng -> quay về mặc định
+                this.slots = this._sanitizeSlots(parsed.slots);
 
-                if (this.timetableData.length !== DAYS.length || this.timetableData[0].length !== SCHEDULE_SLOTS.length) {
+                if (this.timetableData.length !== DAYS.length || !this.timetableData[0] || this.timetableData[0].length !== this.slots.length) {
                     this.initTimetable();
                 }
                 return;
@@ -101,11 +111,107 @@ class ScheduleDashboard {
         this.initTimetable();
     }
 
+    /** Bản sao khung giờ mặc định (tránh biến đổi mảng gốc) */
+    _defaultSlots() {
+        return DEFAULT_SCHEDULE_SLOTS.map(s => ({ ...s }));
+    }
+
+    /** Chuẩn hóa khung giờ đọc từ LocalStorage: nhận độ dài tùy ý (người dùng có
+     *  thể thêm/bớt tiết), bỏ khung hỏng, cấp id nếu dữ liệu cũ chưa có.
+     *  Dữ liệu trống hoặc không còn tiết học nào -> dùng bộ mặc định. */
+    _sanitizeSlots(raw) {
+        const defaults = this._defaultSlots();
+        if (!Array.isArray(raw) || raw.length === 0) return defaults;
+
+        const out = [];
+        raw.forEach((item, i) => {
+            if (!item || typeof item !== 'object') return;
+            const start = SV_TIME_RE.test(item.start) ? item.start : null;
+            const end = SV_TIME_RE.test(item.end) ? item.end : null;
+            if (!start || !end) return; // bỏ khung thiếu/sai giờ
+
+            const type = item.type === 'break' ? 'break' : 'lesson';
+            const slot = {
+                id: (typeof item.id === 'string' && item.id) ? item.id : `slot-${i}`,
+                type,
+                start,
+                end
+            };
+            if (type === 'break') {
+                slot.label = (typeof item.label === 'string' && item.label) ? item.label : 'sched.genericBreak';
+            }
+            out.push(slot);
+        });
+
+        const hasLesson = out.some(s => s.type === 'lesson');
+        return (out.length > 0 && hasLesson) ? out : defaults;
+    }
+
+    /** Tên thứ hiển thị theo ngôn ngữ đang chọn */
+    _dayLabel(index) {
+        const key = DAY_I18N_KEYS[index];
+        return key ? svT(key) : DAYS[index];
+    }
+
+    /** Tên hiển thị của một khung: tiết tự đánh số theo vị trí, giờ nghỉ dùng nhãn */
+    _slotDisplayName(slot, index) {
+        if (slot.type === 'lesson') {
+            let n = 0;
+            for (let i = 0; i <= index && i < this.slots.length; i++) {
+                if (this.slots[i].type === 'lesson') n++;
+            }
+            return svT('sched.periodN', { n });
+        }
+        return (typeof SV_I18N !== 'undefined' && SV_I18N[slot.label]) ? svT(slot.label) : (slot.label || svT('sched.genericBreak'));
+    }
+
+    /** Chuyển "HH:MM" thành số phút */
+    _toMinutes(hhmm) {
+        const [h, m] = hhmm.split(':').map(Number);
+        return h * 60 + m;
+    }
+
+    /** Chuyển số phút thành "HH:MM" (tự bọc trong 1 ngày) */
+    _toHHMM(minutes) {
+        const m = ((minutes % 1440) + 1440) % 1440;
+        return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    }
+
+    /** Giữ lại các ô đã xếp môn khi cấu trúc khung thay đổi (dựa vào id ổn định). */
+    _remapTimetable(oldSlots, newSlots, oldData) {
+        const oldIndexById = {};
+        oldSlots.forEach((slot, i) => { oldIndexById[slot.id] = i; });
+
+        const next = [];
+        for (let d = 0; d < DAYS.length; d++) {
+            next[d] = new Array(newSlots.length).fill(null);
+            const oldRow = (oldData && oldData[d]) || [];
+            newSlots.forEach((slot, j) => {
+                const oldIdx = oldIndexById[slot.id];
+                if (oldIdx !== undefined && oldRow[oldIdx]) {
+                    next[d][j] = oldRow[oldIdx];
+                }
+            });
+        }
+        return next;
+    }
+
+    /** Đếm lại số tiết đã xếp từ timetableData (sau khi thêm/bớt khung) */
+    _recountSubjects() {
+        this.subjectCounts = {};
+        this.subjects.forEach(s => { this.subjectCounts[s.name] = 0; });
+        this.timetableData.forEach(row => row.forEach(cell => {
+            if (cell && cell.type === 'subject' && this.subjectCounts[cell.name] !== undefined) {
+                this.subjectCounts[cell.name]++;
+            }
+        }));
+    }
+
     /** Tạo ma trận TKB rỗng */
     initTimetable() {
         this.timetableData = [];
         for (let i = 0; i < DAYS.length; i++) {
-            this.timetableData[i] = new Array(SCHEDULE_SLOTS.length).fill(null);
+            this.timetableData[i] = new Array(this.slots.length).fill(null);
         }
     }
 
@@ -125,6 +231,9 @@ class ScheduleDashboard {
 
         const clearAllBtn = document.getElementById('clear-all');
         if (clearAllBtn) clearAllBtn.addEventListener('click', () => this.clearAll());
+
+        const timeConfigBtn = document.getElementById('time-config-btn');
+        if (timeConfigBtn) timeConfigBtn.addEventListener('click', () => this.openTimeConfig());
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -237,27 +346,28 @@ class ScheduleDashboard {
         // 1. Header Row
         let headerRow = `<tr><th>${svT('sched.timeHeader')}</th>`;
         for (let i = 0; i < DAYS.length; i++) {
-            headerRow += `<th data-day="${i}">${DAYS[i]}</th>`;
+            headerRow += `<th data-day="${i}">${this._dayLabel(i)}</th>`;
         }
         headerRow += '</tr>';
         thead.innerHTML = headerRow;
 
         // 2. Body Rows
         let bodyHtml = '';
-        for (let s = 0; s < SCHEDULE_SLOTS.length; s++) {
-            const slotInfo = SCHEDULE_SLOTS[s];
+        for (let s = 0; s < this.slots.length; s++) {
+            const slotInfo = this.slots[s];
 
             if (slotInfo.type === 'break') {
                 bodyHtml += `<tr style="background: rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.4); font-style: italic;">`;
-                bodyHtml += `<td style="background:#0f131c; font-weight:500; font-size: 0.82em;">${slotInfo.start} - ${slotInfo.end}<br><span style="color: var(--primary-blue); font-size: 0.8em;">☕ ${svT(slotInfo.label)}</span></td>`;
+                const breakName = this._slotDisplayName(slotInfo, s);
+                bodyHtml += `<td style="background:#0f131c; font-weight:500; font-size: 0.82em;">${slotInfo.start} - ${slotInfo.end}<br><span style="color: var(--primary-blue); font-size: 0.8em;">☕ ${breakName}</span></td>`;
                 for (let d = 0; d < DAYS.length; d++) {
-                    bodyHtml += `<td style="text-align: center; color: rgba(255,255,255,0.2); font-size: 0.8em;" colspan="1">☕ ${svT(slotInfo.label)}</td>`;
+                    bodyHtml += `<td style="text-align: center; color: rgba(255,255,255,0.2); font-size: 0.8em;" colspan="1">☕ ${breakName}</td>`;
                 }
                 bodyHtml += `</tr>`;
                 continue;
             }
 
-            bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${slotInfo.start} - ${slotInfo.end}<br><span style="font-size: 0.75em; color: var(--text-gray);">${svT(slotInfo.label)}</span></td>`;
+            bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${slotInfo.start} - ${slotInfo.end}<br><span style="font-size: 0.75em; color: var(--text-gray);">${this._slotDisplayName(slotInfo, s)}</span></td>`;
             for (let d = 0; d < DAYS.length; d++) {
                 const cellData = this.timetableData[d][s];
                 let cellClass = '';
@@ -373,7 +483,7 @@ class ScheduleDashboard {
         this.disabledDays[day] = !this.disabledDays[day];
 
         if (this.disabledDays[day]) {
-            for (let s = 0; s < SCHEDULE_SLOTS.length; s++) {
+            for (let s = 0; s < this.slots.length; s++) {
                 const cell = this.timetableData[day][s];
                 if (cell && cell.type === 'subject') {
                     const subjName = cell.name;
@@ -642,7 +752,7 @@ class ScheduleDashboard {
         );
         if (confirmed) {
             for (let d = 0; d < DAYS.length; d++) {
-                for (let s = 0; s < SCHEDULE_SLOTS.length; s++) {
+                for (let s = 0; s < this.slots.length; s++) {
                     const cell = this.timetableData[d][s];
                     if (cell && cell.type === 'subject' && cell.name === name) {
                         this.timetableData[d][s] = null;
@@ -727,8 +837,8 @@ class ScheduleDashboard {
         let emptySlots = [];
         for (let d = 0; d < DAYS.length; d++) {
             if (this.disabledDays[d]) continue;
-            for (let s = 0; s < SCHEDULE_SLOTS.length; s++) {
-                if (SCHEDULE_SLOTS[s].type === 'lesson' && this.timetableData[d][s] === null) {
+            for (let s = 0; s < this.slots.length; s++) {
+                if (this.slots[s].type === 'lesson' && this.timetableData[d][s] === null) {
                     emptySlots.push({ day: d, slot: s });
                 }
             }
@@ -757,17 +867,30 @@ class ScheduleDashboard {
     }
 
     /** Áp dụng lịch tối ưu từ backend vào trạng thái hiện tại
-     * timetable: { "Monday": [{start, end, subject}, ...], ... }
+     * timetable: list 7 phần tử, index 0..6 = Thứ 2..Chủ nhật,
+     *            mỗi phần tử là [{start, end, subject}, ...]
+     * Vẫn chấp nhận object khóa số ("0".."6") hoặc tên thứ tiếng Anh (bản cũ).
      */
     _applyOptimizedSchedule(timetable) {
-        // Map day name → index
-        const dayIndex = {};
-        DAYS.forEach((d, i) => { dayIndex[d] = i; });
+        const dayIndexByName = {};
+        DAYS.forEach((d, i) => { dayIndexByName[d] = i; });
+
+        // Chuẩn hóa về danh sách cặp [dayIndex, lessons]
+        let entries = [];
+        if (Array.isArray(timetable)) {
+            entries = timetable.map((lessons, i) => [i, lessons]);
+        } else if (timetable && typeof timetable === 'object') {
+            entries = Object.entries(timetable).map(([key, lessons]) => {
+                const n = Number(key);
+                const d = Number.isInteger(n) ? n : dayIndexByName[key];
+                return [d, lessons];
+            });
+        }
 
         // Khởi tạo lại toàn bộ grid cho gọn
         this.timetableData = [];
         for (let d = 0; d < DAYS.length; d++) {
-            this.timetableData[d] = new Array(SCHEDULE_SLOTS.length).fill(null);
+            this.timetableData[d] = new Array(this.slots.length).fill(null);
         }
         this.subjectCounts = {};
         this.subjects.forEach(sub => { this.subjectCounts[sub.name] = 0; });
@@ -775,13 +898,11 @@ class ScheduleDashboard {
         // Lấp lịch từ backend vào ô phù hợp
         const slotKeyMap = this._buildSlotKeyMap();
 
-        for (const [dayName, lessons] of Object.entries(timetable)) {
-            const d = dayIndex[dayName];
-            if (d === undefined) continue;
+        for (const [d, lessons] of entries) {
+            if (!Number.isInteger(d) || d < 0 || d >= DAYS.length || !Array.isArray(lessons)) continue;
 
             for (const lesson of lessons) {
-                const key = `${lesson.start}-${lesson.end}`;
-                const slotIndex = slotKeyMap[key];
+                const slotIndex = slotKeyMap[lesson.start];
                 if (slotIndex === undefined) continue;
 
                 const subjName = lesson.subject;
@@ -799,10 +920,12 @@ class ScheduleDashboard {
 
     /** Xây bảng ánh xạ "giờ bắt đầu - giờ kết thúc" → chỉ số slot */
     _buildSlotKeyMap() {
+        // Khóa theo GIỜ BẮT ĐẦU: backend sinh slot 45' từ chính availability nên
+        // start là điểm chung, còn end có thể lệch nếu người dùng đổi độ dài tiết.
         const map = {};
-        SCHEDULE_SLOTS.forEach((slot, idx) => {
+        this.slots.forEach((slot, idx) => {
             if (slot.type === 'lesson') {
-                map[`${slot.start}-${slot.end}`] = idx;
+                map[slot.start] = idx;
             }
         });
         return map;
@@ -821,7 +944,7 @@ class ScheduleDashboard {
             if (!this.disabledDays[d]) {
                 // Mặc định: khung giờ học trong bài cho ngày này
                 availability[d] = [];
-                SCHEDULE_SLOTS.forEach(slot => {
+                this.slots.forEach(slot => {
                     if (slot.type === 'lesson') {
                         availability[d].push({ start: slot.start, end: slot.end });
                     }
@@ -832,11 +955,10 @@ class ScheduleDashboard {
         return {
             subjects,
             availability,
-            breaks: [
-                { start: '11:40', end: '13:30' }, // Nghỉ trưa
-                { start: '08:50', end: '09:15' }, // Ra chơi lớn
-                { start: '15:05', end: '15:20' }  // Giải lao chiều
-            ],
+            // Giờ nghỉ lấy theo cấu hình hiện tại của người dùng
+            breaks: this.slots
+                .filter(slot => slot.type === 'break')
+                .map(slot => ({ start: slot.start, end: slot.end })),
             preferences: {
                 preferred_slots: ['morning', 'afternoon'],
                 avoid_days: [],
@@ -887,6 +1009,462 @@ class ScheduleDashboard {
         console.log('[Schedule] timetableData:', this.timetableData);
     }
 
+    /** Sinh id mới cho một khung vừa thêm */
+    _newSlotId() {
+        return 'slot-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+    }
+
+    /** HTML của một dòng trong hộp thoại cấu hình thời gian */
+    _timeRowHtml(slot) {
+        const isBreak = slot.type === 'break';
+        const labelAttr = isBreak ? ` data-label="${escapeHtml(slot.label || 'sched.genericBreak')}"` : '';
+        return `
+            <div class="time-config-row${isBreak ? ' is-break' : ''}" data-id="${escapeHtml(slot.id)}" data-type="${slot.type}"${labelAttr}>
+                <div class="tc-row-main">
+                    <div class="tc-row-heading">
+                        <span class="tc-index" aria-hidden="true"></span>
+                        <span class="tc-name"></span>
+                        <span class="tc-type"></span>
+                    </div>
+                    <span class="tc-duration" aria-live="polite"></span>
+                </div>
+                <div class="tc-times">
+                    <label class="tc-time-field">
+                        <span>${svT('sched.startTime')}</span>
+                        <input type="time" class="tc-input tc-start" value="${escapeHtml(slot.start)}" aria-label="${svT('sched.startTime')}" required>
+                    </label>
+                    <span class="tc-sep">–</span>
+                    <label class="tc-time-field">
+                        <span>${svT('sched.endTime')}</span>
+                        <input type="time" class="tc-input tc-end" value="${escapeHtml(slot.end)}" aria-label="${svT('sched.endTime')}" required>
+                    </label>
+                </div>
+                <div class="tc-row-actions">
+                    <button type="button" class="tc-icon-btn tc-up" title="${svT('sched.moveUp')}" aria-label="${svT('sched.moveUp')}"><i class="fa-solid fa-chevron-up"></i></button>
+                    <button type="button" class="tc-icon-btn tc-down" title="${svT('sched.moveDown')}" aria-label="${svT('sched.moveDown')}"><i class="fa-solid fa-chevron-down"></i></button>
+                    <button type="button" class="tc-icon-btn tc-dup" title="${svT('sched.duplicateSlot')}" aria-label="${svT('sched.duplicateSlot')}"><i class="fa-solid fa-copy"></i></button>
+                    <button type="button" class="tc-icon-btn tc-del" title="${svT('sched.removeSlot')}" aria-label="${svT('sched.removeSlot')}"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+                <p class="tc-row-message" role="status" aria-live="polite"></p>
+            </div>`;
+    }
+
+    /** Cập nhật tên hiển thị (tiết đánh số theo vị trí, giờ nghỉ theo nhãn) */
+    _refreshTimeConfigNames(listEl) {
+        let lessonNo = 0;
+        Array.from(listEl.querySelectorAll('.time-config-row')).forEach(row => {
+            const isBreak = row.dataset.type === 'break';
+            let name;
+            if (isBreak) {
+                const label = row.dataset.label;
+                const base = (typeof SV_I18N !== 'undefined' && SV_I18N[label]) ? svT(label) : (label || svT('sched.genericBreak'));
+                name = '☕ ' + base;
+            } else {
+                lessonNo++;
+                name = svT('sched.periodN', { n: lessonNo });
+            }
+            const nameEl = row.querySelector('.tc-name');
+            const typeEl = row.querySelector('.tc-type');
+            const indexEl = row.querySelector('.tc-index');
+            const durationEl = row.querySelector('.tc-duration');
+            const start = row.querySelector('.tc-start')?.value;
+            const end = row.querySelector('.tc-end')?.value;
+            const valid = SV_TIME_RE.test(start) && SV_TIME_RE.test(end)
+                && this._toMinutes(end) > this._toMinutes(start);
+
+            if (nameEl) nameEl.textContent = name;
+            if (typeEl) typeEl.textContent = svT(isBreak ? 'sched.breakType' : 'sched.lessonType');
+            if (indexEl) indexEl.textContent = isBreak ? '☕' : String(lessonNo);
+            if (durationEl) {
+                durationEl.textContent = valid
+                    ? svT('sched.duration', { minutes: this._toMinutes(end) - this._toMinutes(start) })
+                    : '';
+            }
+        });
+    }
+
+    /** Đồng bộ tên hiển thị + trạng thái nút lên/xuống trong hộp thoại cấu hình */
+    _refreshTimeConfig(listEl) {
+        this._refreshTimeConfigNames(listEl);
+        const rows = Array.from(listEl.querySelectorAll('.time-config-row'));
+        rows.forEach((row, i) => {
+            row.querySelector('.tc-up').disabled = (i === 0);
+            row.querySelector('.tc-down').disabled = (i === rows.length - 1);
+        });
+
+        const summary = listEl.closest('.time-config-modal')?.querySelector('.time-config-summary');
+        if (summary) {
+            const lessons = rows.filter(row => row.dataset.type === 'lesson').length;
+            const breaks = rows.filter(row => row.dataset.type === 'break').length;
+            summary.textContent = svT('sched.slotSummary', { lessons, breaks });
+        }
+    }
+
+    /** Chèn một khung vào danh sách (afterRow = null nghĩa là thêm vào cuối) */
+    _insertTimeConfigRow(listEl, afterRow, slot) {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = this._timeRowHtml(slot);
+        const row = wrap.firstElementChild;
+        if (afterRow) afterRow.insertAdjacentElement('afterend', row);
+        else listEl.appendChild(row);
+        this._refreshTimeConfig(listEl);
+        return row;
+    }
+
+    /** Thêm tiết mới nối tiếp khung cuối (+5 phút, dài 45 phút) */
+    _addTimeConfigPeriod(listEl) {
+        const rows = listEl.querySelectorAll('.time-config-row');
+        const last = rows[rows.length - 1];
+        let startMin = 7 * 60;
+        if (last) {
+            const lastEnd = last.querySelector('.tc-end').value || last.querySelector('.tc-start').value;
+            if (SV_TIME_RE.test(lastEnd)) startMin = this._toMinutes(lastEnd) + SLOT_GAP;
+        }
+        return this._insertTimeConfigRow(listEl, null, {
+            id: this._newSlotId(),
+            type: 'lesson',
+            start: this._toHHMM(startMin),
+            end: this._toHHMM(startMin + LESSON_DURATION)
+        });
+    }
+
+    /** Thêm giờ nghỉ mới nối tiếp khung cuối, mặc định dài 15 phút. */
+    _addTimeConfigBreak(listEl) {
+        const rows = listEl.querySelectorAll('.time-config-row');
+        const last = rows[rows.length - 1];
+        const lastEnd = last && last.querySelector('.tc-end').value;
+        const startMin = SV_TIME_RE.test(lastEnd)
+            ? this._toMinutes(lastEnd) + SLOT_GAP
+            : 7 * 60;
+
+        return this._insertTimeConfigRow(listEl, null, {
+            id: this._newSlotId(),
+            type: 'break',
+            label: 'sched.genericBreak',
+            start: this._toHHMM(startMin),
+            end: this._toHHMM(startMin + 15)
+        });
+    }
+
+    /** Nhân bản một khung: cùng loại + độ dài, bắt đầu ngay khi khung gốc kết thúc */
+    _duplicateTimeConfigRow(row, listEl) {
+        const startVal = row.querySelector('.tc-start').value;
+        const endVal = row.querySelector('.tc-end').value;
+        const valid = SV_TIME_RE.test(startVal) && SV_TIME_RE.test(endVal);
+        let duration = valid ? (this._toMinutes(endVal) - this._toMinutes(startVal)) : LESSON_DURATION;
+        if (duration <= 0) duration = LESSON_DURATION;
+        const startMin = SV_TIME_RE.test(endVal)
+            ? this._toMinutes(endVal)
+            : (SV_TIME_RE.test(startVal) ? this._toMinutes(startVal) + duration : 7 * 60);
+
+        const clone = {
+            id: this._newSlotId(),
+            type: row.dataset.type,
+            start: this._toHHMM(startMin),
+            end: this._toHHMM(startMin + duration)
+        };
+        if (clone.type === 'break') clone.label = row.dataset.label || 'sched.genericBreak';
+        return this._insertTimeConfigRow(listEl, row, clone);
+    }
+
+    /** Xóa một khung; chặn xóa khung cuối cùng / tiết cuối cùng */
+    _deleteTimeConfigRow(row, listEl) {
+        const total = listEl.querySelectorAll('.time-config-row').length;
+        const lessons = listEl.querySelectorAll('.time-config-row[data-type="lesson"]').length;
+        if (total <= 1) return false;
+        if (row.dataset.type === 'lesson' && lessons <= 1) {
+            this.showNotice(svT('sched.needOneLesson'), {
+                title: svT('sched.cannotRemove'), icon: 'fa-triangle-exclamation', tone: 'warn'
+            });
+            return false;
+        }
+        row.remove();
+        this._refreshTimeConfig(listEl);
+        return true;
+    }
+
+    /** Đổi thứ tự một khung: dir < 0 lên, dir > 0 xuống */
+    _moveTimeConfigRow(row, listEl, dir) {
+        if (dir < 0 && row.previousElementSibling) {
+            listEl.insertBefore(row, row.previousElementSibling);
+        } else if (dir > 0 && row.nextElementSibling) {
+            listEl.insertBefore(row.nextElementSibling, row);
+        } else {
+            return;
+        }
+        this._refreshTimeConfig(listEl);
+    }
+
+    /** Tìm các khung bị trùng giờ hoặc chồng lấn (trả về Set chỉ số dòng) */
+    _findTimeConfigConflicts(parsed) {
+        const conflicts = new Set();
+        for (let i = 0; i < parsed.length; i++) {
+            for (let j = i + 1; j < parsed.length; j++) {
+                const a = parsed[i], b = parsed[j];
+                if (!a.valid || !b.valid) continue;
+                // Hai khoảng [start, end) giao nhau
+                if (a.startMin < b.endMin && b.startMin < a.endMin) {
+                    conflicts.add(i);
+                    conflicts.add(j);
+                }
+            }
+        }
+        return conflicts;
+    }
+
+    /** Lưu cấu hình thời gian (dùng cho nút Lưu và Ctrl/⌘+Enter) */
+    _saveTimeConfig(listEl) {
+        const rowEls = Array.from(listEl.querySelectorAll('.time-config-row'));
+        const oldSlots = this.slots;
+        const prevById = {};
+        oldSlots.forEach(s => { prevById[s.id] = s; });
+
+        rowEls.forEach(row => {
+            row.classList.remove('is-invalid', 'is-overlap');
+            const message = row.querySelector('.tc-row-message');
+            if (message) message.textContent = '';
+        });
+
+        const parsed = [];
+        rowEls.forEach(row => {
+            const start = row.querySelector('.tc-start').value;
+            const end = row.querySelector('.tc-end').value;
+            const valid = SV_TIME_RE.test(start) && SV_TIME_RE.test(end) && this._toMinutes(end) > this._toMinutes(start);
+            parsed.push({ row, start, end, startMin: this._toMinutes(start), endMin: this._toMinutes(end), valid });
+        });
+
+        const invalidRows = parsed.filter(p => !p.valid);
+        if (invalidRows.length > 0) {
+            invalidRows.forEach(p => {
+                p.row.classList.add('is-invalid');
+                const message = p.row.querySelector('.tc-row-message');
+                if (message) message.textContent = svT('sched.timeRowInvalid');
+            });
+            const firstInvalidInput = invalidRows[0].row.querySelector('.tc-input');
+            if (firstInvalidInput) firstInvalidInput.focus();
+            this.showNotice(svT('sched.timeInvalidMsg'), {
+                title: svT('sched.timeInvalid'), icon: 'fa-triangle-exclamation', tone: 'warn'
+            });
+            return;
+        }
+
+        if (!parsed.some(p => p.row.dataset.type === 'lesson')) {
+            this.showNotice(svT('sched.needOneLesson'), {
+                title: svT('sched.cannotRemove'), icon: 'fa-triangle-exclamation', tone: 'warn'
+            });
+            return;
+        }
+
+        // Cảnh báo trùng / chồng lấn giờ trước khi lưu
+        const conflicts = this._findTimeConfigConflicts(parsed);
+        if (conflicts.size > 0) {
+            parsed.forEach((p, i) => {
+                const overlapping = conflicts.has(i);
+                p.row.classList.toggle('is-overlap', overlapping);
+                const message = p.row.querySelector('.tc-row-message');
+                if (message) message.textContent = overlapping ? svT('sched.timeRowOverlap') : '';
+            });
+            const names = Array.from(conflicts)
+                .slice(0, 6)
+                .map(i => parsed[i].row.querySelector('.tc-name').textContent.trim());
+            const suffix = conflicts.size > 6 ? '…' : '';
+            this.showNotice(svT('sched.timeOverlapMsg', { names: names.join(', ') + suffix }), {
+                title: svT('sched.timeOverlap'), icon: 'fa-triangle-exclamation', tone: 'warn'
+            });
+            return;
+        }
+        parsed.forEach(p => {
+            p.row.classList.remove('is-overlap', 'is-invalid');
+            const message = p.row.querySelector('.tc-row-message');
+            if (message) message.textContent = '';
+        });
+
+        const next = parsed.map(p => {
+            const row = p.row;
+            const base = prevById[row.dataset.id] || { id: row.dataset.id, type: row.dataset.type };
+            const slot = { ...base, start: p.start, end: p.end };
+            if (slot.type === 'break') {
+                if (row.dataset.label) slot.label = row.dataset.label;
+            } else {
+                delete slot.label; // tiết học tự đánh số, không cần nhãn
+            }
+            return slot;
+        });
+
+        // Giữ lại các ô đã xếp môn nhờ id ổn định
+        this.timetableData = this._remapTimetable(oldSlots, next, this.timetableData);
+        this.slots = next;
+        this._recountSubjects();
+        this.saveData();
+        this.renderTable();
+        this.renderSubjectList();
+        this.updateStatus();
+        this.closeTimeConfig();
+        this.showNotice(svT('sched.timeSaved'), {
+            title: svT('sched.timeConfig'), icon: 'fa-circle-check', tone: 'success'
+        });
+    }
+
+    /** Mở hộp thoại "Cấu hình thời gian": chỉnh giờ, thêm/bớt/đổi thứ tự tiết */
+    openTimeConfig() {
+        this.closePicker();
+        this.closeTimeConfig();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'time-config-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'time-config-modal';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-label', svT('sched.timeConfig'));
+
+        const rows = this.slots.map(slot => this._timeRowHtml(slot)).join('');
+
+        modal.innerHTML = `
+            <div class="time-config-header">
+                <div>
+                    <h3><i class="fa-regular fa-clock"></i> <span>${svT('sched.timeConfig')}</span></h3>
+                    <p class="time-config-subtitle">${svT('sched.timeConfigHint')}</p>
+                </div>
+                <button type="button" class="time-config-close" aria-label="${svT('common.cancel')}"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="time-config-summary" aria-live="polite"></div>
+            <div class="time-config-columns" aria-hidden="true">
+                <span>${svT('sched.timeConfig')}</span>
+                <span>${svT('sched.startTime')} / ${svT('sched.endTime')}</span>
+                <span>${svT('common.edit')}</span>
+            </div>
+            <div class="time-config-list">${rows}</div>
+            <div class="time-config-add-group">
+                <button type="button" class="tc-add tc-add-lesson"><i class="fa-solid fa-plus"></i> <span>${svT('sched.addPeriod')}</span></button>
+                <button type="button" class="tc-add tc-add-break"><i class="fa-solid fa-mug-hot"></i> <span>${svT('sched.addBreak')}</span></button>
+            </div>
+            <p class="time-config-shortcuts">${svT('sched.shortcutsHint')}</p>
+            <div class="time-config-actions">
+                <button type="button" class="tc-btn tc-reset">${svT('sched.resetDefaults')}</button>
+                <button type="button" class="tc-btn tc-cancel">${svT('common.cancel')}</button>
+                <button type="button" class="tc-btn tc-save">${svT('common.save')}</button>
+            </div>
+        `;
+
+        // Modal dùng position: fixed, mà <body> có animation transform nên phải gắn
+        // vào <html> để không bị coi là containing block (giống subject-picker/sv-modal).
+        document.documentElement.appendChild(overlay);
+        overlay.appendChild(modal);
+
+        const listEl = modal.querySelector('.time-config-list');
+        const close = () => this.closeTimeConfig();
+
+        // Gõ vào ô giờ thì gỡ lỗi dòng và cập nhật thời lượng ngay lập tức.
+        listEl.addEventListener('input', (e) => {
+            const row = e.target.closest('.time-config-row');
+            if (row) {
+                row.classList.remove('is-invalid', 'is-overlap');
+                const message = row.querySelector('.tc-row-message');
+                if (message) message.textContent = '';
+                this._refreshTimeConfig(listEl);
+            }
+        });
+
+        // Uỷ quyền sự kiện cho các nút trên từng dòng
+        listEl.addEventListener('click', (e) => {
+            const upBtn = e.target.closest('.tc-up');
+            const downBtn = e.target.closest('.tc-down');
+            const dupBtn = e.target.closest('.tc-dup');
+            const delBtn = e.target.closest('.tc-del');
+            if (!upBtn && !downBtn && !dupBtn && !delBtn) return;
+            const row = e.target.closest('.time-config-row');
+            if (!row) return;
+
+            if (upBtn) this._moveTimeConfigRow(row, listEl, -1);
+            else if (downBtn) this._moveTimeConfigRow(row, listEl, 1);
+            else if (dupBtn) this._duplicateTimeConfigRow(row, listEl);
+            else if (delBtn) this._deleteTimeConfigRow(row, listEl);
+        });
+
+        modal.querySelector('.tc-add-lesson').addEventListener('click', () => {
+            const row = this._addTimeConfigPeriod(listEl);
+            const input = row && row.querySelector('.tc-start');
+            if (input) input.focus();
+        });
+        modal.querySelector('.tc-add-break').addEventListener('click', () => {
+            const row = this._addTimeConfigBreak(listEl);
+            const input = row && row.querySelector('.tc-start');
+            if (input) input.focus();
+        });
+
+        modal.querySelector('.time-config-close').addEventListener('click', close);
+        modal.querySelector('.tc-cancel').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+        // Khôi phục mặc định: thay cả danh sách bằng bộ mặc định (chưa áp dụng tới khi Lưu)
+        modal.querySelector('.tc-reset').addEventListener('click', () => {
+            listEl.innerHTML = this._defaultSlots().map(slot => this._timeRowHtml(slot)).join('');
+            this._refreshTimeConfig(listEl);
+        });
+
+        modal.querySelector('.tc-save').addEventListener('click', () => this._saveTimeConfig(listEl));
+
+        // Tổ hợp phím tắt khi hộp thoại đang mở
+        this._timeConfigKeyHandler = (e) => {
+            if (svModalState) return; // nhường phím cho popup thông báo đang mở
+            if (e.key === 'Escape') { close(); return; }
+
+            const mod = e.ctrlKey || e.metaKey;
+            const activeRow = () => {
+                const el = document.activeElement;
+                const inRow = (el && el.closest) ? el.closest('.time-config-row') : null;
+                return inRow || listEl.querySelector('.time-config-row');
+            };
+
+            if (mod && e.key === 'Enter') {
+                e.preventDefault();
+                this._saveTimeConfig(listEl);
+            } else if (!mod && e.altKey && (e.key === 'n' || e.key === 'N')) {
+                e.preventDefault();
+                const row = this._addTimeConfigPeriod(listEl);
+                const input = row && row.querySelector('.tc-start');
+                if (input) input.focus();
+            } else if (mod && (e.key === 'd' || e.key === 'D')) {
+                e.preventDefault();
+                const row = this._duplicateTimeConfigRow(activeRow(), listEl);
+                const input = row && row.querySelector('.tc-start');
+                if (input) input.focus();
+            } else if (mod && (e.key === 'Delete' || e.key === 'Backspace')) {
+                e.preventDefault();
+                this._deleteTimeConfigRow(activeRow(), listEl);
+            } else if (e.altKey && e.key === 'ArrowUp') {
+                e.preventDefault();
+                this._moveTimeConfigRow(activeRow(), listEl, -1);
+            } else if (e.altKey && e.key === 'ArrowDown') {
+                e.preventDefault();
+                this._moveTimeConfigRow(activeRow(), listEl, 1);
+            }
+        };
+        document.addEventListener('keydown', this._timeConfigKeyHandler);
+
+        this.currentTimeModal = overlay;
+
+        // Điền tên cho các dòng và khoá nút lên/xuống ở hai đầu
+        this._refreshTimeConfig(listEl);
+
+        const firstInput = modal.querySelector('.tc-input');
+        if (firstInput) setTimeout(() => firstInput.focus(), 30);
+    }
+
+    /** Đóng hộp thoại cấu hình thời gian */
+    closeTimeConfig() {
+        if (this.currentTimeModal) {
+            this.currentTimeModal.remove();
+            this.currentTimeModal = null;
+        }
+        if (this._timeConfigKeyHandler) {
+            document.removeEventListener('keydown', this._timeConfigKeyHandler);
+            this._timeConfigKeyHandler = null;
+        }
+    }
+
     /** Đóng picker hiện tại */
     closePicker() {
         if (this.currentPicker) {
@@ -907,7 +1485,7 @@ class ScheduleDashboard {
             this.subjectCounts = {};
             this.disabledDays.fill(false);
 
-            localStorage.removeItem('studyverse_schedule_dashboard_data');
+            localStorage.removeItem(SCHEDULE_STORAGE_KEY);
 
             this.renderSubjectList();
             this.updateStatus();

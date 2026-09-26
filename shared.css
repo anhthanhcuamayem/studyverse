@@ -22,7 +22,14 @@
 }
 
 /* --- THEME PALETTES (đổi --primary-* + --accent-secondary) --- */
-/* midnight = mặc định ở trên (xanh iOS) */
+/* midnight = mặc định ở trên (xanh iOS) — khai báo lại để theme nào cũng set data-theme */
+[data-theme="midnight"] {
+    --primary-blue: #007AFF;
+    --primary-rgb: 0, 122, 255;
+    --primary-blue-glow: rgba(0, 122, 255, 0.35);
+    --accent-secondary: #5856D6;
+}
+
 [data-theme="ocean"] {
     --primary-blue: #14b8a6;
     --primary-rgb: 20, 184, 166;

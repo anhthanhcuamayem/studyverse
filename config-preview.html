@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config Preview - Studyverse (dev tool)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="/shared.css">
+    <style>
+        body { padding: 24px; }
+        .wrap { max-width: 1180px; margin: 0 auto; }
+        h1 { font-size: 1.35rem; font-weight: 800; margin-bottom: 4px; }
+        h1 i { color: var(--primary-blue); }
+        .sub { color: var(--text-gray); font-size: 0.85rem; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+        .card { background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+        .card h2 { font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .card h2 i { color: var(--primary-blue); }
+        label { display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin: 10px 0 6px; }
+        input[type=text], input[type=number], select {
+            width: 100%; padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,.05);
+            border: 1px solid var(--border-soft); color: #fff; font-family: inherit; font-size: .88rem; outline: none;
+        }
+        input:focus, select:focus { border-color: var(--primary-blue); }
+        .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .swatch { width: 46px; height: 34px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; position: relative; background: linear-gradient(135deg, #2a3446, #475569); }
+        .swatch.active { border-color: #fff; }
+        .swatch span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: .6rem; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+        .slot-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid var(--border-soft); border-radius: 11px; margin-bottom: 6px; background: rgba(255,255,255,.03); }
+        .slot-row.is-break { font-style: italic; color: var(--text-gray); }
+        .slot-name { flex: 1; min-width: 0; font-size: .84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .slot-row input[type=time] { width: 78px; padding: 5px 7px; border-radius: 8px; background: rgba(255,255,255,.06); border: 1px solid var(--border-soft); color: #fff; font-family: inherit; font-size: .84rem; }
+        .slot-row input[type=time]::-webkit-calendar-picker-indicator { filter: invert(.8); cursor: pointer; }
+        .ico { width: 26px; height: 26px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer; }
+        .ico:hover { color: #fff; background: rgba(255,255,255,.08); }
+        .ico.del:hover { color: #ff6b6b; background: rgba(255,59,48,.12); }
+        .ico:disabled { opacity: .25; cursor: default; }
+        .btn { padding: 9px 15px; border-radius: 11px; border: 1px solid transparent; font-weight: 600; font-size: .84rem; font-family: inherit; cursor: pointer; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary-blue), var(--accent-secondary)); color: #fff; }
+        .btn-ghost { background: rgba(255,255,255,.05); border-color: var(--border-soft); color: var(--text-gray); }
+        .btn-ghost:hover { color: #fff; border-color: var(--border-highlight); }
+        .btn-add { width: 100%; margin-top: 4px; border: 1px dashed var(--border-highlight); background: rgba(255,255,255,.02); color: var(--text-gray); }
+        .btn-add:hover { color: #fff; border-color: var(--primary-blue); }
+        .preview { border: 1px solid var(--border-soft); border-radius: 12px; padding: 12px; }
+        .preview .chip { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: .78rem; font-weight: 600; }
+        .preview table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: .8rem; }
+        .preview th, .preview td { border: 1px solid var(--border-soft); padding: 5px 7px; text-align: center; }
+        .preview td.time { text-align: left; color: var(--text-gray); }
+        textarea { width: 100%; min-height: 220px; background: #0b0f16; color: #d6e2ff; border: 1px solid var(--border-soft); border-radius: 10px; padding: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .78rem; resize: vertical; }
+        .issues { margin: 10px 0 0; padding-left: 18px; font-size: .8rem; color: #ffb340; }
+        .issues.ok { color: #34C759; list-style: none; padding-left: 0; }
+        .row-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+        .hint { font-size: .74rem; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1><i class="fa-solid fa-sliders"></i> Config Preview</h1>
+    <p class="sub">Công cụ dev: chỉnh thử theme &amp; khung giờ rồi xuất ra <code>config.js</code>. Trang này không lưu gì vào app.</p>
+
+    <div class="grid">
+        <!-- ===== CỘT TRÁI: điều khiển ===== -->
+        <div>
+            <div class="card">
+                <h2><i class="fa-solid fa-palette"></i> Cài đặt chung</h2>
+                <label for="lang">Ngôn ngữ mặc định</label>
+                <select id="lang">
+                    <option value="vi">Tiếng Việt (vi)</option>
+                    <option value="en">English (en)</option>
+                </select>
+                <label for="themes">Danh sách theme (phân tách bằng dấu phẩy)</label>
+                <input type="text" id="themes">
+                <label>Theme mặc định</label>
+                <div class="swatches" id="swatches"></div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fa-regular fa-clock"></i> Khung giờ</h2>
+                <label for="lessonDur">Độ dài tiết (phút)</label>
+                <input type="number" id="lessonDur" min="1">
+                <label for="gap">Khoảng nghỉ khi nối khung (phút)</label>
+                <input type="number" id="gap" min="0">
+                <label for="colors">Màu môn học (phân tách bằng dấu phẩy, #RRGGBB)</label>
+                <input type="text" id="colors">
+            </div>
+
+            <div class="card">
+                <h2><i class="fa-solid fa-list-ul"></i> Các khung</h2>
+                <div id="slots"></div>
+                <button class="btn btn-add" id="addPeriod"><i class="fa-solid fa-plus"></i> Thêm tiết</button>
+            </div>
+        </div>
+
+        <!-- ===== CỘT PHẢI: xem trước + xuất ===== -->
+        <div>
+            <div class="card">
+                <h2><i class="fa-regular fa-eye"></i> Xem trước</h2>
+                <div class="preview" id="preview"></div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fa-solid fa-file-code"></i> config.js</h2>
+                <ul class="issues" id="issues"></ul>
+                <textarea id="output" spellcheck="false"></textarea>
+                <div class="row-actions">
+                    <button class="btn btn-primary" id="download"><i class="fa-solid fa-download"></i> Tải config.js</button>
+                    <button class="btn btn-ghost" id="copy"><i class="fa-regular fa-copy"></i> Sao chép</button>
+                </div>
+                <p class="hint">Dán đè nội dung này vào <code>config.js</code> ở gốc dự án. Comment trong file gốc sẽ mất; các khóa khác được giữ nguyên.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/config.js"></script>
+<script src="/shared.js"></script>
+<script>
+(function () {
+    const CFG = window.SV_CONFIG || {};
+    const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const toHHMM = (m) => {
+        const x = ((m % 1440) + 1440) % 1440;
+        return String(Math.floor(x / 60)).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0');
+    };
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const deepCopy = (o) => JSON.parse(JSON.stringify(o || {}));
+
+    const state = {
+        defaultLang: CFG.defaultLang === 'en' ? 'en' : 'vi',
+        defaultTheme: CFG.defaultTheme,
+        themes: (CFG.themes || []).slice(),
+        slots: deepCopy((CFG.schedule || {}).defaultSlots || [])
+    };
+
+    const el = (id) => document.getElementById(id);
+    const newId = () => 'slot-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+
+    /** Chạy fn với ngôn ngữ tạm, không ghi đè localStorage của app */
+    function withLang(lang, fn) {
+        const key = (CFG.storage || {}).lang || 'sv-lang';
+        const prev = localStorage.getItem(key);
+        localStorage.setItem(key, lang);
+        try { fn(); } finally {
+            if (prev === null) localStorage.removeItem(key); else localStorage.setItem(key, prev);
+        }
+    }
+
+    function slotName(slot, index) {
+        if (slot.type === 'lesson') {
+            let n = 0;
+            for (let i = 0; i <= index; i++) if (state.slots[i].type === 'lesson') n++;
+            return svT('sched.periodN', { n });
+        }
+        return '☕ ' + (SV_I18N[slot.label] ? svT(slot.label) : (slot.label || svT('sched.genericBreak')));
+    }
+
+    function renderSwatches() {
+        const box = el('swatches');
+        box.innerHTML = state.themes.map(t =>
+            `<button type="button" class="swatch sv-sw-${esc(t)}${t === state.defaultTheme ? ' active' : ''}" data-theme="${esc(t)}" title="${esc(t)}"><span>${esc(t)}</span></button>`
+        ).join('');
+        box.querySelectorAll('.swatch').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.defaultTheme = btn.dataset.theme;
+                applyTheme();
+                renderAll();
+            });
+        });
+    }
+
+    function applyTheme() {
+        if (state.themes.includes(state.defaultTheme)) document.documentElement.dataset.theme = state.defaultTheme;
+    }
+
+    function renderSlots() {
+        const box = el('slots');
+        box.innerHTML = state.slots.map((s, i) => {
+            const isBreak = s.type === 'break';
+            return `<div class="slot-row${isBreak ? ' is-break' : ''}" data-id="${esc(s.id)}" data-type="${s.type}"${isBreak ? ` data-label="${esc(s.label || 'sched.genericBreak')}"` : ''}>
+                <span class="slot-name">${esc(slotName(s, i))}</span>
+                <input type="time" class="s-start" value="${esc(s.start)}">
+                <input type="time" class="s-end" value="${esc(s.end)}">
+                <button class="ico s-up" title="Lên"><i class="fa-solid fa-chevron-up"></i></button>
+                <button class="ico s-down" title="Xuống"><i class="fa-solid fa-chevron-down"></i></button>
+                <button class="ico s-dup" title="Nhân bản"><i class="fa-solid fa-copy"></i></button>
+                <button class="ico del s-del" title="Xóa"><i class="fa-solid fa-trash-can"></i></button>
+            </div>`;
+        }).join('');
+    }
+
+    function syncSlotInputs() {
+        el('slots').querySelectorAll('.slot-row').forEach(row => {
+            const s = state.slots.find(x => x.id === row.dataset.id);
+            if (!s) return;
+            s.start = row.querySelector('.s-start').value;
+            s.end = row.querySelector('.s-end').value;
+        });
+    }
+
+    function move(id, dir) {
+        const i = state.slots.findIndex(s => s.id === id);
+        const j = i + dir;
+        if (i < 0 || j < 0 || j >= state.slots.length) return;
+        [state.slots[i], state.slots[j]] = [state.slots[j], state.slots[i]];
+        renderAll();
+    }
+
+    function duplicate(id) {
+        const i = state.slots.findIndex(s => s.id === id);
+        if (i < 0) return;
+        const src = state.slots[i];
+        const dur = (TIME_RE.test(src.start) && TIME_RE.test(src.end) && toMin(src.end) > toMin(src.start))
+            ? toMin(src.end) - toMin(src.start) : (Number(el('lessonDur').value) || 45);
+        const startMin = TIME_RE.test(src.end) ? toMin(src.end) : (TIME_RE.test(src.start) ? toMin(src.start) + dur : 7 * 60);
+        const clone = { id: newId(), type: src.type, start: toHHMM(startMin), end: toHHMM(startMin + dur) };
+        if (src.type === 'break') clone.label = src.label || 'sched.genericBreak';
+        state.slots.splice(i + 1, 0, clone);
+        renderAll();
+    }
+
+    function remove(id) {
+        const lessons = state.slots.filter(s => s.type === 'lesson').length;
+        const target = state.slots.find(s => s.id === id);
+        if (!target || state.slots.length <= 1) return;
+        if (target.type === 'lesson' && lessons <= 1) return;
+        state.slots = state.slots.filter(s => s.id !== id);
+        renderAll();
+    }
+
+    function addPeriod() {
+        const gap = Number(el('gap').value) || 0;
+        const dur = Number(el('lessonDur').value) || 45;
+        const last = state.slots[state.slots.length - 1];
+        const startMin = last && TIME_RE.test(last.end) ? toMin(last.end) + gap : 7 * 60;
+        state.slots.push({ id: newId(), type: 'lesson', start: toHHMM(startMin), end: toHHMM(startMin + dur) });
+        renderAll();
+    }
+
+    function renderPreview() {
+        const days = (CFG.schedule || {}).days || [];
+        const dayLabels = days.map((_, i) => svT((CFG.schedule.dayI18nKeys || [])[i] || ''));
+        let html = '<span class="chip" style="background: var(--primary-blue); color:#fff;">Nút mẫu</span> '
+            + '<span class="chip" style="background: rgba(var(--primary-rgb),.18); border:1px solid var(--primary-blue);">Môn học</span> '
+            + '<span class="chip" style="background: rgba(255,255,255,.06); color:var(--text-gray);">Phụ</span>';
+        html += '<table><thead><tr><th>Giờ</th>' + dayLabels.map(d => `<th>${esc(d)}</th>`).join('') + '</tr></thead><tbody>';
+        state.slots.forEach((s, i) => {
+            const nm = slotName(s, i);
+            html += `<tr><td class="time">${esc(s.start)} - ${esc(s.end)}<br><span style="font-size:.85em">${esc(nm)}</span></td>`
+                + days.map(() => `<td>—</td>`).join('') + '</tr>';
+        });
+        html += '</tbody></table>';
+        el('preview').innerHTML = html;
+    }
+
+    function num(v, fallback) { const n = Number(v); return Number.isFinite(n) ? n : fallback; }
+
+    function buildConfig() {
+        const out = deepCopy(CFG);
+        out.defaultLang = state.defaultLang;
+        out.defaultTheme = state.defaultTheme;
+        out.themes = state.themes.slice();
+        out.schedule = out.schedule || {};
+        out.schedule.lessonDuration = num(el('lessonDur').value, 45);
+        out.schedule.gap = num(el('gap').value, 5);
+        out.schedule.subjectColors = el('colors').value.split(',').map(s => s.trim()).filter(Boolean);
+        out.schedule.defaultSlots = state.slots.map(s => {
+            const copy = { id: s.id, type: s.type, start: s.start, end: s.end };
+            if (s.type === 'break') copy.label = s.label || 'sched.genericBreak';
+            return copy;
+        });
+        return out;
+    }
+
+    function renderOutput() {
+        const cfg = buildConfig();
+        const issues = window.svValidateConfig ? svValidateConfig(cfg) : [];
+        const list = el('issues');
+        if (issues.length === 0) {
+            list.className = 'issues ok';
+            list.innerHTML = '<li>✓ Config hợp lệ.</li>';
+        } else {
+            list.className = 'issues';
+            list.innerHTML = issues.map(i => `<li>${esc(i)}</li>`).join('');
+        }
+        el('output').value = '/* Studyverse config — xuất từ config-preview.html */\nwindow.SV_CONFIG = '
+            + JSON.stringify(cfg, null, 4) + ';\n';
+        el('download').disabled = issues.length > 0;
+        el('download').style.opacity = issues.length > 0 ? 0.5 : 1;
+    }
+
+    function renderAll() {
+        renderSwatches();
+        renderSlots();
+        withLang(state.defaultLang, renderPreview);
+        renderOutput();
+    }
+
+    // --- Nạp giá trị ban đầu vào form ---
+    el('lang').value = state.defaultLang;
+    el('themes').value = state.themes.join(', ');
+    el('lessonDur').value = (CFG.schedule || {}).lessonDuration || 45;
+    el('gap').value = (CFG.schedule || {}).gap ?? 5;
+    el('colors').value = ((CFG.schedule || {}).subjectColors || []).join(', ');
+
+    // --- Sự kiện ---
+    el('lang').addEventListener('change', () => { state.defaultLang = el('lang').value; renderAll(); });
+    el('themes').addEventListener('input', () => {
+        state.themes = el('themes').value.split(',').map(s => s.trim()).filter(Boolean);
+        if (!state.themes.includes(state.defaultTheme)) state.defaultTheme = state.themes[0];
+        renderAll();
+    });
+    ['lessonDur', 'gap', 'colors'].forEach(id => el(id).addEventListener('input', renderOutput));
+    el('addPeriod').addEventListener('click', addPeriod);
+
+    el('slots').addEventListener('input', () => { syncSlotInputs(); renderOutput(); });
+    el('slots').addEventListener('click', (e) => {
+        const row = e.target.closest('.slot-row');
+        if (!row) return;
+        const id = row.dataset.id;
+        if (e.target.closest('.s-up')) move(id, -1);
+        else if (e.target.closest('.s-down')) move(id, 1);
+        else if (e.target.closest('.s-dup')) duplicate(id);
+        else if (e.target.closest('.s-del')) remove(id);
+    });
+
+    el('download').addEventListener('click', () => {
+        const blob = new Blob([el('output').value], { type: 'text/javascript' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'config.js';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
+
+    el('copy').addEventListener('click', async () => {
+        const btn = el('copy');
+        try {
+            await navigator.clipboard.writeText(el('output').value);
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã sao chép';
+        } catch (err) {
+            el('output').select();
+            document.execCommand('copy');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã sao chép';
+        }
+        setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> Sao chép'; }, 1500);
+    });
+
+    applyTheme();
+    renderAll();
+})();
+</script>
+</body>
+</html>

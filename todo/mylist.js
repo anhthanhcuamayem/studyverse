@@ -1,10 +1,15 @@
+// Khóa localStorage lấy từ /config.js (SV_CONFIG.storage) — dev đổi ở đó.
+const SV_STORAGE = (window.SV_CONFIG && window.SV_CONFIG.storage) || {};
+const PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
+const LAST_PROJECT_KEY = SV_STORAGE.lastProject || 'lastSelectedProject';
+
 // --- DỮ LIỆU ---
 function loadProjects() {
     try {
-        const saved = JSON.parse(localStorage.getItem('studyverse_projects'));
+        const saved = JSON.parse(localStorage.getItem(PROJECTS_KEY));
         return Array.isArray(saved) ? saved : [];
     } catch {
-        localStorage.removeItem('studyverse_projects');
+        localStorage.removeItem(PROJECTS_KEY);
         return [];
     }
 }
@@ -27,7 +32,7 @@ function initPage() {
     renderSidebar();
 
     // Khôi phục dự án đang xem dở
-    const lastProjectName = localStorage.getItem('lastSelectedProject');
+    const lastProjectName = localStorage.getItem(LAST_PROJECT_KEY);
     if (lastProjectName) {
         const savedProjects = loadProjects();
         const project = savedProjects.find(p => p.name.trim() === lastProjectName.trim());
@@ -119,7 +124,7 @@ function renderSidebar() {
     
     const saved = loadProjects();
     
-    const lastProjectName = localStorage.getItem('lastSelectedProject');
+    const lastProjectName = localStorage.getItem(LAST_PROJECT_KEY);
     
     sidebarList.innerHTML = '';
     
@@ -260,7 +265,7 @@ function saveTaskOrder(projectName) {
         const taskMap = {};
         savedProjects[pIdx].tasks.forEach(t => taskMap[t.id] = t);
         savedProjects[pIdx].tasks = orderedIds.map(id => taskMap[id]).filter(Boolean);
-        localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
+        localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
     }
 }
 
@@ -336,7 +341,7 @@ document.addEventListener('click', async function (event) {
             if (taskAreaContainer) taskAreaContainer.style.display = 'block';
 
             document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active-item'));
-            localStorage.removeItem('lastSelectedProject');
+            localStorage.removeItem(LAST_PROJECT_KEY);
             renderProjectListMain(); 
             return; 
         }
@@ -355,7 +360,7 @@ document.addEventListener('click', async function (event) {
 
         renderTasks(name);
         updateProgressBar(name);
-        localStorage.setItem('lastSelectedProject', name);
+        localStorage.setItem(LAST_PROJECT_KEY, name);
     }
 
     if (event.target.closest('#btnShowInput')) {
@@ -387,7 +392,7 @@ document.addEventListener('click', async function (event) {
                     completed: false
                 });
 
-                localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
+                localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
                 renderTasks(currentProjectName);
                 updateProgressBar(currentProjectName);
 
@@ -413,7 +418,7 @@ document.addEventListener('click', async function (event) {
             const task = savedProjects[projectIndex].tasks.find(t => t.id == taskId);
             if (task) {
                 task.completed = !task.completed;
-                localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
+                localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
                 renderTasks(currentProjectName);
                 updateProgressBar(currentProjectName);
             }
@@ -430,11 +435,11 @@ document.addEventListener('click', async function (event) {
 
             if (pIdx !== -1) {
                 projects[pIdx].name = trimmedNewName;
-                localStorage.setItem('studyverse_projects', JSON.stringify(projects));
+                localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
                 
                 mainTitle.innerText = trimmedNewName;
                 mainTitle.setAttribute('data-old-name', trimmedNewName);
-                localStorage.setItem('lastSelectedProject', trimmedNewName);
+                localStorage.setItem(LAST_PROJECT_KEY, trimmedNewName);
                 renderSidebar();
             }
         }
@@ -450,7 +455,7 @@ document.addEventListener('click', async function (event) {
             
             if (newDate !== null) {
                 projects[pIdx].deadline = newDate.trim() || svT('todo.notSet');
-                localStorage.setItem('studyverse_projects', JSON.stringify(projects));
+                localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
                 
                 mainDeadlineDisp.innerText = projects[pIdx].deadline === svT('todo.notSet') 
                     ? `${svT('todo.deadline')}: ${svT('todo.notSet')}` 
@@ -465,8 +470,8 @@ document.addEventListener('click', async function (event) {
             const index = event.target.getAttribute('data-index');
             let saved = loadProjects();
             saved.splice(index, 1);
-            localStorage.setItem('studyverse_projects', JSON.stringify(saved));
-            localStorage.removeItem('lastSelectedProject');
+            localStorage.setItem(PROJECTS_KEY, JSON.stringify(saved));
+            localStorage.removeItem(LAST_PROJECT_KEY);
             renderSidebar();
             mainTitle.innerText = "My Projects";
             mainDeadlineDisp.innerText = "";
@@ -517,7 +522,7 @@ document.addEventListener('click', async function (event) {
         if (await svConfirm(svT('todo.deleteProjectSure'), { title: svT('todo.deleteProject'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
             const currentName = document.getElementById('mainProjectName').getAttribute('data-old-name');
             projects = projects.filter(p => p.name !== currentName);
-            localStorage.setItem('studyverse_projects', JSON.stringify(projects));
+            localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
             
             document.getElementById('modalOverlay').style.display = 'none';
             showMainDashboard();
@@ -540,13 +545,13 @@ document.addEventListener('click', async function (event) {
                 if (pIdx !== -1) {
                     projects[pIdx].name = n.value.trim();
                     projects[pIdx].deadline = d.value || svT('todo.notSet');
-                    localStorage.setItem('studyverse_projects', JSON.stringify(projects));
+                    localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
                     openProject(projects[pIdx].name); 
                     renderSidebar();
                 }    
             } else {
                 projects.push({ name: n.value.trim(), deadline: d.value || svT('todo.notSet'), tasks: [] });
-                localStorage.setItem('studyverse_projects', JSON.stringify(projects));
+                localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
                 renderSidebar();
 
                 const mainTitle = document.getElementById('mainProjectName');
@@ -629,7 +634,7 @@ document.addEventListener('click', async function (event) {
                 savedProjects[pIdx].tasks[tIdx].name = newName;
                 savedProjects[pIdx].tasks[tIdx].deadline = newDate;
 
-                localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
+                localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
                 renderTasks(currentProjectName);
                 updateProgressBar(currentProjectName);
             }
@@ -652,7 +657,7 @@ document.addEventListener('click', async function (event) {
             if (pIdx !== -1 && Array.isArray(savedProjects[pIdx].tasks)) {
                 savedProjects[pIdx].tasks = savedProjects[pIdx].tasks.filter(t => t.id != taskId);
 
-                localStorage.setItem('studyverse_projects', JSON.stringify(savedProjects));
+                localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
                 renderTasks(currentProjectName);
                 updateProgressBar(currentProjectName);
             }
@@ -768,7 +773,7 @@ function showMainDashboard() {
     }
     if (mainDeadlineDisp) mainDeadlineDisp.innerText = "";
 
-    localStorage.removeItem('lastSelectedProject');
+    localStorage.removeItem(LAST_PROJECT_KEY);
     renderSidebar(); 
     renderProjectListMain();
 }
@@ -792,7 +797,7 @@ function openProject(name) {
 
     renderTasks(name);
     updateProgressBar(name);
-    localStorage.setItem('lastSelectedProject', name);
+    localStorage.setItem(LAST_PROJECT_KEY, name);
     renderSidebar();
 }
 
@@ -800,7 +805,7 @@ async function deleteProject(name) {
     if (await svConfirm(svT('todo.deleteProjectMsg', { name }), { title: svT('todo.deleteProject'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
         let saved = loadProjects();
         saved = saved.filter(p => p.name !== name);
-        localStorage.setItem('studyverse_projects', JSON.stringify(saved));
+        localStorage.setItem(PROJECTS_KEY, JSON.stringify(saved));
         
         renderSidebar();
         renderProjectListMain();

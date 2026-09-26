@@ -113,7 +113,7 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_FILES = {
-    'index.html', 'shared.js', 'shared.css', 'style.css', 'pockup.png',
+    'index.html', 'config.js', 'config-preview.html', 'shared.js', 'shared.css', 'style.css', 'pockup.png',
     'career/chat.html', 'career/chat.js', 'career/chat.css',
     'schedule/create.html', 'schedule/create.js', 'schedule/create.css',
     'todo/mylist.html', 'todo/mylist.js', 'todo/mylist.css',
@@ -407,24 +407,9 @@ def schedule_optimize():
         app.logger.exception('schedule_optimize failed')
         return jsonify({'error': 'Xếp lịch thất bại'}), 500
 
-    # Map tên tiếng Việt → tiếng Anh (index JS)
-    day_map = {
-        "Thứ 2": "Monday",
-        "Thứ 3": "Tuesday",
-        "Thứ 4": "Wednesday",
-        "Thứ 5": "Thursday",
-        "Thứ 6": "Friday",
-        "Thứ 7": "Saturday",
-        "Chủ nhật": "Sunday"
-    }
-
-    timetable = {}
-    for vi_name, lessons in result.items():
-        en_name = day_map.get(vi_name)
-        if en_name:
-            timetable[en_name] = lessons
-
-    return jsonify({'timetable': timetable})
+    # create_timetable_with_preferences trả về list 7 phần tử (index 0..6 = Thứ 2..Chủ nhật).
+    # Dùng chỉ số nên không cần map theo tên thứ, tránh phụ thuộc ngôn ngữ.
+    return jsonify({'timetable': result})
 
 
 # ==================== NGỮ CẢNH NGƯỜI DÙNG CHO AI ====================

@@ -1,4 +1,9 @@
 // career/chat.js - Chat AI Career với ngữ cảnh dữ liệu người dùng + streaming
+
+// Khóa localStorage lấy từ /config.js (SV_CONFIG.storage)
+const SV_STORAGE = (window.SV_CONFIG && window.SV_CONFIG.storage) || {};
+const PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
+const SCHEDULE_KEY = SV_STORAGE.schedule || 'studyverse_schedule_dashboard_data';
 document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('sendBtn');
     const userInput = document.getElementById('userInput');
@@ -16,11 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let projects = [];
         let schedule = null;
         try {
-            const savedProjects = JSON.parse(localStorage.getItem('studyverse_projects'));
+            const savedProjects = JSON.parse(localStorage.getItem(PROJECTS_KEY));
             if (Array.isArray(savedProjects)) projects = savedProjects;
         } catch (e) { /* bỏ qua dữ liệu hỏng */ }
         try {
-            const savedSchedule = JSON.parse(localStorage.getItem('studyverse_schedule_dashboard_data'));
+            const savedSchedule = JSON.parse(localStorage.getItem(SCHEDULE_KEY));
             if (savedSchedule && typeof savedSchedule === 'object') schedule = savedSchedule;
         } catch (e) { /* bỏ qua dữ liệu hỏng */ }
         // Chỉ gửi khi có dữ liệu, tránh payload rỗng không cần thiết
