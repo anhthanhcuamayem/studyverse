@@ -140,8 +140,8 @@ function renderSidebar() {
             <div class="project-info" style="display: flex; align-items: center; flex: 1;">
                 <i class="fa-solid fa-folder" style="color: var(--primary-blue); margin-right: 10px;"></i>
                 <div style="display: flex; flex-direction: column;">
-                    <span class="project-name-text" style="color: white; font-weight: 500;">${escapeHtml(proj.name)}</span>
-                    <small style="color: rgba(255,255,255,0.4); font-size: 11px;">${svT('todo.deadline')}: ${escapeHtml(formatDate(proj.deadline))}</small>
+                    <span class="project-name-text" style="color: var(--text-white); font-weight: 500;">${escapeHtml(proj.name)}</span>
+                    <small class="project-deadline" style="color: var(--text-muted); font-size: 11px;">${svT('todo.deadline')}: ${escapeHtml(formatDate(proj.deadline))}</small>
                 </div>
             </div>
         `;
@@ -289,7 +289,7 @@ function renderTasks(projectName) {
             taskItem.innerHTML = `
                 <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0;">
                     <div class="task-drag-handle" 
-                         style="cursor: grab; color: rgba(255,255,255,0.15); font-size: 12px; flex-shrink: 0; margin-top: 3px; padding: 2px 4px; border-radius: 4px; transition: color 0.2s, background 0.2s; user-select: none;">
+                         style="cursor: grab; color: var(--text-muted); font-size: 12px; flex-shrink: 0; margin-top: 3px; padding: 2px 4px; border-radius: 4px; transition: color 0.2s, background 0.2s; user-select: none;">
                          <i class="fa-solid fa-grip-vertical"></i>
                     </div>
                     <div class="task-check ${task.completed ? 'completed' : ''}" 
@@ -299,7 +299,7 @@ function renderTasks(projectName) {
                     </div>  
                     <div style="display: flex; flex-direction: column; min-width: 0; word-break: break-word;">
                         <span class="task-name ${task.completed ? 'completed' : ''}" 
-                              style="color: white; font-size: 15px; line-height: 1.4; ${task.completed ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
+                              style="color: var(--text-white); font-size: 15px; line-height: 1.4; ${task.completed ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
                               ${escapeHtml(task.name)}
                         </span>
                         ${task.deadline ? `<small style="color: #db4c3f; font-size: 12px; margin-top: 4px;">${escapeHtml(task.deadline)}</small>` : ''}
@@ -307,7 +307,7 @@ function renderTasks(projectName) {
                 </div>
                 <i class="fa-solid fa-pencil btn-edit-task" 
                     data-task-id="${task.id}" 
-                    style="color: rgba(255,255,255,0.3); font-size: 13px; cursor: pointer; flex-shrink: 0; margin-top: 4px;">
+                    style="color: var(--text-muted); font-size: 13px; cursor: pointer; flex-shrink: 0; margin-top: 4px;">
                 </i>
             `;
             taskListContainer.appendChild(taskItem);
@@ -691,7 +691,7 @@ function renderProjectListMain() {
     });
 
     if (saved.length === 0) {
-        displayArea.innerHTML = `<p style="color: rgba(255,255,255,0.4); text-align: center; margin-top: 50px;">${svT('todo.empty')}</p>`;
+        displayArea.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 50px;">${svT('todo.empty')}</p>`;
         return;
     }
 
@@ -705,13 +705,13 @@ function renderProjectListMain() {
 
         html += `
             <div class="project-list-row" data-name="${escapeHtml(proj.name)}"
-                 style="display: flex; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px 0px 18px 20px; cursor: pointer; transition: all 0.2s ease; min-height: 60px; position: relative;">
+                 style="display: flex; align-items: center; background: var(--card-hover-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 18px 0px 18px 20px; cursor: pointer; transition: all 0.2s ease; min-height: 60px; position: relative;">
                 <i class="fa-solid fa-circle-dot" style="color: var(--primary-blue); margin-right: 15px; font-size: 14px; flex-shrink: 0;"></i>
                 <div style="flex: 0 0 50%; max-width: 50%; padding-right: 10px; word-break: break-word;">
-                    <span style="color: white; font-size: 16px; font-weight: 500; display: block; line-height: 1.4;">${escapeHtml(proj.name)}</span>
+                    <span style="color: var(--text-white); font-size: 16px; font-weight: 500; display: block; line-height: 1.4;">${escapeHtml(proj.name)}</span>
                 </div>
                 <div style="flex: 1; min-width: 90px; text-align: left;">
-                    <span style="color: rgba(255,255,255,0.4); font-size: 13px; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                    <span style="color: var(--text-gray); font-size: 13px; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
                         <i class="fa-regular fa-calendar" style="font-size: 11px;"></i>
                         ${escapeHtml(deadlineText)}
                     </span>
@@ -720,7 +720,7 @@ function renderProjectListMain() {
                     <span style="color: ${color}; font-size: 14px; font-weight: 700; white-space: nowrap; display: inline-flex; align-items: baseline;">
                         ${percentage}<span style="font-size: 11px; margin-left: 1px;">%</span>
                     </span>
-                    <div class="delete-project-btn" data-project-name="${escapeHtml(proj.name)}" style="color: rgba(255,255,255,0.3); padding: 5px; cursor: pointer;">
+                    <div class="delete-project-btn" data-project-name="${escapeHtml(proj.name)}" style="color: var(--text-muted); padding: 5px; cursor: pointer;">
                         <i class="fa-solid fa-trash-can" style="font-size: 14px;"></i>
                     </div>
                 </div>

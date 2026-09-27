@@ -41,9 +41,9 @@
 }
 
 [data-theme="cyan"] {
-    --bg-color: #effcff;
-    --card-bg: #ffffff;
-    --card-hover-bg: #e2f8fc;
+    --bg-color: #c8f3f8;
+    --card-bg: #e8fcff;
+    --card-hover-bg: #b5edf4;
     --primary-blue: #0891b2;
     --primary-rgb: 8, 145, 178;
     --primary-blue-glow: rgba(8, 145, 178, 0.24);
@@ -54,8 +54,8 @@
     --border-soft: rgba(18, 52, 59, 0.12);
     --border-highlight: rgba(8, 145, 178, 0.30);
     --white-glow: 0 10px 30px -5px rgba(8, 84, 102, 0.13);
-    --navbar-bg: rgba(255, 255, 255, 0.92);
-    --panel-bg: #ffffff;
+    --navbar-bg: rgba(232, 252, 255, 0.94);
+    --panel-bg: #e8fcff;
     --user-bubble-bg: #06b6d4;
 }
 

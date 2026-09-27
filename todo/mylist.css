@@ -661,7 +661,7 @@ html {
 /* Cyan là theme sáng: Todo cần đổi các màu trắng inline sang chữ tối để dễ đọc. */
 [data-theme="cyan"] .project-sidebar,
 [data-theme="cyan"] .detail-card {
-    background: rgba(255, 255, 255, 0.80);
+    background: rgba(181, 237, 244, 0.88);
     border-color: rgba(18, 52, 59, 0.12);
     color: var(--text-white);
     box-shadow: 0 14px 35px rgba(8, 84, 102, 0.10);
