@@ -1,0 +1,48 @@
+Hoàn thiện Todo
+
+Trạng thái task: chưa làm, đang làm, hoàn thành.
+Ưu tiên, thời lượng ước tính, tag/môn học.
+Tìm kiếm, lọc theo hạn chót và trạng thái.
+Nhắc deadline.
+Import/export dữ liệu để tránh mất dữ liệu LocalStorage.
+
+Kết nối Todo với Schedule
+
+Gán task vào các khung giờ trống.
+Hiển thị task trong thời khóa biểu.
+Cảnh báo quá tải hoặc trùng lịch.
+Tự chia một project lớn thành các phiên học nhỏ.
+
+Phát triển AI Career thành AI Study Planner
+
+AI có thể:
+
+Chia mục tiêu thành các task cụ thể.
+Đề xuất lịch học trong tuần.
+Ưu tiên việc quan trọng/sắp đến hạn.
+Tóm tắt tiến độ mỗi tuần.
+Điều chỉnh kế hoạch khi người dùng bỏ lỡ task.
+
+Dashboard tiến độ
+
+Tiến độ theo tuần/tháng.
+Số task hoàn thành.
+Thời gian học.
+Chuỗi ngày học liên tiếp.
+Biểu đồ môn học hoặc mục tiêu đang yếu.
+
+Nâng cấp nền tảng kỹ thuật
+
+Đăng nhập và đồng bộ dữ liệu nhiều thiết bị.
+PWA để dùng offline.
+Kiểm thử tự động cho Todo và Schedule.
+Cải thiện accessibility, responsive và thông báo lỗi.
+Sau này có thể dùng IndexedDB hoặc backend thay cho LocalStorage.
+
+Nên ưu tiên theo thứ tự:
+
+Backup dữ liệu → liên kết Todo/Schedule → AI lập kế hoạch → dashboard tiến độ → đồng bộ tài khoản
+
+Vòng lặp cốt lõi nên hướng tới là:
+
+Nhập mục tiêu → AI chia nhỏ → xếp lịch → thực hiện → đánh dấu hoàn thành → xem báo cáo

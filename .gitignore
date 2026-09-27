@@ -2,7 +2,7 @@
 .env
 *.env
 !.env.example
-
+.wtf
 # Python
 __pycache__/
 *.py[cod]
