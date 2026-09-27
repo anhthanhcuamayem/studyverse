@@ -411,17 +411,17 @@ class ScheduleDashboard {
             const slotInfo = this.slots[s];
 
             if (slotInfo.type === 'break') {
-                bodyHtml += `<tr style="background: rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.4); font-style: italic;">`;
+                bodyHtml += '<tr class="break-row">';
                 const breakName = this._slotDisplayName(slotInfo, s);
-                bodyHtml += `<td style="background:#0f131c; font-weight:500; font-size: 0.82em;">${slotInfo.start} - ${slotInfo.end}<br><span style="color: var(--primary-blue); font-size: 0.8em;">☕ ${breakName}</span></td>`;
+                bodyHtml += `<td class="time-cell break-time-cell">${slotInfo.start} - ${slotInfo.end}<br><span>☕ ${breakName}</span></td>`;
                 for (let d = 0; d < DAYS.length; d++) {
-                    bodyHtml += `<td style="text-align: center; color: rgba(255,255,255,0.2); font-size: 0.8em;" colspan="1">☕ ${breakName}</td>`;
+                    bodyHtml += `<td class="break-cell" colspan="1">☕ ${breakName}</td>`;
                 }
                 bodyHtml += `</tr>`;
                 continue;
             }
 
-            bodyHtml += `<tr><td style="background:#0f131c; font-weight:500;">${slotInfo.start} - ${slotInfo.end}<br><span style="font-size: 0.75em; color: var(--text-gray);">${this._slotDisplayName(slotInfo, s)}</span></td>`;
+            bodyHtml += `<tr><td class="time-cell">${slotInfo.start} - ${slotInfo.end}<br><span>${this._slotDisplayName(slotInfo, s)}</span></td>`;
             for (let d = 0; d < DAYS.length; d++) {
                 const cellData = this.timetableData[d][s];
                 let cellClass = '';

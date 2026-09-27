@@ -2,16 +2,71 @@
 const SV_STORAGE = (window.SV_CONFIG && window.SV_CONFIG.storage) || {};
 const PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
 const LAST_PROJECT_KEY = SV_STORAGE.lastProject || 'lastSelectedProject';
+const SCHEDULE_KEY = SV_STORAGE.schedule || 'studyverse_schedule_dashboard_data';
+const TASK_STATUSES = ['todo', 'doing', 'done'];
+const TASK_PRIORITIES = ['low', 'medium', 'high'];
+const TASK_REPEATS = ['none', 'daily', 'weekly'];
+
+let todoView = 'all';
+
+function normalizeTask(task, index = 0) {
+    const rawStatus = TASK_STATUSES.includes(task && task.status)
+        ? task.status
+        : (task && task.completed ? 'done' : 'todo');
+    const rawPriority = TASK_PRIORITIES.includes(task && task.priority) ? task.priority : 'medium';
+    const rawRepeat = TASK_REPEATS.includes(task && task.repeat) ? task.repeat : 'none';
+    const estimate = Number(task && task.estimate);
+
+    return {
+        ...(task || {}),
+        id: task && task.id != null ? task.id : `${Date.now()}-${index}`,
+        name: String((task && task.name) || '').trim(),
+        deadline: String((task && task.deadline) || ''),
+        status: rawStatus,
+        completed: rawStatus === 'done',
+        priority: rawPriority,
+        estimate: Number.isFinite(estimate) && estimate > 0 ? Math.round(estimate) : 25,
+        repeat: rawRepeat,
+        subtasks: Array.isArray(task && task.subtasks)
+            ? task.subtasks.map((subtask, subtaskIndex) => ({
+                id: subtask && subtask.id != null ? subtask.id : `${Date.now()}-${subtaskIndex}`,
+                name: String((subtask && (subtask.name || subtask.text)) || '').trim(),
+                completed: Boolean(subtask && (subtask.completed || subtask.done))
+            })).filter(subtask => subtask.name)
+            : [],
+        schedule: task && task.schedule && typeof task.schedule === 'object' ? task.schedule : null
+    };
+}
+
+function normalizeProject(project, index = 0) {
+    return {
+        ...(project || {}),
+        name: String((project && project.name) || '').trim(),
+        deadline: String((project && project.deadline) || svT('todo.notSet')),
+        tasks: Array.isArray(project && project.tasks)
+            ? project.tasks.map((task, taskIndex) => normalizeTask(task, `${index}-${taskIndex}`))
+            : []
+    };
+}
 
 // --- DỮ LIỆU ---
 function loadProjects() {
     try {
         const saved = JSON.parse(localStorage.getItem(PROJECTS_KEY));
-        return Array.isArray(saved) ? saved : [];
+        return Array.isArray(saved) ? saved.map(normalizeProject).filter(project => project.name) : [];
     } catch {
         localStorage.removeItem(PROJECTS_KEY);
         return [];
     }
+}
+
+function saveProjects(nextProjects) {
+    const normalized = (Array.isArray(nextProjects) ? nextProjects : [])
+        .map(normalizeProject)
+        .filter(project => project.name);
+    projects = normalized;
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(normalized));
+    return normalized;
 }
 
 let projects = loadProjects();
@@ -27,6 +82,9 @@ function initPage() {
     const mainTitle = document.getElementById('mainProjectName');
     const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
     const taskAreaContainer = document.getElementById('taskAreaContainer');
+
+    initTodoToolbar();
+    populateScheduleSelect(document.getElementById('taskScheduleInput'));
 
     // Vẽ danh sách dự án bên Sidebar
     renderSidebar();
@@ -55,6 +113,7 @@ function initPage() {
 
             if (taskAreaContainer) {
                 taskAreaContainer.style.display = 'block';
+                document.getElementById('btnShowInput')?.style.setProperty('display', 'flex', 'important');
                 renderTasks(project.name);
                 updateProgressBar(project.name);
             }
@@ -87,6 +146,8 @@ try {
 // --- 2. ĐỔI NGÔN NGỮ (từ panel Cài đặt): vẽ lại nội dung do JS sinh ra ---
 document.addEventListener('sv:langchange', () => {
     if (!pageI18nReady) return;
+    const currentScheduleValue = document.getElementById('taskScheduleInput')?.value || '';
+    populateScheduleSelect(document.getElementById('taskScheduleInput'), readScheduleValue(currentScheduleValue));
     const mainTitle = document.getElementById('mainProjectName');
     const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
     const current = mainTitle ? mainTitle.getAttribute('data-old-name') : null;
@@ -116,6 +177,235 @@ function formatDate(dateString) {
     if (dateString.includes('/')) return dateString;
     const parts = dateString.split('-');
     return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateString;
+}
+
+function dateOnly(value) {
+    if (!value || value === svT('todo.notSet') || value === 'Chưa đặt') return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const localDate = value.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/);
+    if (localDate) {
+        const year = localDate[3] || new Date().getFullYear();
+        return `${year}-${String(localDate[2]).padStart(2, '0')}-${String(localDate[1]).padStart(2, '0')}`;
+    }
+    return null;
+}
+
+function todayString() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function taskIsToday(task) {
+    return dateOnly(task.deadline) === todayString();
+}
+
+function taskIsOverdue(task) {
+    const deadline = dateOnly(task.deadline);
+    return Boolean(deadline && deadline < todayString() && task.status !== 'done');
+}
+
+function taskIsUpcoming(task) {
+    const deadline = dateOnly(task.deadline);
+    return Boolean(deadline && deadline > todayString() && task.status !== 'done');
+}
+
+function nextRecurringDeadline(deadline, repeat) {
+    const parsed = dateOnly(deadline);
+    if (!parsed || !TASK_REPEATS.includes(repeat) || repeat === 'none') return '';
+    const date = new Date(`${parsed}T12:00:00`);
+    date.setDate(date.getDate() + (repeat === 'weekly' ? 7 : 1));
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function makeRecurringTask(task) {
+    const nextDeadline = nextRecurringDeadline(task.deadline, task.repeat);
+    if (!nextDeadline) return null;
+    return normalizeTask({
+        ...task,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        deadline: nextDeadline,
+        status: 'todo',
+        completed: false
+    });
+}
+
+function taskStatusLabel(status) {
+    return svT({ todo: 'todo.todoStatus', doing: 'todo.doingStatus', done: 'todo.doneStatus' }[status] || 'todo.todoStatus');
+}
+
+function taskPriorityLabel(priority) {
+    return svT({ low: 'todo.lowPriority', medium: 'todo.mediumPriority', high: 'todo.highPriority' }[priority] || 'todo.mediumPriority');
+}
+
+function getScheduleOptions() {
+    const options = [{ value: '', label: svT('todo.noStudySlot') }];
+    try {
+        const parsed = JSON.parse(localStorage.getItem(SCHEDULE_KEY) || 'null');
+        const days = (SV_STORAGE.scheduleDays || (window.SV_CONFIG && window.SV_CONFIG.schedule && window.SV_CONFIG.schedule.days))
+            || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const dayKeys = ['sched.day.mon', 'sched.day.tue', 'sched.day.wed', 'sched.day.thu', 'sched.day.fri', 'sched.day.sat', 'sched.day.sun'];
+        const slots = Array.isArray(parsed && parsed.slots) && parsed.slots.length
+            ? parsed.slots
+            : ((window.SV_CONFIG && window.SV_CONFIG.schedule && window.SV_CONFIG.schedule.defaultSlots) || []);
+        const timetable = Array.isArray(parsed && parsed.timetableData) ? parsed.timetableData : [];
+
+        days.forEach((day, dayIndex) => {
+            slots.forEach((slot, slotIndex) => {
+                if (!slot || slot.type === 'break') return;
+                const cell = timetable[dayIndex] && timetable[dayIndex][slotIndex];
+                const subject = cell && cell.type === 'subject' ? ` · ${cell.name}` : '';
+                const dayLabel = typeof SV_I18N !== 'undefined' && SV_I18N[dayKeys[dayIndex]] ? svT(dayKeys[dayIndex]) : day;
+                options.push({
+                    value: `${dayIndex}|${slot.id || slotIndex}`,
+                    label: `${dayLabel} · ${slot.start || '--:--'}–${slot.end || '--:--'}${subject}`,
+                    dayIndex,
+                    slotId: slot.id || String(slotIndex),
+                    start: slot.start || '',
+                    end: slot.end || '',
+                    subject: cell && cell.type === 'subject' ? cell.name : ''
+                });
+            });
+        });
+    } catch (error) {
+        console.warn('Todo schedule data unavailable', error);
+    }
+    return options;
+}
+
+function scheduleValue(schedule) {
+    return schedule && schedule.dayIndex != null && schedule.slotId != null
+        ? `${schedule.dayIndex}|${schedule.slotId}`
+        : '';
+}
+
+function scheduleLabel(schedule) {
+    if (!scheduleValue(schedule)) return '';
+    const option = getScheduleOptions().find(item => item.value === scheduleValue(schedule));
+    return option ? option.label : '';
+}
+
+function populateScheduleSelect(select, selectedSchedule = null) {
+    if (!select) return;
+    const selectedValue = scheduleValue(selectedSchedule);
+    select.innerHTML = getScheduleOptions().map(option =>
+        `<option value="${escapeHtml(option.value)}" ${option.value === selectedValue ? 'selected' : ''}>${escapeHtml(option.label)}</option>`
+    ).join('');
+}
+
+function readScheduleValue(value) {
+    const option = getScheduleOptions().find(item => item.value === value);
+    if (!option || !value) return null;
+    return {
+        dayIndex: option.dayIndex,
+        slotId: option.slotId,
+        start: option.start,
+        end: option.end,
+        subject: option.subject
+    };
+}
+
+function getTaskFilterState() {
+    return {
+        search: (document.getElementById('taskSearchInput')?.value || '').trim().toLowerCase(),
+        status: document.getElementById('taskStatusFilter')?.value || 'all',
+        priority: document.getElementById('taskPriorityFilter')?.value || 'all'
+    };
+}
+
+function taskMatchesFilters(task) {
+    const filter = getTaskFilterState();
+    const haystack = `${task.name} ${task.deadline || ''}`.toLowerCase();
+    if (filter.search && !haystack.includes(filter.search)) return false;
+    if (filter.status !== 'all' && task.status !== filter.status) return false;
+    if (filter.priority !== 'all' && task.priority !== filter.priority) return false;
+    if (todoView === 'today' && !taskIsToday(task)) return false;
+    if (todoView === 'upcoming' && !taskIsUpcoming(task)) return false;
+    if (todoView === 'overdue' && !taskIsOverdue(task)) return false;
+    return true;
+}
+
+function activeTaskFilters() {
+    const filter = getTaskFilterState();
+    return todoView !== 'all' || Boolean(filter.search) || filter.status !== 'all' || filter.priority !== 'all';
+}
+
+function refreshTodoView() {
+    const currentProject = document.getElementById('mainProjectName')?.getAttribute('data-old-name');
+    if (currentProject) {
+        renderTasks(currentProject);
+    } else {
+        renderProjectListMain();
+    }
+}
+
+function initTodoToolbar() {
+    const toolbar = document.getElementById('todoToolbar');
+    if (!toolbar || toolbar.dataset.ready === 'true') return;
+    toolbar.dataset.ready = 'true';
+
+    toolbar.querySelectorAll('.todo-view-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            todoView = button.dataset.view || 'all';
+            toolbar.querySelectorAll('.todo-view-btn').forEach(item => item.classList.toggle('active', item === button));
+            refreshTodoView();
+        });
+    });
+    ['taskSearchInput', 'taskStatusFilter', 'taskPriorityFilter'].forEach(id => {
+        const control = document.getElementById(id);
+        if (control) control.addEventListener('input', refreshTodoView);
+        if (control && control.tagName === 'SELECT') control.addEventListener('change', refreshTodoView);
+    });
+
+    document.getElementById('btnExportTodo')?.addEventListener('click', exportTodoData);
+    document.getElementById('btnImportTodo')?.addEventListener('click', () => document.getElementById('todoImportInput')?.click());
+    document.getElementById('todoImportInput')?.addEventListener('change', importTodoData);
+    window.addEventListener('storage', (event) => {
+        if (event.key === SCHEDULE_KEY) {
+            populateScheduleSelect(document.getElementById('taskScheduleInput'));
+            refreshTodoView();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+            event.preventDefault();
+            document.getElementById('taskSearchInput')?.focus();
+        }
+        if (event.key === 'Enter' && event.target.id === 'taskNameInput' && !event.shiftKey) {
+            event.preventDefault();
+            document.getElementById('btnSaveTask')?.click();
+        }
+    });
+}
+
+function exportTodoData() {
+    const blob = new Blob([JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), projects: loadProjects() }, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `studyverse-todo-${todayString()}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+}
+
+function importTodoData(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const parsed = JSON.parse(reader.result);
+            const imported = Array.isArray(parsed) ? parsed : parsed.projects;
+            if (!Array.isArray(imported) || imported.some(project => !project || typeof project.name !== 'string')) throw new Error('invalid');
+            saveProjects(imported);
+            localStorage.removeItem(LAST_PROJECT_KEY);
+            showMainDashboard();
+            svNotice(svT('todo.importSuccess'), { title: svT('todo.import') });
+        } catch {
+            svNotice(svT('todo.importError'), { title: svT('todo.import'), tone: 'warn' });
+        } finally {
+            event.target.value = '';
+        }
+    };
+    reader.readAsText(file);
 }
 
 function renderSidebar() {
@@ -164,7 +454,7 @@ function updateProgressBar(projectName) {
     }
 
     const total = project.tasks.length;
-    const completed = project.tasks.filter(t => t.completed).length;
+    const completed = project.tasks.filter(t => t.status === 'done' || t.completed).length;
     const pct = Math.round((completed / total) * 100);
 
     container.style.display = 'block';
@@ -255,7 +545,7 @@ function saveTaskOrder(projectName) {
     const container = document.getElementById('displayTaskList');
     const orderedIds = [];
     container.querySelectorAll('.task-item').forEach(item => {
-        orderedIds.push(Number(item.getAttribute('data-task-id')));
+        orderedIds.push(item.getAttribute('data-task-id'));
     });
 
     let savedProjects = loadProjects();
@@ -264,8 +554,14 @@ function saveTaskOrder(projectName) {
     if (pIdx !== -1 && savedProjects[pIdx].tasks) {
         const taskMap = {};
         savedProjects[pIdx].tasks.forEach(t => taskMap[t.id] = t);
-        savedProjects[pIdx].tasks = orderedIds.map(id => taskMap[id]).filter(Boolean);
-        localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
+        const visibleIds = new Set(orderedIds);
+        let visibleIndex = 0;
+        savedProjects[pIdx].tasks = savedProjects[pIdx].tasks.map(task => {
+            if (!visibleIds.has(String(task.id))) return task;
+            const nextId = orderedIds[visibleIndex++];
+            return taskMap[nextId] || task;
+        });
+        saveProjects(savedProjects);
     }
 }
 
@@ -275,47 +571,83 @@ function renderTasks(projectName) {
 
     const savedProjects = loadProjects();
     const project = savedProjects.find(p => p.name.trim() === projectName.trim());
+    const tasks = project && Array.isArray(project.tasks) ? project.tasks.filter(taskMatchesFilters) : [];
 
     taskListContainer.innerHTML = '';
-
-    if (project && project.tasks) {
-        project.tasks.forEach((task) => {
-            const taskItem = document.createElement('div');
-            taskItem.className = 'task-item';
-            taskItem.draggable = true;
-            taskItem.setAttribute('data-task-id', task.id);
-            taskItem.style.cssText = "display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 12px; transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease; border-radius: 8px;";
-
-            taskItem.innerHTML = `
-                <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0;">
-                    <div class="task-drag-handle" 
-                         style="cursor: grab; color: var(--text-muted); font-size: 12px; flex-shrink: 0; margin-top: 3px; padding: 2px 4px; border-radius: 4px; transition: color 0.2s, background 0.2s; user-select: none;">
-                         <i class="fa-solid fa-grip-vertical"></i>
-                    </div>
-                    <div class="task-check ${task.completed ? 'completed' : ''}" 
-                         data-task-id="${task.id}" 
-                         style="width: 18px; height: 18px; border: 1.5px solid #808080; border-radius: 50%; cursor: pointer; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 10px;">
-                         <i class="fa-solid fa-check" style="color: ${task.completed ? 'white' : 'transparent'}"></i>
-                    </div>  
-                    <div style="display: flex; flex-direction: column; min-width: 0; word-break: break-word;">
-                        <span class="task-name ${task.completed ? 'completed' : ''}" 
-                              style="color: var(--text-white); font-size: 15px; line-height: 1.4; ${task.completed ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
-                              ${escapeHtml(task.name)}
-                        </span>
-                        ${task.deadline ? `<small style="color: #db4c3f; font-size: 12px; margin-top: 4px;">${escapeHtml(task.deadline)}</small>` : ''}
-                    </div>
-                </div>
-                <i class="fa-solid fa-pencil btn-edit-task" 
-                    data-task-id="${task.id}" 
-                    style="color: var(--text-muted); font-size: 13px; cursor: pointer; flex-shrink: 0; margin-top: 4px;">
-                </i>
-            `;
-            taskListContainer.appendChild(taskItem);
-        });
+    if (!tasks.length) {
+        taskListContainer.innerHTML = `<div class="empty-task-state">${svT('todo.empty')}</div>`;
+        return;
     }
 
-    // Initialize drag-and-drop for this project
+    tasks.forEach((task) => {
+        const taskItem = document.createElement('div');
+        const isDone = task.status === 'done' || task.completed;
+        const isOverdue = taskIsOverdue(task);
+        taskItem.className = `task-item ${isDone ? 'task-is-done' : ''} ${isOverdue ? 'task-is-overdue' : ''}`;
+        taskItem.draggable = true;
+        taskItem.setAttribute('data-task-id', task.id);
+        taskItem.style.cssText = "display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-soft); gap: 12px; transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease; border-radius: 8px;";
+
+        const scheduleText = scheduleLabel(task.schedule);
+        const completedSubtasks = task.subtasks.filter(subtask => subtask.completed).length;
+        taskItem.innerHTML = `
+            <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0;">
+                <div class="task-drag-handle" title="Drag to reorder"
+                     style="cursor: grab; color: var(--text-muted); font-size: 12px; flex-shrink: 0; margin-top: 3px; padding: 2px 4px; border-radius: 4px; transition: color 0.2s, background 0.2s; user-select: none;">
+                     <i class="fa-solid fa-grip-vertical"></i>
+                </div>
+                <div class="task-check ${isDone ? 'completed' : ''}"
+                     data-task-id="${task.id}"
+                     title="${escapeHtml(isDone ? taskStatusLabel('todo') : taskStatusLabel('done'))}"
+                     style="width: 18px; height: 18px; border: 1.5px solid #808080; border-radius: 50%; cursor: pointer; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 10px;">
+                     <i class="fa-solid fa-check" style="color: ${isDone ? 'white' : 'transparent'}"></i>
+                </div>
+                <div style="display: flex; flex-direction: column; min-width: 0; word-break: break-word; gap: 5px;">
+                    <span class="task-name" style="color: var(--text-white); font-size: 15px; line-height: 1.4;">${escapeHtml(task.name)}</span>
+                    <div class="task-badges">
+                        <span class="task-status-badge">${escapeHtml(taskStatusLabel(task.status))}</span>
+                        <span class="task-priority-badge priority-${task.priority}">${escapeHtml(taskPriorityLabel(task.priority))}</span>
+                        <span class="task-status-badge"><i class="fa-regular fa-clock"></i> ${task.estimate}m</span>
+                    </div>
+                    ${task.deadline ? `<small class="task-deadline-text">${escapeHtml(task.deadline)}${isOverdue ? ` · ${escapeHtml(svT('todo.overdue'))}` : ''}</small>` : ''}
+                    ${scheduleText ? `<small class="task-schedule-badge"><i class="fa-regular fa-calendar"></i> ${escapeHtml(scheduleText)}</small>` : ''}
+                    ${task.subtasks.length ? `<small class="task-schedule-badge"><i class="fa-solid fa-list-check"></i> ${completedSubtasks}/${task.subtasks.length}</small>` : ''}
+                </div>
+            </div>
+            <i class="fa-solid fa-pencil btn-edit-task" data-task-id="${task.id}" title="Edit"
+                style="color: var(--text-muted); font-size: 13px; cursor: pointer; flex-shrink: 0; margin-top: 4px;"></i>
+        `;
+        taskListContainer.appendChild(taskItem);
+    });
+
     initDragAndDrop(projectName);
+}
+
+function renderGlobalTaskList() {
+    const displayArea = document.getElementById('displayTaskList');
+    if (!displayArea) return;
+    const rows = [];
+    loadProjects().forEach(project => project.tasks.forEach(task => {
+        if (taskMatchesFilters(task)) rows.push({ project, task });
+    }));
+
+    if (!rows.length) {
+        displayArea.innerHTML = `<div class="empty-task-state">${svT('todo.empty')}</div>`;
+        return;
+    }
+
+    displayArea.innerHTML = `<div class="global-task-list">${rows.map(({ project, task }) => {
+        const scheduleText = scheduleLabel(task.schedule);
+        return `<button type="button" class="global-task-row" data-project-name="${escapeHtml(project.name)}">
+            <span class="task-check ${task.status === 'done' ? 'completed' : ''}"><i class="fa-solid fa-check"></i></span>
+            <span class="global-task-content"><strong>${escapeHtml(task.name)}</strong><small>${escapeHtml(project.name)}${task.deadline ? ` · ${escapeHtml(task.deadline)}` : ''}${scheduleText ? ` · ${escapeHtml(scheduleText)}` : ''}</small></span>
+            <span class="task-priority-badge priority-${task.priority}">${escapeHtml(taskPriorityLabel(task.priority))}</span>
+        </button>`;
+    }).join('')}</div>`;
+
+    displayArea.querySelectorAll('.global-task-row').forEach(row => {
+        row.addEventListener('click', () => openProject(row.dataset.projectName));
+    });
 }
 
 // --- 5. XỬ LÝ SỰ KIỆN CLICK ---
@@ -366,6 +698,7 @@ document.addEventListener('click', async function (event) {
     if (event.target.closest('#btnShowInput')) {
         btnShowInput.style.display = 'none';
         taskInputCard.style.display = 'block';
+        populateScheduleSelect(document.getElementById('taskScheduleInput'));
         document.getElementById('taskNameInput').focus();
     }
 
@@ -377,6 +710,10 @@ document.addEventListener('click', async function (event) {
     if (event.target.id === 'btnSaveTask') {
         const taskName = document.getElementById('taskNameInput').value.trim();
         const taskDate = document.getElementById('taskDeadlineInput').value.trim();
+        const taskPriority = document.getElementById('taskPriorityInput')?.value || 'medium';
+        const taskEstimate = Number(document.getElementById('taskEstimateInput')?.value || 25);
+        const taskRepeat = document.getElementById('taskRepeatInput')?.value || 'none';
+        const taskSchedule = readScheduleValue(document.getElementById('taskScheduleInput')?.value || '');
         const currentProjectName = mainTitle.getAttribute('data-old-name');
 
         if (taskName !== "" && currentProjectName) {
@@ -385,14 +722,19 @@ document.addEventListener('click', async function (event) {
 
             if (projectIndex !== -1) {
                 if (!savedProjects[projectIndex].tasks) savedProjects[projectIndex].tasks = [];
-                savedProjects[projectIndex].tasks.push({
+                savedProjects[projectIndex].tasks.push(normalizeTask({
                     id: Date.now(),
                     name: taskName,
                     deadline: taskDate,
-                    completed: false
-                });
+                    status: 'todo',
+                    completed: false,
+                    priority: TASK_PRIORITIES.includes(taskPriority) ? taskPriority : 'medium',
+                    estimate: Number.isFinite(taskEstimate) && taskEstimate > 0 ? taskEstimate : 25,
+                    repeat: TASK_REPEATS.includes(taskRepeat) ? taskRepeat : 'none',
+                    schedule: taskSchedule
+                }));
 
-                localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
+                saveProjects(savedProjects);
                 renderTasks(currentProjectName);
                 updateProgressBar(currentProjectName);
 
@@ -400,6 +742,10 @@ document.addEventListener('click', async function (event) {
                 btnShowInput.style.display = 'flex';
                 document.getElementById('taskNameInput').value = "";
                 document.getElementById('taskDeadlineInput').value = "";
+                document.getElementById('taskPriorityInput').value = 'medium';
+                document.getElementById('taskEstimateInput').value = '25';
+                document.getElementById('taskRepeatInput').value = 'none';
+                document.getElementById('taskScheduleInput').value = '';
             }
         } else {
             svNotice(svT('todo.needName'), { title: svT('todo.missingName'), icon: 'fa-triangle-exclamation', tone: 'warn' });
@@ -417,8 +763,14 @@ document.addEventListener('click', async function (event) {
         if (projectIndex !== -1 && savedProjects[projectIndex].tasks) {
             const task = savedProjects[projectIndex].tasks.find(t => t.id == taskId);
             if (task) {
-                task.completed = !task.completed;
-                localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
+                const wasDone = task.status === 'done' || task.completed;
+                task.status = wasDone ? 'todo' : 'done';
+                task.completed = task.status === 'done';
+                if (!wasDone && task.repeat !== 'none') {
+                    const nextTask = makeRecurringTask(task);
+                    if (nextTask) savedProjects[projectIndex].tasks.push(nextTask);
+                }
+                saveProjects(savedProjects);
                 renderTasks(currentProjectName);
                 updateProgressBar(currentProjectName);
             }
@@ -579,28 +931,62 @@ document.addEventListener('click', async function (event) {
         if (task) {
             const taskItem = btnEditTask.closest('.task-item');
             taskItem.innerHTML = `
-                <div class="edit-task-card" style="width: 100%; background: #1a1d23; padding: 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 8px 0;">
+                <div class="edit-task-card" style="width: 100%; background: var(--card-hover-bg); padding: 16px; border-radius: 10px; border: 1px solid var(--border-soft); margin: 8px 0;">
                     <input type="text" id="editTaskName-${task.id}" value="${escapeHtml(task.name)}" placeholder="${svT('todo.taskNamePh')}"
-                        style="width: 100%; background: transparent; border: none; color: white; outline: none; font-size: 16px; margin-bottom: 12px; font-family: inherit;">
+                        style="width: 100%; background: transparent; border: none; color: var(--text-white); outline: none; font-size: 16px; margin-bottom: 12px; font-family: inherit;">
                     
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: rgba(255,255,255,0.5);">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: var(--text-gray);">
                         <i class="fa-regular fa-clock" style="font-size: 14px;"></i>
                         <input type="text" id="editTaskDate-${task.id}" value="${escapeHtml(task.deadline || '')}" placeholder="${svT('todo.taskDeadlinePh')}"
-                            style="background: transparent; border: none; color: rgba(255,255,255,0.5); font-size: 14px; outline: none; width: 100%; font-family: inherit;">
+                            style="background: transparent; border: none; color: var(--text-gray); font-size: 14px; outline: none; width: 100%; font-family: inherit;">
                     </div>
+
+                    <div class="task-meta-grid">
+                        <label><span>${escapeHtml(svT('todo.status'))}</span>
+                            <select id="editTaskStatus-${task.id}">
+                                <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>${escapeHtml(svT('todo.todoStatus'))}</option>
+                                <option value="doing" ${task.status === 'doing' ? 'selected' : ''}>${escapeHtml(svT('todo.doingStatus'))}</option>
+                                <option value="done" ${task.status === 'done' ? 'selected' : ''}>${escapeHtml(svT('todo.doneStatus'))}</option>
+                            </select>
+                        </label>
+                        <label><span>${escapeHtml(svT('todo.priority'))}</span>
+                            <select id="editTaskPriority-${task.id}">
+                                <option value="low" ${task.priority === 'low' ? 'selected' : ''}>${escapeHtml(svT('todo.lowPriority'))}</option>
+                                <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>${escapeHtml(svT('todo.mediumPriority'))}</option>
+                                <option value="high" ${task.priority === 'high' ? 'selected' : ''}>${escapeHtml(svT('todo.highPriority'))}</option>
+                            </select>
+                        </label>
+                        <label><span>${escapeHtml(svT('todo.estimate'))}</span>
+                            <input id="editTaskEstimate-${task.id}" type="number" min="5" max="600" step="5" value="${task.estimate}">
+                        </label>
+                        <label><span>${escapeHtml(svT('todo.repeat'))}</span>
+                            <select id="editTaskRepeat-${task.id}">
+                                <option value="none" ${task.repeat === 'none' ? 'selected' : ''}>${escapeHtml(svT('todo.noRepeat'))}</option>
+                                <option value="daily" ${task.repeat === 'daily' ? 'selected' : ''}>${escapeHtml(svT('todo.daily'))}</option>
+                                <option value="weekly" ${task.repeat === 'weekly' ? 'selected' : ''}>${escapeHtml(svT('todo.weekly'))}</option>
+                            </select>
+                        </label>
+                    </div>
+                    <label class="task-schedule-field"><span>${escapeHtml(svT('todo.studySlot'))}</span>
+                        <select id="editTaskSchedule-${task.id}"></select>
+                    </label>
+                    <label class="task-schedule-field"><span>${escapeHtml(svT('todo.subtasks'))}</span>
+                        <textarea class="task-subtasks-input" id="editTaskSubtasks-${task.id}" placeholder="${escapeHtml(svT('todo.subtaskPh'))}">${escapeHtml(task.subtasks.map(subtask => `${subtask.completed ? '[x] ' : ''}${subtask.name}`).join('\n'))}</textarea>
+                    </label>
 
                     <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
                         <span class="btn-delete-task" data-task-id="${task.id}" 
                             style="color: #ef4444; cursor: pointer; font-size: 14px; font-weight: 500; margin-right: auto;">${svT('todo.delete')}</span>
                         
                         <span class="btn-cancel-edit" 
-                            style="color: rgba(255,255,255,0.4); cursor: pointer; font-size: 14px; font-weight: 500;">${svT('common.cancel')}</span>
+                            style="color: var(--text-gray); cursor: pointer; font-size: 14px; font-weight: 500;">${svT('common.cancel')}</span>
                         
                         <button class="btn-save-edit" data-task-id="${task.id}" 
                             style="background: #db4c3f; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">${svT('common.save')}</button>
                     </div>
                 </div>
             `;
+            populateScheduleSelect(document.getElementById(`editTaskSchedule-${task.id}`), task.schedule);
             document.getElementById(`editTaskName-${task.id}`).focus();
         }
     }
@@ -621,6 +1007,21 @@ document.addEventListener('click', async function (event) {
         const taskId = event.target.getAttribute('data-task-id');
         const newName = document.getElementById(`editTaskName-${taskId}`).value.trim();
         const newDate = document.getElementById(`editTaskDate-${taskId}`).value.trim();
+        const newStatus = document.getElementById(`editTaskStatus-${taskId}`)?.value || 'todo';
+        const newPriority = document.getElementById(`editTaskPriority-${taskId}`)?.value || 'medium';
+        const newEstimate = Number(document.getElementById(`editTaskEstimate-${taskId}`)?.value || 25);
+        const newRepeat = document.getElementById(`editTaskRepeat-${taskId}`)?.value || 'none';
+        const newSchedule = readScheduleValue(document.getElementById(`editTaskSchedule-${taskId}`)?.value || '');
+        const newSubtasks = (document.getElementById(`editTaskSubtasks-${taskId}`)?.value || '')
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean)
+            .map((line, index) => ({
+                id: `${taskId}-sub-${index}`,
+                name: line.replace(/^\[x\]\s*/i, '').trim(),
+                completed: /^\[x\]\s*/i.test(line)
+            }))
+            .filter(subtask => subtask.name);
         const currentProjectName = document.getElementById('mainProjectName').getAttribute('data-old-name');
 
         if (newName !== "") {
@@ -631,10 +1032,23 @@ document.addEventListener('click', async function (event) {
                 : -1;
 
             if (tIdx !== -1) {
-                savedProjects[pIdx].tasks[tIdx].name = newName;
-                savedProjects[pIdx].tasks[tIdx].deadline = newDate;
+                const editedTask = savedProjects[pIdx].tasks[tIdx];
+                const wasDone = editedTask.status === 'done' || editedTask.completed;
+                editedTask.name = newName;
+                editedTask.deadline = newDate;
+                editedTask.status = TASK_STATUSES.includes(newStatus) ? newStatus : 'todo';
+                editedTask.completed = editedTask.status === 'done';
+                editedTask.priority = TASK_PRIORITIES.includes(newPriority) ? newPriority : 'medium';
+                editedTask.estimate = Number.isFinite(newEstimate) && newEstimate > 0 ? Math.round(newEstimate) : 25;
+                editedTask.repeat = TASK_REPEATS.includes(newRepeat) ? newRepeat : 'none';
+                editedTask.schedule = newSchedule;
+                editedTask.subtasks = newSubtasks;
+                if (!wasDone && editedTask.status === 'done' && editedTask.repeat !== 'none') {
+                    const nextTask = makeRecurringTask(editedTask);
+                    if (nextTask) savedProjects[pIdx].tasks.push(nextTask);
+                }
 
-                localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
+                saveProjects(savedProjects);
                 renderTasks(currentProjectName);
                 updateProgressBar(currentProjectName);
             }
@@ -679,12 +1093,17 @@ function renderProjectListMain() {
     if (!displayArea) return;
     displayArea.style.display = 'block';
 
+    if (activeTaskFilters()) {
+        renderGlobalTaskList();
+        return;
+    }
+
     let saved = loadProjects();
     
     saved.sort((a, b) => {
         const getPercent = (proj) => {
             if (!proj.tasks || proj.tasks.length === 0) return 0;
-            const completed = proj.tasks.filter(t => t.completed).length;
+            const completed = proj.tasks.filter(t => t.status === 'done' || t.completed).length;
             return completed / proj.tasks.length;
         };
         return getPercent(b) - getPercent(a);
@@ -794,6 +1213,24 @@ function showMyProjectsTab() {
 function openProject(name) {
     const taskAreaContainer = document.getElementById('taskAreaContainer');
     if (taskAreaContainer) taskAreaContainer.style.display = 'block';
+    const btnShowInput = document.getElementById('btnShowInput');
+    const taskInputCard = document.getElementById('taskInputCard');
+    if (btnShowInput) btnShowInput.style.setProperty('display', 'flex', 'important');
+    if (taskInputCard) taskInputCard.style.display = 'none';
+
+    const project = loadProjects().find(item => item.name.trim() === String(name).trim());
+    const mainTitle = document.getElementById('mainProjectName');
+    const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
+    if (mainTitle) {
+        mainTitle.innerText = name;
+        mainTitle.setAttribute('data-old-name', name);
+    }
+    if (mainDeadlineDisp) {
+        const deadline = project && project.deadline ? project.deadline : svT('todo.notSet');
+        mainDeadlineDisp.innerText = deadline !== svT('todo.notSet')
+            ? `${svT('todo.deadline')}: ${formatDate(deadline)}`
+            : `${svT('todo.deadline')}: ${svT('todo.notSet')}`;
+    }
 
     renderTasks(name);
     updateProgressBar(name);

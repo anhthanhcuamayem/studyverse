@@ -84,6 +84,37 @@
                         <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
                     </div>
                 </div>
+
+                <div class="todo-toolbar" id="todoToolbar">
+                    <div class="todo-views" role="tablist" aria-label="Task views">
+                        <button type="button" class="todo-view-btn active" data-view="all" data-i18n="todo.allTasks">All</button>
+                        <button type="button" class="todo-view-btn" data-view="today" data-i18n="todo.today">Today</button>
+                        <button type="button" class="todo-view-btn" data-view="upcoming" data-i18n="todo.upcoming">Upcoming</button>
+                        <button type="button" class="todo-view-btn" data-view="overdue" data-i18n="todo.overdue">Overdue</button>
+                    </div>
+                    <div class="todo-filter-row">
+                        <label class="todo-search-wrap">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input id="taskSearchInput" type="search" data-i18n-ph="todo.search" placeholder="Tìm việc..." autocomplete="off">
+                        </label>
+                        <select id="taskStatusFilter" aria-label="Task status">
+                            <option value="all" data-i18n="todo.allStatuses">Mọi trạng thái</option>
+                            <option value="todo" data-i18n="todo.todoStatus">Chưa làm</option>
+                            <option value="doing" data-i18n="todo.doingStatus">Đang làm</option>
+                            <option value="done" data-i18n="todo.doneStatus">Hoàn thành</option>
+                        </select>
+                        <select id="taskPriorityFilter" aria-label="Task priority">
+                            <option value="all" data-i18n="todo.allPriorities">Mọi mức ưu tiên</option>
+                            <option value="high" data-i18n="todo.highPriority">Cao</option>
+                            <option value="medium" data-i18n="todo.mediumPriority">Trung bình</option>
+                            <option value="low" data-i18n="todo.lowPriority">Thấp</option>
+                        </select>
+                        <button type="button" class="todo-data-btn" id="btnExportTodo" data-i18n="todo.export">Export data</button>
+                        <button type="button" class="todo-data-btn" id="btnImportTodo" data-i18n="todo.import">Import data</button>
+                        <input id="todoImportInput" type="file" accept="application/json,.json" hidden>
+                    </div>
+                    <small class="todo-shortcut-hint" data-i18n="todo.shortcutSearch">Ctrl/⌘ K để tìm nhanh</small>
+                </div>
                 
                 <div id="taskAreaContainer" style="display: none;">
                     
@@ -102,6 +133,29 @@
                             <i class="fa-regular fa-clock" style="color: #ffffff; font-size: 17px;"></i>
                             <input type="text" id="taskDeadlineInput" data-i18n-ph="todo.taskDeadlinePh" placeholder="Deadline (EX: 20/10 or Monday)..." style="background: transparent; border: none; color: #ffffff; font-size: 13px; outline: none; width: 100%;">
                         </div>
+
+                        <div class="task-meta-grid">
+                            <label><span data-i18n="todo.priority">Priority</span>
+                                <select id="taskPriorityInput">
+                                    <option value="low" data-i18n="todo.lowPriority">Low</option>
+                                    <option value="medium" selected data-i18n="todo.mediumPriority">Medium</option>
+                                    <option value="high" data-i18n="todo.highPriority">High</option>
+                                </select>
+                            </label>
+                            <label><span data-i18n="todo.estimate">Estimated minutes</span>
+                                <input id="taskEstimateInput" type="number" min="5" max="600" step="5" value="25">
+                            </label>
+                            <label><span data-i18n="todo.repeat">Repeat</span>
+                                <select id="taskRepeatInput">
+                                    <option value="none" data-i18n="todo.noRepeat">Does not repeat</option>
+                                    <option value="daily" data-i18n="todo.daily">Daily</option>
+                                    <option value="weekly" data-i18n="todo.weekly">Weekly</option>
+                                </select>
+                            </label>
+                        </div>
+                        <label class="task-schedule-field"><span data-i18n="todo.studySlot">Study slot</span>
+                            <select id="taskScheduleInput"></select>
+                        </label>
 
                         <div style="display: flex; justify-content: flex-end; gap: 8px;">
                             <button id="btnCancelTask" style="background: transparent; color: #808080; border: none; padding: 5px 10px; cursor: pointer; font-size: 13px;" data-i18n="common.cancel">Cancel</button>
@@ -143,6 +197,6 @@
     <!-- SỬA LẠI ĐƯỜ    NG DẪN JS -->
     <script src="/config.js"></script>
     <script src="/shared.js"></script>
-    <script src="mylist.js?v=3"></script>
+    <script src="mylist.js?v=20260927-1"></script>
 </body>
 </html>

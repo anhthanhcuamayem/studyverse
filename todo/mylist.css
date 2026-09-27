@@ -158,14 +158,14 @@ html {
 }
 
 .modal-content {
-    background: #1a202c;
+    background: var(--panel-bg);
     width: 22%;
     min-width: 320px;
     padding: 30px;
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-highlight);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    color: white;
+    color: var(--text-white);
     animation: modalShow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -177,12 +177,12 @@ html {
 .modal-header h3 {
     font-size: 1.5rem;
     margin-bottom: 5px;
-    color: #fff;
+    color: var(--text-white);
 }
 
 .modal-header p {
     font-size: 0.9rem;
-    color: #a0aec0;
+    color: var(--text-gray);
     margin-bottom: 25px;
 }
 
@@ -194,7 +194,7 @@ html {
 .input-group label {
     display: block;
     font-size: 0.85rem;
-    color: #cbd5e0;
+    color: var(--text-gray);
     margin-bottom: 8px;
     margin-left: 5px;
 }
@@ -202,10 +202,10 @@ html {
 #projectNameInput {
     width: 100%;
     padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--card-hover-bg);
+    border: 1px solid var(--border-soft);
     border-radius: 12px;
-    color: white;
+    color: var(--text-white);
     font-size: 1rem;
     outline: none;
     transition: 0.3s;
@@ -213,7 +213,7 @@ html {
 
 #projectNameInput:focus {
     border-color: var(--primary-blue);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--card-bg);
     box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
 }
 
@@ -254,23 +254,23 @@ html {
 }
 
 .btn-cancel {
-    background: rgba(255, 255, 255, 0.05);
-    color: #cbd5e0;
+    background: var(--card-hover-bg);
+    color: var(--text-gray);
 }
 
 .btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: rgba(var(--primary-rgb), 0.1);
+    color: var(--text-white);
 }
 
 .btn-confirm {
-    background: var(--primary-blue);
-    color: white;
+    background: linear-gradient(135deg, var(--primary-blue), var(--accent-secondary));
+    color: #fff;
     box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 .btn-confirm:hover {
-    background: var(--primary-blue);
+    filter: brightness(1.1);
     transform: translateY(-2px);
 }
 
@@ -299,20 +299,20 @@ html {
 #projectDeadlineInput {
     width: 100%;
     padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--card-hover-bg);
+    border: 1px solid var(--border-soft);
     border-radius: 12px;
-    color: white;
+    color: var(--text-white);
     font-family: inherit;
     font-size: 1rem;
     outline: none;
-    color-scheme: dark; /* date picker native hiển thị theo nền tối */
+    color-scheme: dark;
     transition: 0.3s;
 }
 
 #projectDeadlineInput:focus {
     border-color: var(--primary-blue);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--card-bg);
     box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
 }
 
@@ -373,6 +373,267 @@ html {
     background: linear-gradient(90deg, var(--primary-blue), var(--accent-secondary));
     border-radius: 3px;
     transition: width 0.5s ease;
+}
+
+/* --- TODO TOOLBAR / TASK METADATA --- */
+.todo-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.todo-views,
+.todo-filter-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.todo-view-btn,
+.todo-data-btn,
+.todo-filter-row select,
+.todo-search-wrap {
+    border: 1px solid var(--border-soft);
+    background: var(--card-hover-bg);
+    color: var(--text-white);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 12px;
+}
+
+.todo-view-btn,
+.todo-data-btn {
+    padding: 7px 11px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.todo-view-btn:hover,
+.todo-data-btn:hover {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+}
+
+.todo-view-btn.active {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: #fff;
+}
+
+.todo-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 10px;
+    flex: 1 1 180px;
+    min-width: 150px;
+}
+
+.todo-search-wrap i {
+    color: var(--text-muted);
+}
+
+.todo-search-wrap input {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-white);
+    font: inherit;
+    font-size: 12px;
+}
+
+.todo-filter-row select {
+    padding: 8px 9px;
+    outline: 0;
+}
+
+.todo-filter-row select:focus,
+.todo-search-wrap:focus-within {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.12);
+}
+
+.todo-shortcut-hint {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.task-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.task-meta-grid label,
+.task-schedule-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: var(--text-gray);
+    font-size: 11px;
+}
+
+.task-meta-grid select,
+.task-meta-grid input,
+.task-schedule-field select {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 8px;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    background: var(--card-hover-bg);
+    color: var(--text-white);
+    font: inherit;
+    font-size: 12px;
+    outline: 0;
+}
+
+.task-schedule-field {
+    margin-bottom: 12px;
+}
+
+.task-subtasks-input {
+    width: 100%;
+    min-height: 62px;
+    resize: vertical;
+    padding: 8px;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    background: var(--card-hover-bg);
+    color: var(--text-white);
+    font: inherit;
+    font-size: 12px;
+    outline: 0;
+}
+
+.task-priority-badge,
+.task-status-badge,
+.task-schedule-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 3px 7px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.task-priority-badge.priority-high { color: #b42318; background: rgba(239, 68, 68, 0.14); }
+.task-priority-badge.priority-medium { color: #9a6700; background: rgba(245, 158, 11, 0.16); }
+.task-priority-badge.priority-low { color: #087443; background: rgba(34, 197, 94, 0.14); }
+.task-status-badge { color: var(--primary-blue); background: rgba(var(--primary-rgb), 0.12); }
+.task-schedule-badge { color: var(--text-gray); background: rgba(var(--primary-rgb), 0.08); }
+
+.task-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+.task-deadline-text {
+    color: var(--text-gray);
+    font-size: 12px;
+}
+
+.global-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 0 18px;
+}
+
+.global-task-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    background: var(--card-hover-bg);
+    color: var(--text-white);
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+
+.global-task-row:hover {
+    border-color: var(--primary-blue);
+    transform: translateY(-1px);
+}
+
+.global-task-row .task-check {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border: 1px solid var(--border-highlight);
+    border-radius: 50%;
+    color: transparent;
+    font-size: 9px;
+}
+
+.global-task-row .task-check.completed {
+    color: #fff;
+    background: var(--primary-blue);
+}
+
+.global-task-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+.global-task-content strong,
+.global-task-content small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.global-task-content small {
+    color: var(--text-gray);
+    font-size: 11px;
+}
+
+.task-item.task-is-overdue .task-name {
+    color: #b42318 !important;
+}
+
+.task-item.task-is-done {
+    opacity: 0.72;
+}
+
+.task-item.task-is-done .task-name {
+    text-decoration: line-through;
+}
+
+.empty-task-state {
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+@media (max-width: 600px) {
+    .task-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .todo-filter-row select,
+    .todo-data-btn {
+        flex: 1 1 calc(50% - 8px);
+    }
 }
 
 /* --- ADD TASK BUTTON --- */
@@ -652,7 +913,10 @@ html {
 }
 
 [data-theme="light"] .color-picker,
-[data-theme="pink"] .color-picker {
+[data-theme="pink"] .color-picker,
+[data-theme="light"] #projectDeadlineInput,
+[data-theme="pink"] #projectDeadlineInput,
+[data-theme="cyan"] #projectDeadlineInput {
     color-scheme: light;
 }
 

@@ -176,11 +176,11 @@ label {
 
 input[type="text"], input[type="number"] {
     width: 100%;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--card-hover-bg);
     border: 1px solid var(--border-soft);
     padding: 10px 14px;
     border-radius: 10px;
-    color: white;
+    color: var(--text-white);
     font-size: 0.9rem;
     outline: none;
     transition: all 0.2s;
@@ -188,8 +188,12 @@ input[type="text"], input[type="number"] {
 
 input[type="text"]:focus, input[type="number"]:focus {
     border-color: var(--primary-blue);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--card-bg);
     box-shadow: 0 0 0 3px var(--primary-blue-glow);
+}
+
+input[type="text"]::placeholder {
+    color: var(--text-muted);
 }
 
 /* --- COLOR PICKER --- */
@@ -424,7 +428,7 @@ input[type="color"] {
     -webkit-overflow-scrolling: touch; /* momentum scroll trên iOS */
     border-radius: 20px;
     border: 1px solid var(--border-soft);
-    background: #080c14;
+    background: var(--card-bg);
     box-shadow: var(--white-glow);
 }
 
@@ -449,8 +453,8 @@ input[type="color"] {
 }
 
 .timetable th {
-    background: #0f1523;
-    color: white;
+    background: var(--card-hover-bg);
+    color: var(--text-white);
     font-weight: 700;
     cursor: pointer;
     text-transform: uppercase;
@@ -468,7 +472,7 @@ input[type="color"] {
 }
 
 .timetable td {
-    background: rgba(13, 17, 23, 0.7);
+    background: var(--card-bg);
     color: var(--text-gray);
     cursor: pointer;
     height: 54px;
@@ -477,8 +481,37 @@ input[type="color"] {
 }
 
 .timetable td:hover:not(.disabled-day) {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
+    background: rgba(var(--primary-rgb), 0.08);
+    color: var(--text-white);
+}
+
+.timetable td.time-cell {
+    background: var(--card-hover-bg);
+    color: var(--text-white);
+    font-weight: 500;
+    font-size: 0.82em;
+    white-space: nowrap;
+}
+
+.timetable td.time-cell span {
+    color: var(--text-gray);
+    font-size: 0.9em;
+}
+
+.timetable tr.break-row {
+    background: rgba(var(--primary-rgb), 0.04);
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.timetable td.break-time-cell span {
+    color: var(--primary-blue);
+}
+
+.timetable td.break-cell {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.8em;
 }
 
 .timetable td.drag-over {

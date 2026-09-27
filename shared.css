@@ -465,11 +465,12 @@ body {
 .sv-modal {
     width: 100%;
     max-width: 400px;
-    background: #121824;
+    background: var(--panel-bg);
     border: 1px solid var(--border-highlight);
     border-radius: 20px;
     padding: 28px 26px 22px;
     text-align: center;
+    color: var(--text-white);
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 40px rgba(var(--primary-rgb), 0.08);
     animation: svModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -528,11 +529,11 @@ body {
 
 .sv-modal-input {
     width: 100%;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--card-hover-bg);
     border: 1px solid var(--border-soft);
     padding: 11px 14px;
     border-radius: 10px;
-    color: white;
+    color: var(--text-white);
     font-size: 0.92rem;
     font-family: inherit;
     outline: none;
@@ -543,7 +544,7 @@ body {
 
 .sv-modal-input:focus {
     border-color: var(--primary-blue);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--card-bg);
     box-shadow: 0 0 0 3px var(--primary-blue-glow);
 }
 
@@ -588,15 +589,15 @@ body {
 }
 
 .sv-modal-btn-cancel {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--card-hover-bg);
     border-color: var(--border-soft);
     color: var(--text-gray);
 }
 
 .sv-modal-btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(var(--primary-rgb), 0.1);
     border-color: var(--border-highlight);
-    color: white;
+    color: var(--text-white);
 }
 
 .sv-modal-btn-cancel:focus-visible {
