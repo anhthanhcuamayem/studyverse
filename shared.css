@@ -125,6 +125,12 @@
     font-family: 'Inter', sans-serif;
 }
 
+/* Không để trang lộ palette mặc định trong lúc shared.js áp theme đã lưu.
+   Class này được gỡ ngay sau khi theme được áp dụng. */
+html.sv-theme-loading body {
+    visibility: hidden;
+}
+
 body {
     background-color: var(--bg-color);
     color: var(--text-white);

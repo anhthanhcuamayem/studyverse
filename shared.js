@@ -283,6 +283,23 @@ const SV_I18N = {
     'home.desc1': { vi: 'Tổ chức công việc và cuộc sống mỗi ngày một cách khoa học', en: 'Organize your work and life every day in a scientific' },
     'home.desc2': { vi: 'và hiệu quả nhất với Studyverse.', en: 'and most effective way with Studyverse.' },
     'home.cta': { vi: 'Bắt đầu ngay', en: 'Get Started' },
+    'home.login': { vi: 'Đăng nhập', en: 'Log in' },
+    'home.register': { vi: 'Đăng ký', en: 'Sign up' },
+    'home.guest': { vi: 'Dùng ngay với Guest', en: 'Continue as Guest' },
+    'home.guestHint': { vi: 'Guest lưu dữ liệu ngay trên trình duyệt này.', en: 'Guest data is saved in this browser only.' },
+    'auth.email': { vi: 'Email', en: 'Email' },
+    'auth.password': { vi: 'Mật khẩu', en: 'Password' },
+    'auth.loginTitle': { vi: 'Đăng nhập', en: 'Log in' },
+    'auth.loginSubtitle': { vi: 'Đăng nhập để đồng bộ dữ liệu của bạn.', en: 'Log in to sync your data.' },
+    'auth.registerTitle': { vi: 'Tạo tài khoản', en: 'Create an account' },
+    'auth.registerSubtitle': { vi: 'Tạo tài khoản để lưu dữ liệu trên nhiều thiết bị.', en: 'Create an account to save data across devices.' },
+    'auth.submitLogin': { vi: 'Đăng nhập', en: 'Log in' },
+    'auth.submitRegister': { vi: 'Tạo tài khoản', en: 'Create account' },
+    'auth.switchRegister': { vi: 'Chưa có tài khoản? Đăng ký', en: "Don't have an account? Sign up" },
+    'auth.switchLogin': { vi: 'Đã có tài khoản? Đăng nhập', en: 'Already have an account? Log in' },
+    'auth.confirmEmail': { vi: 'Hãy kiểm tra email để xác nhận tài khoản rồi đăng nhập.', en: 'Check your email to confirm your account, then log in.' },
+    'auth.configError': { vi: 'Supabase chưa được cấu hình. Bạn vẫn có thể dùng Guest.', en: 'Supabase is not configured. You can still use Guest mode.' },
+    'auth.genericError': { vi: 'Không thể thực hiện lúc này. Vui lòng thử lại.', en: 'Something went wrong. Please try again.' },
     'home.f1.title': { vi: 'Lập kế hoạch', en: 'Planning' },
     'home.f1.desc': { vi: 'Tạo danh sách công việc cá nhân hóa, giúp bạn chủ động trong học tập.', en: 'Build a personalized to-do list, helping you stay proactive in your studies.' },
     'home.f2.title': { vi: 'Giao diện bảo vệ mắt', en: 'Eye-friendly Interface' },
@@ -825,5 +842,8 @@ function svLogConfigIssues(cfg) {
         }
     } catch (err) {
         console.error('svInit failed:', err);
+    } finally {
+        // Chỉ hiện nội dung sau khi theme đã được áp dụng, tránh flash palette mặc định.
+        document.documentElement.classList.remove('sv-theme-loading');
     }
 })();

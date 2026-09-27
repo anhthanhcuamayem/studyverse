@@ -113,7 +113,8 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_FILES = {
-    'index.html', 'config.js', 'config-preview.html', 'shared.js', 'shared.css', 'style.css', 'pockup.png',
+    'index.html', 'config.js', 'theme-init.js', 'config-preview.html', 'shared.js', 'shared.css', 'style.css', 'pockup.png',
+    'auth.js',
     'career/chat.html', 'career/chat.js', 'career/chat.css',
     'schedule/create.html', 'schedule/create.js', 'schedule/create.css',
     'todo/mylist.html', 'todo/mylist.js', 'todo/mylist.css',
@@ -202,6 +203,19 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None):
 @app.route('/')
 def serve_index():
     return send_from_directory(BASE_DIR, 'index.html')
+
+
+@app.route('/api/public-config', methods=['GET'])
+def public_config():
+    """Expose only browser-safe configuration needed by Supabase Auth."""
+    return jsonify({
+        'supabaseUrl': (os.environ.get('SUPABASE_URL') or '').strip(),
+        'supabasePublishableKey': (
+            os.environ.get('SUPABASE_PUBLISHABLE_KEY')
+            or os.environ.get('SUPABASE_KEY')
+            or ''
+        ).strip(),
+    })
 
 @app.route('/<path:path>')
 def serve_static(path):
