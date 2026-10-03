@@ -25,7 +25,7 @@ studyverse/ (Root)
 
 ---
 
-## 🌟 Giới thiệu về Studyverse
+## Giới thiệu về Studyverse
 
 **Studyverse** là một nền tảng web tích hợp thông minh dành cho học sinh, sinh viên, kết hợp giữa quản lý học tập, tổ chức thời gian và định hướng nghề nghiệp bằng Trí tuệ Nhân tạo (AI). 
 
@@ -76,9 +76,27 @@ Cách chọn provider khi có nhiều key:
 Nếu provider được chọn lỗi, backend **tự failover** sang provider tiếp theo còn key.
 
 - `GET /api/ai-providers` — xem danh sách provider đã nhận diện được.
+- `GET /api/ai-providers?probe=1` — kiểm tra thật từng provider (gọi 1 completion tối thiểu) và trả về `health` kèm `code`/`message` cho từng provider.
+- `GET /api/health` — kiểm tra nhanh server còn sống và AI đã cấu hình chưa.
 - Body request cho `/api/career-ai` và `/api/suggest` có thể kèm `"provider": "groq"` để ép dùng một provider cụ thể cho request đó.
 - `POST /api/career-ai-stream` — phiên bản streaming (SSE) của career chat: AI trả lời từng mảnh thay vì chờ cả câu. Body chấp nhận thêm `projects` và `schedule` (đọc từ LocalStorage của Todo/Schedule) để AI tư vấn dựa trên dữ liệu học tập thật của người dùng.
 - `POST /api/ai-context` — rút gọn dữ liệu projects/schedule gửi lên thành ngữ cảnh gọn nhẹ cho AI (server không lưu dữ liệu).
+
+Khi tất cả provider đều lỗi, phản hồi lỗi kèm `code` để chỉ rõ nguyên nhân thay vì thông báo chung chung:
+`invalid_key` (401), `no_balance` (402), `permission` (403), `model_not_found` (404), `rate_limit` (429), `provider_down` (5xx), `timeout`, `connection`, `unknown`.
+
+### Lịch sử chat AI
+
+Trang **AI Career** lưu lịch sử trò chuyện cục bộ (LocalStorage khóa `studyverse_career_chat`, gom trong `SV_CONFIG.storage.careerChat`), giữ tối đa 100 tin nhắn gần nhất. Câu trả lời của AI được render markdown tối giản (đậm/nghiêng, `code`, danh sách, tiêu đề, liên kết) và có nút sao chép.
+
+## Chạy test
+
+```bash
+pip install -r requirements-dev.txt   # cài pytest
+.venv/bin/pytest                      # chạy toàn bộ test backend
+```
+
+Test nằm trong `tests/` và **không gọi mạng** tới nhà cung cấp AI (mọi lời gọi `request_ai` đều được mock), nên chạy được cả khi chưa cấu hình key.
 
 ## Cấu hình mặc định
 
@@ -89,6 +107,12 @@ Mọi mặc định của frontend gom trong **`config.js`** (`window.SV_CONFIG`
 - `schedule.*` — khung giờ mặc định, màu môn học, độ dài tiết, khoảng nghỉ, tên thứ.
 
 Chỉ cần sửa `config.js`, không phải đụng JS/CSS.
+
+## Tài khoản Studyverse
+
+Trang `/account.html` hỗ trợ đăng ký, đăng nhập, xác nhận email, đặt lại mật khẩu và đăng xuất qua Supabase Auth. Để bật dịch vụ, điền `SUPABASE_URL` và `SUPABASE_PUBLISHABLE_KEY` trong `.env`, bật Email provider trong Supabase, rồi thêm URL đang dùng (localhost, địa chỉ LAN hoặc domain deploy) vào mục **Authentication → URL Configuration → Redirect URLs**. Khóa publishable được dùng phía trình duyệt; không đưa secret/service role key vào frontend.
+
+Đăng nhập hiện xác thực tài khoản nhưng chưa đồng bộ projects/thời khóa biểu: dữ liệu đó vẫn được lưu trong LocalStorage của trình duyệt hiện tại.
 
 Có sẵn công cụ dev **`/config-preview.html`**: chọn theme, sửa/thêm/bớt tiết và xem trước; trang tự kiểm tra hợp lệ rồi cho **tải xuống `config.js`** (hoặc sao chép) để dán đè vào file gốc. Lúc khởi động, `shared.js` cũng tự gọi `svValidateConfig()` và in cảnh báo `[config.js] …` ra console nếu khóa nào thiếu/sai.
 

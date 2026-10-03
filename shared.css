@@ -1,9 +1,6 @@
-/* ==========================================================================
-   STUDYVERSE - SHARED STYLES (Single Source of Truth)
-   Used by ALL pages: index.html, todo/mylist.html, schedule/create.html, career/chat.html
-   ========================================================================== */
+/* Studyverse - style dùng chung các trang */
 
-/* --- CSS VARIABLES --- */
+/* CSS VARIABLES */
 :root {
     --bg-color: #05070a;
     --card-bg: #0d1117;
@@ -24,7 +21,7 @@
     --user-bubble-bg: var(--primary-blue);
 }
 
-/* --- THEME PALETTES (đổi --primary-* + --accent-secondary) --- */
+/* THEME PALETTES (đổi --primary-* + --accent-secondary) */
 /* midnight = mặc định ở trên (xanh iOS) — khai báo lại để theme nào cũng set data-theme */
 [data-theme="midnight"] {
     --primary-blue: #007AFF;
@@ -117,7 +114,7 @@
     --user-bubble-bg: #d86b93;
 }
 
-/* --- GLOBAL RESET --- */
+/* GLOBAL RESET */
 * {
     margin: 0;
     padding: 0;
@@ -137,7 +134,7 @@ body {
     overflow-x: hidden;
 }
 
-/* --- NAVBAR HEADER --- */
+/* NAVBAR HEADER */
 .navbar {
     width: 100%;
     position: fixed;
@@ -176,7 +173,7 @@ body {
     color: var(--primary-blue);
 }
 
-/* --- NAVIGATION --- */
+/* NAVIGATION */
 .navigation {
     position: relative;
     width: 350px;
@@ -264,7 +261,7 @@ body {
     z-index: 999 !important;
 }
 
-/* --- INDICATOR --- */
+/* INDICATOR */
 .indicator {
     position: absolute;
     top: -45%;
@@ -277,7 +274,8 @@ body {
     z-index: 1;
 }
 
-/* --- SETTINGS BUTTON (navbar, inject bởi shared.js) --- */
+/* Account và settings entry (navbar, inject bởi shared.js) */
+.nav-account,
 .nav-settings {
     width: 42px;
     height: 42px;
@@ -289,11 +287,14 @@ body {
     border-radius: 50%;
     color: var(--text-gray);
     font-size: 1.05rem;
-    cursor: pointer;
+    text-decoration: none;
     transition: all 0.25s ease;
     flex-shrink: 0;
 }
 
+.nav-settings { cursor: pointer; }
+
+.nav-account:hover,
 .nav-settings:hover {
     color: var(--text-white);
     border-color: var(--border-highlight);
@@ -305,10 +306,11 @@ body {
 .nav-settings.open { color: var(--primary-blue); border-color: var(--primary-blue); }
 
 @media (max-width: 768px) {
+    .nav-account,
     .nav-settings { width: 38px; height: 38px; font-size: 0.95rem; }
 }
 
-/* --- SETTINGS PANEL --- */
+/* SETTINGS PANEL */
 .sv-settings-panel {
     position: fixed;
     top: 122px; /* navbar desktop cao 110px + 12px khoảng nghỉ */
@@ -369,6 +371,7 @@ body {
 .sv-settings-title i { color: var(--primary-blue); }
 
 /* Bàn phím: nút bấm trong panel phải thấy rõ focus */
+.nav-account:focus-visible,
 .nav-settings:focus-visible,
 .sv-lang-btn:focus-visible,
 .sv-theme-swatch:focus-visible {
@@ -448,7 +451,7 @@ body {
 .sv-sw-light { background: linear-gradient(135deg, #ffffff, #dbeafe); border-color: rgba(15, 23, 42, 0.18); }
 .sv-sw-pink { background: linear-gradient(135deg, #ffd9e8 0%, #ff88b4 52%, #d86b93 100%); }
 
-/* --- SV MODAL POPUP (thay alert/confirm/prompt mặc định, dùng chung 4 trang) --- */
+/* SV MODAL POPUP (thay alert/confirm/prompt mặc định, dùng chung 4 trang) */
 .sv-modal-overlay {
     position: fixed;
     inset: 0;
@@ -621,7 +624,7 @@ body {
     }
 }
 
-/* --- RESPONSIVE --- */
+/* RESPONSIVE */
 @media (max-width: 1024px) {
     .nav-container {
         padding: 0 16px;
@@ -691,7 +694,7 @@ body {
     .logo { font-size: 17px; }
     .navigation { padding: 0 4px; }
     .navigation ul li { width: 39px; }
-    .nav-settings { width: 34px; height: 34px; font-size: 0.9rem; }
+    .nav-account, .nav-settings { width: 34px; height: 34px; font-size: 0.9rem; }
 }
 
 /* Màn hình rất hẹp (<=330px, vd Galaxy Fold) cần thu thêm một nấc */
@@ -700,19 +703,20 @@ body {
     .navigation { padding: 0 2px; }
     .navigation ul li { width: 36px; }
     .indicator { width: 34px; }
-    .nav-settings { width: 30px; height: 30px; font-size: 0.82rem; }
+    .nav-account, .nav-settings { width: 30px; height: 30px; font-size: 0.82rem; }
 }
 
-/* --- IN ẤN: nút và panel Cài đặt không bao giờ được in ra --- */
+/* IN ẤN: nút và panel Cài đặt không bao giờ được in ra */
 @media print {
     .nav-settings,
+    .nav-account,
     .sv-settings-panel,
     .sv-modal-overlay {
         display: none !important;
     }
 }
 
-/* --- SHARED ANIMATIONS --- */
+/* SHARED ANIMATIONS */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }

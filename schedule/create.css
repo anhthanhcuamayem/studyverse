@@ -1,13 +1,10 @@
-/* ==========================================================================
-   STUDYVERSE - INTERACTIVE SCHEDULE DASHBOARD STYLES
-   Shared styles loaded via <link href="/shared.css"> in create.html
-   ========================================================================== */
+/* Studyverse - trang thời khóa biểu */
 
 body {
     animation: fadeIn 0.4s ease forwards;
 }
 
-/* --- MAIN CONTAINER LAYOUT --- */
+/* MAIN CONTAINER LAYOUT */
 .main-schedule {
     padding-top: 135px;
     padding-bottom: 50px;
@@ -20,7 +17,7 @@ body {
     padding: 0 24px;
 }
 
-/* --- BANNER --- */
+/* BANNER */
 .schedule-banner {
     background: var(--card-bg);
     border: 1px solid var(--border-soft);
@@ -58,7 +55,7 @@ body {
     flex-wrap: wrap;
 }
 
-/* --- BUTTONS --- */
+/* BUTTONS */
 .btn-action {
     padding: 10px 20px;
     border-radius: 12px;
@@ -106,14 +103,14 @@ body {
     box-shadow: 0 4px 15px rgba(255, 59, 48, 0.4);
 }
 
-/* --- WORKSPACE LAYOUT (2 COLUMNS) --- */
+/* WORKSPACE LAYOUT (2 COLUMNS) */
 .schedule-workspace {
     display: flex;
     gap: 24px;
     align-items: flex-start;
 }
 
-/* --- SIDEBAR --- */
+/* SIDEBAR */
 .sidebar-panel {
     width: 360px;
     flex-shrink: 0;
@@ -144,7 +141,7 @@ body {
     color: var(--primary-blue);
 }
 
-/* --- FORM ADD SUBJECT --- */
+/* FORM ADD SUBJECT */
 .add-subject-form {
     display: flex;
     flex-direction: column;
@@ -196,7 +193,7 @@ input[type="text"]::placeholder {
     color: var(--text-muted);
 }
 
-/* --- COLOR PICKER --- */
+/* COLOR PICKER */
 .color-picker-wrapper {
     width: 100%;
     height: 38px;
@@ -215,7 +212,7 @@ input[type="color"] {
     cursor: pointer;
 }
 
-/* --- PRESET COLORS --- */
+/* PRESET COLORS */
 .preset-colors {
     display: flex;
     gap: 8px;
@@ -262,7 +259,7 @@ input[type="color"] {
     transform: translateY(-1px);
 }
 
-/* --- DRAG HINT --- */
+/* DRAG HINT */
 .drag-hint {
     font-size: 0.8rem;
     color: var(--text-gray);
@@ -274,7 +271,7 @@ input[type="color"] {
     border-radius: 0 8px 8px 0;
 }
 
-/* --- SUBJECT CARDS (DRAGGABLE) --- */
+/* SUBJECT CARDS (DRAGGABLE) */
 .subjects-list {
     display: flex;
     flex-direction: column;
@@ -369,14 +366,14 @@ input[type="color"] {
     color: white;
 }
 
-/* --- STATS BOX --- */
+/* STATS BOX */
 .status-box {
     font-size: 0.85rem;
     line-height: 1.6;
     color: var(--text-gray);
 }
 
-/* --- MAIN TIMETABLE SECTION --- */
+/* MAIN TIMETABLE SECTION */
 .timetable-section {
     flex: 1;
     min-width: 0;
@@ -422,7 +419,7 @@ input[type="color"] {
 .legend-box.x-legend { background: rgba(255, 59, 48, 0.3); border: 1px solid #ff3b30; }
 .legend-box.off-legend { background: repeating-linear-gradient(45deg, #181d28, #181d28 8px, #0e121a 8px, #0e121a 16px); }
 
-/* --- TIMETABLE TABLE --- */
+/* TIMETABLE TABLE */
 .timetable-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch; /* momentum scroll trên iOS */
@@ -553,7 +550,7 @@ input[type="color"] {
     z-index: 3;
 }
 
-/* --- SUBJECT PICKER POPUP --- */
+/* SUBJECT PICKER POPUP */
 .subject-picker {
     position: fixed;
     background: #121824;
@@ -612,7 +609,7 @@ input[type="color"] {
 
 /* SV MODAL POPUP: đã gom vào shared.css (dùng chung cả 4 trang) */
 
-/* --- RESPONSIVE --- */
+/* RESPONSIVE */
 @media (max-width: 1024px) {
     .schedule-workspace {
         flex-direction: column;
@@ -763,7 +760,7 @@ input[type="color"] {
     }
 }
 
-/* --- TIME CONFIG MODAL (Cấu hình thời gian) --- */
+/* TIME CONFIG MODAL (Cấu hình thời gian) */
 .time-config-overlay {
     position: fixed;
     inset: 0;
@@ -1361,7 +1358,7 @@ input[type="color"] {
     .tc-reset { flex-basis: 100%; margin-right: 0; }
 }
 
-/* --- PRINT --- */
+/* PRINT */
 @media print {
     body {
         background: white !important;

@@ -1,0 +1,3 @@
+# Phụ thuộc chỉ dùng khi phát triển / chạy test — không cần cho môi trường chạy thật.
+-r requirements.txt
+pytest>=8.0

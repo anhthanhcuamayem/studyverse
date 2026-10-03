@@ -1,18 +1,12 @@
-/* ==========================================================================
-   STUDYVERSE - SHARED JS (Single Source of Truth)
-   Used by ALL pages: index.html, todo/mylist.html, schedule/create.html, career/chat.html
-   Provides: escapeHtml, SV modal system (thay alert/confirm/prompt),
-             navbar indicator animation.
-   ========================================================================== */
+// escapeHtml, modal thay alert/confirm/prompt, navbar indicator — dùng chung các trang
 
-// --- ESCAPE HTML (chống XSS khi chèn dữ liệu người dùng vào innerHTML) ---
+// chống XSS khi chèn dữ liệu người dùng vào innerHTML
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[char]));
 }
 
-// --- SV MODAL POPUP (thay alert/confirm/prompt mặc định của trình duyệt) ---
 let svModalState = null;
 
 function svCloseModal() {
@@ -120,13 +114,11 @@ function _svShowModal({ title, message, icon = 'fa-circle-info', tone = '', conf
     }
 }
 
-/** Popup thông báo (thay alert) */
 function svNotice(message, opts = {}) {
     const { title = svT('common.notice'), icon = 'fa-circle-info', tone = '', confirmText = svT('common.ok') } = opts;
     _svShowModal({ title, message, icon, tone, confirmText });
 }
 
-/** Popup xác nhận (thay confirm). Trả về Promise<boolean> */
 function svConfirm(message, opts = {}) {
     return new Promise(resolve => {
         const { title = svT('common.confirm'), icon = 'fa-circle-question', tone = '', confirmText = svT('common.yes'), cancelText = svT('common.cancel'), danger = false } = opts;
@@ -134,7 +126,6 @@ function svConfirm(message, opts = {}) {
     });
 }
 
-/** Popup nhập liệu (thay prompt). Trả về Promise<string|null> */
 function svPrompt(message, opts = {}) {
     return new Promise(resolve => {
         const { title = svT('common.input'), icon = 'fa-pen', tone = '', confirmText = svT('common.save'), cancelText = svT('common.cancel'), defaultValue = '', placeholder = '' } = opts;
@@ -142,7 +133,6 @@ function svPrompt(message, opts = {}) {
     });
 }
 
-// --- NAVBAR INDICATOR (hiệu ứng viên trượt trên thanh menu, dùng chung 4 trang) ---
 function svMoveIndicator(element, speed = '0.3s') {
     const indicator = document.querySelector('.indicator');
     if (!element || !indicator) return;
@@ -201,22 +191,18 @@ function initNavbarIndicator() {
 
 document.addEventListener('DOMContentLoaded', initNavbarIndicator);
 
-/* ==========================================================================
-   STUDYVERSE - SETTINGS ENGINE (theme + ngôn ngữ, dùng chung 4 trang)
-   Theme: đổi biến --primary-* qua data-theme trên <html>
-   Ngôn ngữ: data-i18n (text), data-i18n-ph (placeholder), data-i18n-title
-   ========================================================================== */
+// theme + ngôn ngữ dùng chung. Theme đổi qua data-theme trên <html>,
+// ngôn ngữ qua data-i18n / data-i18n-ph / data-i18n-title.
 
-// --- Fallback CHỈ dùng khi KHÔNG nạp được /config.js ---
-// (server chưa serve file đó, mở bằng file://, hoặc quên thẻ <script>).
-// Vẫn nên chỉnh config.js; giá trị ở đây chỉ để app không vỡ giao diện.
+// fallback khi không nạp được /config.js
 const SV_FALLBACK_CONFIG = {
     defaultLang: 'vi',
     defaultTheme: 'midnight',
     themes: ['midnight', 'ocean', 'cyan', 'sunset', 'royal', 'forest', 'light', 'pink'],
     storage: {
         lang: 'sv-lang', theme: 'sv-theme', projects: 'studyverse_projects',
-        schedule: 'studyverse_schedule_dashboard_data', lastProject: 'lastSelectedProject'
+        schedule: 'studyverse_schedule_dashboard_data', lastProject: 'lastSelectedProject',
+        careerChat: 'studyverse_career_chat'
     },
     schedule: {
         lessonDuration: 45,
@@ -241,19 +227,18 @@ const SV_FALLBACK_CONFIG = {
     }
 };
 
-// Mặc định lấy từ /config.js (SV_CONFIG) — sửa ở đó, không cần đụng file này.
 const SV_CFG = window.SV_CONFIG || SV_FALLBACK_CONFIG;
 const SV_LANG_KEY = (SV_CFG.storage || {}).lang || 'sv-lang';
 const SV_THEME_KEY = (SV_CFG.storage || {}).theme || 'sv-theme';
 const SV_DEFAULT_LANG = SV_CFG.defaultLang === 'en' ? 'en' : 'vi';
 
-// --- i18n dictionary: key -> { vi, en } ---
 const SV_I18N = {
-    // Navbar (dùng chung)
+    // navbar
     'nav.home': { vi: 'Trang chủ', en: 'Home' },
     'nav.project': { vi: 'Dự án', en: 'My Project' },
     'nav.schedule': { vi: 'Thời khóa biểu', en: 'Schedule' },
     'nav.career': { vi: 'Hướng nghiệp', en: 'AI Career' },
+    'nav.account': { vi: 'Tài khoản', en: 'Account' },
     'nav.settings': { vi: 'Cài đặt', en: 'Settings' },
     // Settings panel
     'settings.title': { vi: 'Cài đặt', en: 'Settings' },
@@ -276,7 +261,6 @@ const SV_I18N = {
     'common.confirm': { vi: 'Xác nhận', en: 'Confirm' },
     'common.input': { vi: 'Nhập liệu', en: 'Input' },
     'common.edit': { vi: 'Sửa', en: 'Edit' },
-    // --- Trang chủ ---
     'home.title': { vi: 'Trang chủ - Studyverse', en: 'Home - Studyverse' },
     'home.hero1': { vi: 'Một danh sách đơn giản để', en: 'A simple list to' },
     'home.hero2': { vi: 'quản lý mọi thứ', en: 'manage everything' },
@@ -286,13 +270,12 @@ const SV_I18N = {
     'home.login': { vi: 'Đăng nhập', en: 'Log in' },
     'home.register': { vi: 'Đăng ký', en: 'Sign up' },
     'home.guest': { vi: 'Dùng ngay với Guest', en: 'Continue as Guest' },
-    'home.guestHint': { vi: 'Guest lưu dữ liệu ngay trên trình duyệt này.', en: 'Guest data is saved in this browser only.' },
     'auth.email': { vi: 'Email', en: 'Email' },
     'auth.password': { vi: 'Mật khẩu', en: 'Password' },
     'auth.loginTitle': { vi: 'Đăng nhập', en: 'Log in' },
-    'auth.loginSubtitle': { vi: 'Đăng nhập để đồng bộ dữ liệu của bạn.', en: 'Log in to sync your data.' },
+    'auth.loginSubtitle': { vi: 'Đăng nhập để tiếp tục sử dụng Studyverse.', en: 'Log in to continue using Studyverse.' },
     'auth.registerTitle': { vi: 'Tạo tài khoản', en: 'Create an account' },
-    'auth.registerSubtitle': { vi: 'Tạo tài khoản để lưu dữ liệu trên nhiều thiết bị.', en: 'Create an account to save data across devices.' },
+    'auth.registerSubtitle': { vi: 'Tạo tài khoản Studyverse của riêng bạn.', en: 'Create your Studyverse account.' },
     'auth.submitLogin': { vi: 'Đăng nhập', en: 'Log in' },
     'auth.submitRegister': { vi: 'Tạo tài khoản', en: 'Create account' },
     'auth.switchRegister': { vi: 'Chưa có tài khoản? Đăng ký', en: "Don't have an account? Sign up" },
@@ -300,13 +283,75 @@ const SV_I18N = {
     'auth.confirmEmail': { vi: 'Hãy kiểm tra email để xác nhận tài khoản rồi đăng nhập.', en: 'Check your email to confirm your account, then log in.' },
     'auth.configError': { vi: 'Supabase chưa được cấu hình. Bạn vẫn có thể dùng Guest.', en: 'Supabase is not configured. You can still use Guest mode.' },
     'auth.genericError': { vi: 'Không thể thực hiện lúc này. Vui lòng thử lại.', en: 'Something went wrong. Please try again.' },
+    'account.pageTitle': { vi: 'Tài khoản - Studyverse', en: 'Account - Studyverse' },
+    'account.backHome': { vi: 'Về trang chủ', en: 'Back to home' },
+    'account.eyebrow': { vi: 'KHÔNG GIAN HỌC TẬP CỦA BẠN', en: 'YOUR STUDY SPACE' },
+    'account.storyTitle': { vi: 'Một nơi gọn gàng\ncho mọi mục tiêu.', en: 'One clear space\nfor every goal.' },
+    'account.storyCopy': { vi: 'Lên kế hoạch, theo dõi tiến độ và dành sự tập trung cho điều quan trọng tiếp theo.', en: 'Plan your work, follow your progress, and focus on what matters next.' },
+    'account.benefitPlan': { vi: 'Kế hoạch rõ ràng', en: 'Clear plans' },
+    'account.benefitPlanCopy': { vi: 'Gom dự án và công việc vào một nơi.', en: 'Keep projects and tasks in one place.' },
+    'account.benefitFocus': { vi: 'Tập trung mỗi ngày', en: 'Focus every day' },
+    'account.benefitFocusCopy': { vi: 'Theo dõi tiến độ theo nhịp của bạn.', en: 'Track progress at your own pace.' },
+    'account.cardEyebrow': { vi: 'TÀI KHOẢN STUDYVERSE', en: 'STUDYVERSE ACCOUNT' },
+    'account.loginTitle': { vi: 'Chào mừng trở lại', en: 'Welcome back' },
+    'account.loginSubtitle': { vi: 'Đăng nhập để tiếp tục hành trình học tập.', en: 'Sign in to continue your learning journey.' },
+    'account.registerTitle': { vi: 'Tạo tài khoản', en: 'Create your account' },
+    'account.registerSubtitle': { vi: 'Bắt đầu sắp xếp việc học theo cách của bạn.', en: 'Start organizing your study your way.' },
+    'account.forgotTitle': { vi: 'Đặt lại mật khẩu', en: 'Reset your password' },
+    'account.forgotSubtitle': { vi: 'Nhập email, chúng tôi sẽ gửi cho bạn đường dẫn đặt lại mật khẩu.', en: 'Enter your email and we’ll send a password reset link.' },
+    'account.recoveryTitle': { vi: 'Tạo mật khẩu mới', en: 'Create a new password' },
+    'account.recoverySubtitle': { vi: 'Chọn một mật khẩu mới cho tài khoản của bạn.', en: 'Choose a new password for your account.' },
+    'account.emailLabel': { vi: 'Địa chỉ email', en: 'Email address' },
+    'account.emailHint': { vi: 'Email chỉ dùng để đăng nhập và khôi phục tài khoản.', en: 'Your email is used for sign-in and account recovery.' },
+    'account.emailPlaceholder': { vi: 'ten@email.com', en: 'you@example.com' },
+    'account.passwordLabel': { vi: 'Mật khẩu', en: 'Password' },
+    'account.confirmPasswordLabel': { vi: 'Nhập lại mật khẩu', en: 'Confirm password' },
+    'account.passwordHint': { vi: 'Dùng ít nhất 8 ký tự.', en: 'Use at least 8 characters.' },
+    'account.passwordHintLogin': { vi: 'Nhập mật khẩu của bạn để đăng nhập.', en: 'Enter your password to sign in.' },
+    'account.passwordPlaceholderLogin': { vi: 'Mật khẩu của bạn', en: 'Your password' },
+    'account.passwordPlaceholder': { vi: 'Tối thiểu 8 ký tự', en: 'At least 8 characters' },
+    'account.confirmPlaceholder': { vi: 'Nhập lại mật khẩu', en: 'Enter your password again' },
+    'account.showPassword': { vi: 'Hiện mật khẩu', en: 'Show password' },
+    'account.hidePassword': { vi: 'Ẩn mật khẩu', en: 'Hide password' },
+    'account.forgotPassword': { vi: 'Quên mật khẩu?', en: 'Forgot password?' },
+    'account.submitLogin': { vi: 'Đăng nhập', en: 'Sign in' },
+    'account.submitRegister': { vi: 'Tạo tài khoản', en: 'Create account' },
+    'account.submitForgot': { vi: 'Gửi liên kết đặt lại', en: 'Send reset link' },
+    'account.submitRecovery': { vi: 'Lưu mật khẩu mới', en: 'Save new password' },
+    'account.loading': { vi: 'Đang xử lý…', en: 'Please wait…' },
+    'account.registerPrompt': { vi: 'Chưa có tài khoản?', en: 'New to Studyverse?' },
+    'account.loginPrompt': { vi: 'Đã có tài khoản?', en: 'Already have an account?' },
+    'account.switchToRegister': { vi: 'Đăng ký', en: 'Create one' },
+    'account.switchToLogin': { vi: 'Đăng nhập', en: 'Sign in' },
+    'account.continueGuest': { vi: 'Tiếp tục với Guest', en: 'Continue as Guest' },
+    'account.localDataNotice': { vi: 'Dự án và thời khóa biểu hiện được lưu trên trình duyệt này.', en: 'Projects and schedules are currently saved in this browser.' },
+    'account.or': { vi: 'hoặc', en: 'or' },
+    'account.footerSecure': { vi: 'Xác thực tài khoản bảo mật', en: 'Secure account authentication' },
+    'account.signedInAs': { vi: 'Đang đăng nhập bằng', en: 'Signed in as' },
+    'account.accountReady': { vi: 'Bạn đã đăng nhập', en: 'You are signed in' },
+    'account.accountReadyCopy': { vi: 'Tài khoản Studyverse của bạn đang hoạt động.', en: 'Your Studyverse account is ready.' },
+    'account.openApp': { vi: 'Mở Studyverse', en: 'Open Studyverse' },
+    'account.signOut': { vi: 'Đăng xuất', en: 'Sign out' },
+    'account.confirmEmail': { vi: 'Tài khoản đã được xác nhận. Bạn có thể tiếp tục vào Studyverse.', en: 'Your account is confirmed. You can continue to Studyverse.' },
+    'account.emailSent': { vi: 'Nếu địa chỉ email hợp lệ, liên kết đặt lại mật khẩu sẽ sớm được gửi đến hộp thư của bạn.', en: 'If the email address is valid, a password reset link will arrive shortly.' },
+    'account.passwordUpdated': { vi: 'Mật khẩu đã được cập nhật. Bạn có thể tiếp tục vào Studyverse.', en: 'Password updated. You can continue to Studyverse.' },
+    'account.passwordMismatch': { vi: 'Hai mật khẩu chưa trùng khớp.', en: 'The passwords do not match.' },
+    'account.recoveryHelp': { vi: 'Không nhận được email?', en: 'Having trouble with the reset link?' },
+    'account.recoveryBack': { vi: 'Quay lại đăng nhập', en: 'Back to sign in' },
+    'account.recoveryLinkInvalid': { vi: 'Liên kết đặt lại không hợp lệ hoặc đã hết hạn. Hãy yêu cầu một liên kết mới.', en: 'This reset link is invalid or expired. Request a new link and try again.' },
+    'account.authUnavailable': { vi: 'Chưa kết nối được dịch vụ tài khoản. Hãy kiểm tra cấu hình và thử lại.', en: 'Account service is unavailable. Check the configuration and try again.' },
+    'account.signupCheckEmail': { vi: 'Tài khoản đã tạo. Hãy mở email xác nhận để hoàn tất đăng ký.', en: 'Account created. Check your email to finish registration.' },
+    'account.invalidCredentials': { vi: 'Email hoặc mật khẩu chưa chính xác.', en: 'Email or password is incorrect.' },
+    'account.emailNotConfirmed': { vi: 'Hãy xác nhận email trước khi đăng nhập.', en: 'Confirm your email before signing in.' },
+    'account.userExists': { vi: 'Email này đã có tài khoản. Hãy đăng nhập.', en: 'An account already exists for this email. Please sign in.' },
+    'account.passwordTooShort': { vi: 'Mật khẩu cần có ít nhất 8 ký tự.', en: 'Password must be at least 8 characters.' },
+    'account.signedOut': { vi: 'Bạn đã đăng xuất khỏi tài khoản.', en: 'You have signed out.' },
     'home.f1.title': { vi: 'Lập kế hoạch', en: 'Planning' },
     'home.f1.desc': { vi: 'Tạo danh sách công việc cá nhân hóa, giúp bạn chủ động trong học tập.', en: 'Build a personalized to-do list, helping you stay proactive in your studies.' },
     'home.f2.title': { vi: 'Giao diện bảo vệ mắt', en: 'Eye-friendly Interface' },
     'home.f2.desc': { vi: '"Chế độ tối giảm mỏi mắt và tăng tập trung cho những buổi học dài."', en: '"Dark Mode reduces eye strain and boosts focus for long study sessions."' },
     'home.f3.title': { vi: 'Bảo mật & Tốc độ', en: 'Security & Speed' },
     'home.f3.desc': { vi: 'Dữ liệu được lưu an toàn ngay trên trình duyệt, truy cập tức thì.', en: 'Data is stored securely right on the browser, ensuring instant access.' },
-    // --- Todo / My Project ---
     'todo.pageTitle': { vi: 'Dự án của tôi', en: 'My Project' },
     'todo.sidebar': { vi: 'Dự án của tôi', en: 'My Projects' },
     'todo.newProject': { vi: '+ Dự án mới', en: '+ New Project' },
@@ -364,7 +409,6 @@ const SV_I18N = {
     'todo.importError': { vi: 'Tệp dữ liệu không hợp lệ.', en: 'The data file is invalid.' },
     'todo.importSuccess': { vi: 'Đã nhập dữ liệu Todo thành công.', en: 'Todo data imported successfully.' },
     'todo.shortcutSearch': { vi: 'Ctrl/⌘ K để tìm nhanh', en: 'Ctrl/⌘ K to search' },
-    // --- Schedule ---
     'sched.title': { vi: 'Thời khóa biểu tương tác', en: 'Interactive Schedule' },
     'sched.subtitle': { vi: 'Thiết lập thời khóa biểu thông minh: Kéo - Thả môn học, Tùy chỉnh màu sắc & Tự động xếp lịch với AI', en: 'Set up a smart timetable: Drag & drop subjects, custom colors & AI auto-scheduling' },
     'sched.auto': { vi: 'Tự động xếp lịch', en: 'Auto Schedule' },
@@ -486,7 +530,6 @@ const SV_I18N = {
     'sched.cameraNotReady': { vi: 'Thư viện chụp ảnh chưa sẵn sàng. Vui lòng tải lại trang (F5).', en: 'Capture library not ready. Please reload the page (F5).' },
     'sched.captureError': { vi: 'Lỗi chụp ảnh TKB:', en: 'Error capturing timetable:' },
     'sched.cannotSaveImage': { vi: 'Không thể lưu ảnh. Vui lòng thử lại hoặc dùng chức năng In.', en: 'Cannot save image. Try again or use the Print feature.' },
-    // --- Career chat ---
     'career.tagline': { vi: 'Trợ lý tư vấn hướng nghiệp thông minh', en: 'Smart career guidance assistant' },
     'career.inputPh': { vi: 'Nhập câu hỏi của bạn...', en: 'Type your question...' },
     'career.send': { vi: 'Gửi', en: 'Send' },
@@ -502,16 +545,15 @@ const SV_I18N = {
     'career.q3': { vi: 'Dựa trên các môn học trong thời khóa biểu và sở thích của tôi, hãy gợi ý 3 ngành nghề phù hợp kèm lý do cụ thể.', en: 'Based on my timetable subjects and interests, suggest 3 suitable careers with specific reasons.' },
     'career.clearChat': { vi: 'Xóa toàn bộ lịch sử chat?', en: 'Clear the entire chat history?' },
     'career.clearTitle': { vi: 'Xóa lịch sử', en: 'Clear history' },
+    'career.copy': { vi: 'Sao chép câu trả lời', en: 'Copy reply' },
     'career.pageTitle': { vi: 'Tư vấn hướng nghiệp - Studyverse', en: 'Career Counseling - Studyverse' },
 };
 
-// --- Lấy ngôn ngữ hiện tại ---
 function svLang() {
     const saved = localStorage.getItem(SV_LANG_KEY);
     return (saved === 'vi' || saved === 'en') ? saved : SV_DEFAULT_LANG;
 }
 
-// --- Dịch: svT('key') hoặc svT('Môn "${name}" đã đủ...', {name: 'Toán'}) ---
 function svT(key, params) {
     const entry = SV_I18N[key];
     let text = entry ? entry[svLang()] : key;
@@ -523,7 +565,6 @@ function svT(key, params) {
     return text;
 }
 
-// --- Áp dụng ngôn ngữ lên DOM (data-i18n / data-i18n-ph / data-i18n-title) ---
 function svApplyI18n() {
     const lang = svLang();
     document.documentElement.lang = lang;
@@ -543,7 +584,6 @@ function svApplyI18n() {
     document.dispatchEvent(new CustomEvent('sv:langchange'));
 }
 
-// --- THEME ---
 const SV_THEMES = Array.isArray(SV_CFG.themes) && SV_CFG.themes.length ? SV_CFG.themes : ['midnight'];
 const SV_DEFAULT_THEME = SV_THEMES.includes(SV_CFG.defaultTheme) ? SV_CFG.defaultTheme : SV_THEMES[0];
 
@@ -558,13 +598,19 @@ function svApplyTheme() {
     document.dispatchEvent(new CustomEvent('sv:themechange'));
 }
 
-// --- Nút settings + panel (inject 1 lần mỗi trang) ---
 function initSettingsUI() {
     if (document.querySelector('.nav-settings')) return;
 
     // Chèn nút vào nav-container, sau pill menu
     const container = document.querySelector('.nav-container');
     if (!container) return;
+
+    const accountLink = document.createElement('a');
+    accountLink.className = 'nav-account';
+    accountLink.href = '/account.html';
+    accountLink.setAttribute('data-i18n-title', 'nav.account');
+    accountLink.setAttribute('data-i18n-aria', 'nav.account');
+    accountLink.innerHTML = '<i class="fa-regular fa-user" aria-hidden="true"></i>';
 
     const settingsBtn = document.createElement('button');
     settingsBtn.className = 'nav-settings';
@@ -578,8 +624,10 @@ function initSettingsUI() {
 
     const nav = container.querySelector('.navigation');
     if (nav) {
-        nav.insertAdjacentElement('afterend', settingsBtn);
+        nav.insertAdjacentElement('afterend', accountLink);
+        accountLink.insertAdjacentElement('afterend', settingsBtn);
     } else {
+        container.appendChild(accountLink);
         container.appendChild(settingsBtn);
     }
 
@@ -675,11 +723,6 @@ function initSettingsUI() {
     setPanelOpen(false);
 }
 
-/* ==========================================================================
-   KIỂM TRA /config.js LÚC KHỞI ĐỘNG
-   Trả về danh sách cảnh báo (mảng chuỗi). Gọi được từ console:
-       svValidateConfig()
-   ========================================================================== */
 const SV_CFG_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const SV_CFG_HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -698,7 +741,7 @@ function svValidateConfig(cfg) {
         return issues;
     }
 
-    // --- Cài đặt chung ---
+    // cài đặt chung
     if (target.defaultLang !== 'vi' && target.defaultLang !== 'en') {
         bad(`defaultLang phải là 'vi' hoặc 'en' (đang là ${JSON.stringify(target.defaultLang)}).`);
     }
@@ -714,7 +757,7 @@ function svValidateConfig(cfg) {
         }
     }
 
-    // --- Khóa localStorage ---
+    // khóa localStorage
     const storage = target.storage;
     if (!storage || typeof storage !== 'object') {
         bad('storage phải là object chứa các khóa localStorage.');
@@ -726,7 +769,7 @@ function svValidateConfig(cfg) {
         });
     }
 
-    // --- Lịch (schedule) ---
+    // lịch (schedule)
     const sc = target.schedule;
     if (!sc || typeof sc !== 'object') {
         bad('schedule phải là object.');
@@ -802,7 +845,6 @@ function svValidateConfig(cfg) {
     return issues;
 }
 
-/** Log cảnh báo config ra console (chỉ log khi có vấn đề, kèm 1 dòng OK). */
 function svLogConfigIssues(cfg) {
     const issues = svValidateConfig(cfg);
     if (issues.length === 0) {
@@ -814,8 +856,8 @@ function svLogConfigIssues(cfg) {
     return issues;
 }
 
-// --- Khởi tạo: áp theme + ngôn ngữ TRƯỚC khi trang render để tránh nhấp nháy ---
-// Hỗ trợ URL param để test/share: ?svtheme=ocean&svlang=en
+// khởi tạo theme + ngôn ngữ trước khi trang render để tránh nhấp nháy
+// hỗ trợ URL param: ?svtheme=ocean&svlang=en
 (function svInitEarly() {
     try {
         svLogConfigIssues();

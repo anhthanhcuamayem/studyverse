@@ -61,7 +61,7 @@
     <p class="sub">Công cụ dev: chỉnh thử theme &amp; khung giờ rồi xuất ra <code>config.js</code>. Trang này không lưu gì vào app.</p>
 
     <div class="grid">
-        <!-- ===== CỘT TRÁI: điều khiển ===== -->
+        <!-- cột trái: điều khiển -->
         <div>
             <div class="card">
                 <h2><i class="fa-solid fa-palette"></i> Cài đặt chung</h2>
@@ -93,7 +93,7 @@
             </div>
         </div>
 
-        <!-- ===== CỘT PHẢI: xem trước + xuất ===== -->
+        <!-- cột phải: xem trước + xuất -->
         <div>
             <div class="card">
                 <h2><i class="fa-regular fa-eye"></i> Xem trước</h2>
@@ -285,7 +285,7 @@
             list.className = 'issues';
             list.innerHTML = issues.map(i => `<li>${esc(i)}</li>`).join('');
         }
-        el('output').value = '/* Studyverse config — xuất từ config-preview.html */\nwindow.SV_CONFIG = '
+        el('output').value = 'window.SV_CONFIG = '
             + JSON.stringify(cfg, null, 4) + ';\n';
         el('download').disabled = issues.length > 0;
         el('download').style.opacity = issues.length > 0 ? 0.5 : 1;
@@ -298,14 +298,14 @@
         renderOutput();
     }
 
-    // --- Nạp giá trị ban đầu vào form ---
+    // nạp giá trị ban đầu vào form
     el('lang').value = state.defaultLang;
     el('themes').value = state.themes.join(', ');
     el('lessonDur').value = (CFG.schedule || {}).lessonDuration || 45;
     el('gap').value = (CFG.schedule || {}).gap ?? 5;
     el('colors').value = ((CFG.schedule || {}).subjectColors || []).join(', ');
 
-    // --- Sự kiện ---
+    // sự kiện
     el('lang').addEventListener('change', () => { state.defaultLang = el('lang').value; renderAll(); });
     el('themes').addEventListener('input', () => {
         state.themes = el('themes').value.split(',').map(s => s.trim()).filter(Boolean);

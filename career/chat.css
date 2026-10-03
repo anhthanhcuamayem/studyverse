@@ -71,6 +71,7 @@
     gap: 20px;
 }
 .message {
+    position: relative;
     display: flex;
     gap: 12px;
     align-items: flex-start;
@@ -115,6 +116,59 @@
     margin: 0;
     white-space: pre-wrap;
 }
+/* markdown trong câu trả lời AI */
+.message .content > :first-child { margin-top: 0; }
+.message .content > :last-child { margin-bottom: 0; }
+.message .content p + p, .message .content p + ul, .message .content p + ol,
+.message .content ul + p, .message .content ol + p, .message .content pre + p { margin-top: 8px; }
+.message .content h3, .message .content h4, .message .content h5, .message .content h6 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 10px 0 4px;
+}
+.message .content ul, .message .content ol { margin: 6px 0; padding-left: 20px; }
+.message .content li { margin: 2px 0; }
+.message .content a { color: #6db3ff; text-decoration: underline; }
+.message .content code {
+    background: rgba(255, 255, 255, 0.12);
+    padding: 1px 5px;
+    border-radius: 5px;
+    font-size: 0.85em;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.message .content pre.sv-code {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
+    border-radius: 10px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+.message .content pre.sv-code code { background: none; padding: 0; }
+
+/* nút sao chép câu trả lời AI */
+.msg-copy {
+    position: absolute;
+    top: -8px;
+    right: -6px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.12));
+    background: var(--card-bg, #0d1117);
+    color: var(--text-gray, rgba(255, 255, 255, 0.6));
+    cursor: pointer;
+    opacity: 0.45;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    font-size: 0.72rem;
+    padding: 0;
+}
+.message.bot:hover .msg-copy, .msg-copy:hover, .msg-copy:focus-visible { opacity: 1; }
+.msg-copy:hover { color: #fff; background: var(--primary-blue, #007AFF); border-color: transparent; }
+.msg-copy.copied { color: #34C759; opacity: 1; }
 .chat-input-area {
     padding: 20px 24px;
     border-top: 1px solid var(--border-soft, rgba(255,255,255,0.08));

@@ -1,5 +1,4 @@
-/* Paint the saved theme before stylesheets are parsed to prevent a flash
- * of the default theme (FOUC). shared.js performs full initialization later. */
+// tô theme đã lưu trước khi CSS kịp load, tránh nháy theme mặc định
 (function paintSavedThemeEarly() {
     try {
         const cfg = window.SV_CONFIG || {};
@@ -18,6 +17,6 @@
             ? savedLang
             : (cfg.defaultLang === 'en' ? 'en' : 'vi');
     } catch (error) {
-        // shared.css still provides the default theme if storage is unavailable.
+        // không làm gì, shared.css vẫn có theme mặc định
     }
 })();

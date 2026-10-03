@@ -1,8 +1,4 @@
-/* ==========================================================================
-   STUDYVERSE - TODO / MY PROJECT STYLES
-   Shared styles loaded via <link href="/shared.css"> in mylist.html
-   thanhconthuong
-   ========================================================================== */
+/* Studyverse - trang dự án / công việc */
 
 main {
     animation: fadeIn 0.5s ease;
@@ -17,7 +13,7 @@ html {
     background-color: var(--bg-color);
 }
 
-/* --- PROJECT LAYOUT --- */
+/* PROJECT LAYOUT */
 .project-wrapper {
     display: flex;
     align-items: stretch;
@@ -30,7 +26,7 @@ html {
     height: auto;
 }
 
-/* --- SIDEBAR --- */
+/* SIDEBAR */
 .project-sidebar {
     width: 280px;
     background: rgba(26, 32, 44, 0.6);
@@ -94,7 +90,7 @@ html {
     color: var(--primary-blue);
 }
 
-/* --- PROJECT DETAIL (RIGHT) --- */
+/* PROJECT DETAIL (RIGHT) */
 .project-detail {
     flex: 1;
     display: flex;
@@ -120,7 +116,7 @@ html {
     letter-spacing: 1px;
 }
 
-/* --- NEW PROJECT BUTTON --- */
+/* NEW PROJECT BUTTON */
 .btn-new-project {
     width: 100%;
     background: linear-gradient(135deg, var(--primary-blue), var(--accent-secondary));
@@ -142,7 +138,7 @@ html {
     box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.5);
 }
 
-/* --- MODAL --- */
+/* MODAL */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -284,7 +280,7 @@ html {
     align-items: center;
 }
 
-/* --- FLATPICKR INPUT --- */
+/* FLATPICKR INPUT */
 .flatpickr-input[readonly] {
     background-color: #1a1d23 !important;
     color: white !important;
@@ -294,8 +290,7 @@ html {
     cursor: pointer;
 }
 
-/* Ô chọn hạn chót: style đồng bộ với #projectNameInput (trước đây là inline style
-   sai cú pháp "font : 20px" và icon lịch bị ẩn nên không có cách nào mở picker). */
+/* ô chọn hạn chót, đồng bộ style với #projectNameInput */
 #projectDeadlineInput {
     width: 100%;
     padding: 12px 15px;
@@ -319,7 +314,7 @@ html {
 /* Trước đây icon lịch bị ẩn (display: none) nên không có cách nào mở date picker.
    Để hiển thị mặc định + color-scheme: dark ở trên là đủ tương phản. */
 
-/* --- TASK COMPLETED STATE --- */
+/* TASK COMPLETED STATE */
 .task-check.completed {
     background-color: var(--primary-blue) !important;
     border-color: var(--primary-blue) !important;
@@ -337,7 +332,7 @@ html {
     color: var(--text-gray) !important;
 }
 
-/* --- PROJECT LIST ROWS --- */
+/* PROJECT LIST ROWS */
 .project-list-row span {
     max-width: 66%;
     display: inline-block;
@@ -359,7 +354,7 @@ html {
     transform: scale(1.1);
 }
 
-/* --- PROGRESS BAR --- */
+/* PROGRESS BAR */
 .progress-track {
     width: 100%;
     height: 6px;
@@ -375,7 +370,7 @@ html {
     transition: width 0.5s ease;
 }
 
-/* --- TODO TOOLBAR / TASK METADATA --- */
+/* TODO TOOLBAR / TASK METADATA */
 .todo-toolbar {
     display: flex;
     flex-direction: column;
@@ -636,7 +631,7 @@ html {
     }
 }
 
-/* --- ADD TASK BUTTON --- */
+/* ADD TASK BUTTON */
 .add-task-btn {
     transition: all 0.2s ease;
 }
@@ -650,7 +645,7 @@ html {
     color: #db4c3f !important;
 }
 
-/* --- DRAG AND DROP (TASKS) --- */
+/* DRAG AND DROP (TASKS) */
 .task-item.dragging {
     opacity: 0.4;
     transform: scale(0.98);
@@ -675,7 +670,7 @@ html {
     color: var(--primary-blue);
 }
 
-/* --- RESPONSIVE (TODO PAGE) --- */
+/* RESPONSIVE (TODO PAGE) */
 @media (max-width: 768px) {
     .project-wrapper {
         flex-direction: column;
@@ -745,9 +740,8 @@ html {
     }
 }
 
-/* --- TODO TRÊN NỀN SÁNG (light / pink) ---
-   Các style cũ của Todo được thiết kế cho nền tối và có nhiều màu trắng inline.
-   Đổi riêng các bề mặt/chữ tại đây để nội dung không bị chìm khi dùng theme sáng. */
+/* Todo trên nền sáng (light / pink): các style cũ thiết kế cho nền tối, nhiều màu
+   trắng inline, đổi riêng bề mặt/chữ tại đây để nội dung không bị chìm */
 [data-theme="light"] .project-sidebar,
 [data-theme="pink"] .project-sidebar,
 [data-theme="light"] .detail-card,

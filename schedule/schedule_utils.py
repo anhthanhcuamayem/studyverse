@@ -17,8 +17,8 @@ def generate_slots(available_slots, fixed_breaks, lesson_duration=45):
         {"start": "18:00", "end": "19:00"}
     ]
     all_breaks = fixed_breaks if fixed_breaks else default_breaks
-    # A break such as 22:00–06:00 crosses midnight. Represent it as two ranges
-    # so comparisons with slots in a single day remain correct.
+    # Giờ nghỉ kiểu 22:00–06:00 vắt qua nửa đêm, tách thành 2 dải để so sánh
+    # với slot trong cùng một ngày vẫn đúng.
     break_ranges = []
     for br in all_breaks:
         br_start = parse_time(br['start'])
@@ -95,7 +95,7 @@ def create_timetable_with_preferences(subjects, availability, breaks, preference
         day, start, end = all_slots.pop(0)
         timetable[day].append({'start': start, 'end': end, 'subject': lesson})
 
-    # Format kết quả: trả về list 7 phần tử, index 0..6 tương ứng Thứ 2..Chủ nhật.
+    # trả về list 7 phần tử, index 0..6 tương ứng Thứ 2..Chủ nhật.
     # Dùng chỉ số thay vì tên thứ để không phụ thuộc ngôn ngữ ở cả hai phía.
     result = []
     for day in range(7):

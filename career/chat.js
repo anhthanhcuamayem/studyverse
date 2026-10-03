@@ -1,9 +1,71 @@
-// career/chat.js - Chat AI Career với ngữ cảnh dữ liệu người dùng + streaming
+// chat hướng nghiệp: gửi kèm dữ liệu todo/tkb của người dùng, trả lời dạng streaming
 
 // Khóa localStorage lấy từ /config.js (SV_CONFIG.storage)
 const SV_STORAGE = (window.SV_CONFIG && window.SV_CONFIG.storage) || {};
 const PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
 const SCHEDULE_KEY = SV_STORAGE.schedule || 'studyverse_schedule_dashboard_data';
+const CHAT_KEY = SV_STORAGE.careerChat || 'studyverse_career_chat';
+
+// escapeHtml() đến từ shared.js — luôn escape trước khi dựng HTML từ văn bản AI.
+// Markdown tối giản, an toàn: **đậm**, *nghiêng*, `code`, ```khối code```,
+// # tiêu đề, - / 1. danh sách, [nhãn](https://link).
+function svInlineMarkdown(text) {
+    return text
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+        .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,
+            '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+}
+
+function svRenderMarkdown(raw) {
+    const escaped = escapeHtml(raw ?? '');
+    const codeBlocks = [];
+    const withPlaceholders = escaped.replace(/```[^\n]*\n?([\s\S]*?)```/g, (m, code) => {
+        codeBlocks.push(code.replace(/\n$/, ''));
+        return `\u0000CODE${codeBlocks.length - 1}\u0000`;
+    });
+
+    let html = '';
+    let listType = null;
+    const closeList = () => {
+        if (listType) { html += listType === 'ul' ? '</ul>' : '</ol>'; listType = null; }
+    };
+
+    for (const line of withPlaceholders.split('\n')) {
+        const codeMatch = line.match(/^\u0000CODE(\d+)\u0000$/);
+        if (codeMatch) {
+            closeList();
+            html += `<pre class="sv-code"><code>${codeBlocks[Number(codeMatch[1])] || ''}</code></pre>`;
+            continue;
+        }
+        const heading = line.match(/^(#{1,4})\s+(.*)$/);
+        if (heading) {
+            closeList();
+            const level = Math.min(heading[1].length + 2, 6);
+            html += `<h${level}>${svInlineMarkdown(heading[2])}</h${level}>`;
+            continue;
+        }
+        const bullet = line.match(/^\s*[-*+]\s+(.*)$/);
+        if (bullet) {
+            if (listType !== 'ul') { closeList(); html += '<ul>'; listType = 'ul'; }
+            html += `<li>${svInlineMarkdown(bullet[1])}</li>`;
+            continue;
+        }
+        const numbered = line.match(/^\s*\d+[.)]\s+(.*)$/);
+        if (numbered) {
+            if (listType !== 'ol') { closeList(); html += '<ol>'; listType = 'ol'; }
+            html += `<li>${svInlineMarkdown(numbered[1])}</li>`;
+            continue;
+        }
+        if (!line.trim()) { closeList(); continue; }
+        closeList();
+        html += `<p>${svInlineMarkdown(line)}</p>`;
+    }
+    closeList();
+    return html;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('sendBtn');
     const userInput = document.getElementById('userInput');
@@ -16,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Đọc lời chào mỗi lần dùng (không cache) để đổi ngôn ngữ là đổi ngay
     const greetingText = () => svT('career.greeting');
 
-    // --- NGỮ CẢNH NGƯỜI DÙNG (đọc LocalStorage do Todo & Schedule lưu) ---
+    // ngữ cảnh người dùng đọc từ LocalStorage do Todo & Schedule lưu
     function collectContext() {
         let projects = [];
         let schedule = null;
@@ -37,7 +99,73 @@ document.addEventListener('DOMContentLoaded', () => {
         return body;
     }
 
-    // --- HIỂN THỊ TIN NHẮN ---
+    // ===== Lưu / đọc lịch sử chat vào LocalStorage =====
+    function loadHistory() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(CHAT_KEY));
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter(m => m && (m.role === 'user' || m.role === 'assistant')
+                && typeof m.content === 'string' && m.content.trim());
+        } catch (e) { return []; }
+    }
+
+    function persistHistory() {
+        try {
+            if (conversationHistory.length === 0) {
+                localStorage.removeItem(CHAT_KEY);
+            } else {
+                // Giữ tối đa 100 tin nhắn gần nhất để không phình LocalStorage
+                localStorage.setItem(CHAT_KEY, JSON.stringify(conversationHistory.slice(-100)));
+            }
+        } catch (e) { /* bỏ qua khi hết dung lượng */ }
+    }
+
+    function pushHistory(role, content) {
+        if (!content) return;
+        conversationHistory.push({ role, content });
+        persistHistory();
+    }
+
+    // nút sao chép cho câu trả lời của AI
+    function addCopyButton(messageDiv, getText) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'msg-copy';
+        btn.setAttribute('data-i18n-title', 'career.copy');
+        btn.setAttribute('data-i18n-aria', 'career.copy');
+        btn.setAttribute('aria-label', svT('career.copy'));
+        btn.title = svT('career.copy');
+        btn.innerHTML = '<i class="fa-regular fa-copy" aria-hidden="true"></i>';
+        btn.addEventListener('click', async () => {
+            const text = getText();
+            let ok = false;
+            try {
+                await navigator.clipboard.writeText(text);
+                ok = true;
+            } catch (e) {
+                // Fallback cho trình duyệt cũ / không có quyền clipboard
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+                ta.remove();
+            }
+            if (ok) {
+                btn.classList.add('copied');
+                btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<i class="fa-regular fa-copy" aria-hidden="true"></i>';
+                }, 1200);
+            }
+        });
+        messageDiv.appendChild(btn);
+    }
+
+    // hiển thị tin nhắn (thuần DOM — lịch sử được quản lý riêng để tránh trùng)
     function addMessage(text, isUser = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
@@ -53,11 +181,21 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.appendChild(contentDiv);
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+        return { messageDiv, contentP: p, contentDiv };
+    }
 
-        if (isUser) {
-            conversationHistory.push({ role: 'user', content: text });
+    // dựng lại một tin nhắn đã lưu (câu trả lời AI render markdown + nút sao chép)
+    function addStoredMessage(msg) {
+        const { messageDiv, contentDiv } = addMessage('', msg.role === 'user');
+        if (msg.role === 'assistant') {
+            contentDiv.innerHTML = svRenderMarkdown(msg.content);
+            addCopyButton(messageDiv, () => msg.content);
+        } else {
+            contentDiv.textContent = '';
+            const p = document.createElement('p');
+            p.textContent = msg.content;
+            contentDiv.appendChild(p);
         }
-        return { messageDiv, contentP: p };
     }
 
     function addTypingIndicator() {
@@ -70,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return typingDiv;
     }
 
-    // --- GỌI AI (STREAMING, fallback về bản thường) ---
+    // gọi API streaming, lỗi thì fallback về endpoint thường
     async function streamAI(message, onDelta) {
         const context = collectContext();
         const body = {
@@ -149,15 +287,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const typingDiv = addTypingIndicator();
         let streamed = false;
 
-        const { contentP } = addMessage('', false);
-        const msgDiv = contentP.closest('.message');
-        msgDiv.style.display = 'none'; // ẩn tin nhắn trống cho tới khi có chữ đầu tiên
+        const { messageDiv, contentP, contentDiv } = addMessage('', false);
+        messageDiv.style.display = 'none'; // ẩn tin nhắn trống cho tới khi có chữ đầu tiên
 
         const onDelta = (piece) => {
             if (!streamed) {
                 streamed = true;
                 typingDiv.remove();
-                msgDiv.style.display = '';
+                messageDiv.style.display = '';
             }
             contentP.textContent += piece;
             chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -165,19 +302,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await streamAI(message, onDelta);
-            conversationHistory.push({ role: 'assistant', content: contentP.textContent });
+            const full = contentP.textContent;
+            // Render markdown sau khi stream xong để không phá vỡ từng mảnh đang gõ.
+            contentDiv.innerHTML = svRenderMarkdown(full);
+            addCopyButton(messageDiv, () => full);
+            pushHistory('assistant', full);
         } catch (error) {
             console.error(error);
             // Streaming fail (mạng/provider cũ không hỗ trợ) → thử bản thường
             try {
                 const reply = await sendToAIFallback(message);
                 typingDiv.remove();
-                msgDiv.remove();
-                addMessage(reply, false);
+                messageDiv.remove();
+                const { messageDiv: botDiv, contentDiv: botContent } = addMessage('', false);
+                botContent.innerHTML = svRenderMarkdown(reply);
+                addCopyButton(botDiv, () => reply);
+                pushHistory('assistant', reply);
             } catch (fallbackError) {
                 console.error(fallbackError);
                 typingDiv.remove();
-                msgDiv.remove();
+                messageDiv.remove();
                 addMessage(svT('career.error') + (fallbackError.message || svT('career.unknown')), false);
             }
         }
@@ -190,6 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isSending = true;
         sendBtn.disabled = true;
         addMessage(text, true);
+        pushHistory('user', text);
         userInput.value = '';
         userInput.style.height = 'auto';
         try {
@@ -201,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- QUICK ACTIONS: gợi ý câu hỏi tận dụng dữ liệu thật ---
+    // quick actions: gợi ý câu hỏi tận dụng dữ liệu thật
     // Giữ key i18n (không giữ chuỗi đã dịch) để đổi ngôn ngữ là nhãn đổi theo
     const QUICK_ACTIONS = [
         { icon: 'fa-wand-magic-sparkles', labelKey: 'career.qa1', promptKey: 'career.q1' },
@@ -224,6 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', () => {
                 if (isSending) return;
                 addMessage(prompt, true);
+                pushHistory('user', prompt);
                 sendToAI(prompt);
             });
             wrap.appendChild(btn);
@@ -231,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.parentElement.insertBefore(wrap, chatMessages.nextSibling);
     }
 
-    // --- SỰ KIỆN ---
+    // sự kiện
     sendBtn.addEventListener('click', handleSend);
     userInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -248,6 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (await svConfirm(svT('career.clearChat'), { title: svT('career.clearTitle'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
             chatMessages.innerHTML = '';
             conversationHistory = [];
+            persistHistory();
             addMessage(greetingText(), false);
             renderQuickActions();
         }
@@ -256,13 +403,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Đổi ngôn ngữ (panel Cài đặt) → cập nhật gợi ý nhanh, và lời chào nếu chưa chat gì
     document.addEventListener('sv:langchange', () => {
         renderQuickActions();
+        chatMessages.querySelectorAll('.msg-copy').forEach(btn => {
+            btn.setAttribute('aria-label', svT('career.copy'));
+            btn.title = svT('career.copy');
+        });
         if (!isSending && conversationHistory.length === 0) {
             chatMessages.innerHTML = '';
             addMessage(greetingText(), false);
         }
     });
 
-    // Khởi tạo
-    addMessage(greetingText(), false);
+    // Khởi tạo: khôi phục lịch sử đã lưu, nếu chưa có thì hiện lời chào
+    conversationHistory = loadHistory();
+    if (conversationHistory.length === 0) {
+        addMessage(greetingText(), false);
+    } else {
+        conversationHistory.forEach(addStoredMessage);
+    }
     renderQuickActions();
 });

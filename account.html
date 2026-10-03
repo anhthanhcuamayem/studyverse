@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi" class="sv-theme-loading">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080d18">
+    <title data-i18n="account.pageTitle">Tài khoản - Studyverse</title>
+    <script src="/config.js"></script>
+    <script src="/theme-init.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="/shared.css">
+    <link rel="stylesheet" href="/account.css">
+</head>
+<body class="account-page">
+    <div class="account-shell">
+        <header class="account-topbar">
+            <a class="account-brand" href="/" aria-label="Studyverse">
+                <span class="account-brand-mark"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></span>
+                <span>Study<span class="account-brand-accent">verse</span></span>
+            </a>
+            <a class="account-back-link" href="/" data-i18n="account.backHome">Về trang chủ</a>
+        </header>
+
+        <main class="account-layout">
+            <section class="account-story" aria-labelledby="accountStoryTitle">
+                <div class="account-eyebrow"><span class="account-eyebrow-dot"></span><span data-i18n="account.eyebrow">KHÔNG GIAN HỌC TẬP CỦA BẠN</span></div>
+                <h1 id="accountStoryTitle" data-i18n="account.storyTitle">Một nơi gọn gàng<br>cho mọi mục tiêu.</h1>
+                <p class="account-story-copy" data-i18n="account.storyCopy">Lên kế hoạch, theo dõi tiến độ và dành sự tập trung cho điều quan trọng tiếp theo.</p>
+
+                <div class="account-preview" aria-hidden="true">
+                    <div class="preview-topline"><span></span><span></span><span></span><i class="fa-solid fa-ellipsis"></i></div>
+                    <div class="preview-content">
+                        <div class="preview-sidebar"><span class="preview-side-logo"></span><span class="preview-side-line active"></span><span class="preview-side-line"></span><span class="preview-side-line short"></span><span class="preview-side-line"></span></div>
+                        <div class="preview-main">
+                            <div class="preview-greeting"></div>
+                            <div class="preview-subtitle"></div>
+                            <div class="preview-progress"><span></span><span></span><span></span></div>
+                            <div class="preview-task"><i class="fa-solid fa-check"></i><span></span><b></b></div>
+                            <div class="preview-task"><i></i><span></span><b></b></div>
+                            <div class="preview-task"><i></i><span></span><b class="muted"></b></div>
+                        </div>
+                    </div>
+                    <div class="preview-glow"></div>
+                </div>
+
+                <div class="account-benefits">
+                    <div><span class="benefit-icon"><i class="fa-solid fa-list-check"></i></span><span><b data-i18n="account.benefitPlan">Kế hoạch rõ ràng</b><small data-i18n="account.benefitPlanCopy">Gom dự án và công việc vào một nơi.</small></span></div>
+                    <div><span class="benefit-icon"><i class="fa-regular fa-calendar-check"></i></span><span><b data-i18n="account.benefitFocus">Tập trung mỗi ngày</b><small data-i18n="account.benefitFocusCopy">Theo dõi tiến độ theo nhịp của bạn.</small></span></div>
+                </div>
+            </section>
+
+            <section class="account-card" aria-labelledby="authTitle">
+                <div class="account-card-heading">
+                    <div class="account-card-icon"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></div>
+                    <div class="account-card-kicker" data-i18n="account.cardEyebrow">TÀI KHOẢN STUDYVERSE</div>
+                    <h2 id="authTitle">Đăng nhập</h2>
+                    <p id="authSubtitle">Chào mừng bạn quay lại. Đăng nhập để tiếp tục.</p>
+                </div>
+
+                <div class="account-notice" id="authNotice" role="status" aria-live="polite" hidden></div>
+
+                <div class="account-session" id="signedInPanel" hidden>
+                    <div class="account-avatar" id="accountAvatar">S</div>
+                    <div class="account-session-copy">
+                        <span data-i18n="account.signedInAs">Đang đăng nhập bằng</span>
+                        <strong id="accountEmail"></strong>
+                    </div>
+                    <a class="account-primary account-continue" href="/todo/mylist.html"><span data-i18n="account.openApp">Mở Studyverse</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    <button class="account-quiet-button" id="signOutButton" type="button" data-i18n="account.signOut">Đăng xuất</button>
+                </div>
+
+                <form class="account-form" id="authForm" novalidate hidden>
+                    <div class="account-field" id="emailField">
+                        <label for="authEmail" data-i18n="account.emailLabel">Địa chỉ email</label>
+                        <div class="account-input-wrap">
+                            <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                            <input id="authEmail" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="ten@email.com" aria-describedby="emailHint">
+                        </div>
+                        <small class="account-field-hint" id="emailHint" data-i18n="account.emailHint">Email chỉ dùng để đăng nhập và khôi phục tài khoản.</small>
+                    </div>
+
+                    <div class="account-field" id="passwordField">
+                        <div class="account-label-row">
+                            <label for="authPassword" data-i18n="account.passwordLabel">Mật khẩu</label>
+                            <button id="forgotPasswordButton" class="account-text-button" type="button" data-i18n="account.forgotPassword">Quên mật khẩu?</button>
+                        </div>
+                        <div class="account-input-wrap">
+                            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                            <input id="authPassword" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Tối thiểu 8 ký tự" aria-describedby="passwordHint">
+                            <button class="account-password-toggle" type="button" data-toggle-password="authPassword" data-i18n-aria="account.showPassword" data-i18n-title="account.showPassword" aria-label="Hiện mật khẩu" title="Hiện mật khẩu"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                        </div>
+                        <small class="account-field-hint" id="passwordHint" data-i18n="account.passwordHint">Dùng ít nhất 8 ký tự.</small>
+                    </div>
+
+                    <div class="account-field" id="confirmPasswordField" hidden>
+                        <label for="authPasswordConfirm" data-i18n="account.confirmPasswordLabel">Nhập lại mật khẩu</label>
+                        <div class="account-input-wrap">
+                            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                            <input id="authPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="8" placeholder="Nhập lại mật khẩu">
+                            <button class="account-password-toggle" type="button" data-toggle-password="authPasswordConfirm" data-i18n-aria="account.showPassword" data-i18n-title="account.showPassword" aria-label="Hiện mật khẩu" title="Hiện mật khẩu"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+
+                    <button class="account-primary" id="authSubmit" type="submit">
+                        <span id="authSubmitLabel">Đăng nhập</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </button>
+
+                    <p class="account-terms" data-i18n="account.localDataNotice">Dự án và thời khóa biểu hiện được lưu trên trình duyệt này.</p>
+                </form>
+
+                <div class="account-divider" id="accountDivider" hidden><span data-i18n="account.or">hoặc</span></div>
+                <div class="account-mode-switch" id="modeSwitchRow" hidden><span id="modeSwitchPrompt">Chưa có tài khoản?</span><button id="modeSwitchButton" type="button">Đăng ký</button></div>
+                <a class="account-guest-link" id="guestLink" href="/todo/mylist.html" hidden><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span data-i18n="account.continueGuest">Tiếp tục với Guest</span></a>
+            </section>
+        </main>
+
+        <footer class="account-footer"><span>© <span id="currentYear"></span> Studyverse</span><span><i class="fa-solid fa-lock" aria-hidden="true"></i> <span data-i18n="account.footerSecure">Kết nối bảo mật bằng Supabase Auth</span></span></footer>
+    </div>
+
+    <script src="/shared.js?v=20261003-2"></script>
+    <script src="/auth.js?v=20261003-2"></script>
+</body>
+</html>

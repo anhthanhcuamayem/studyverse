@@ -1,15 +1,9 @@
-/**
- * Studyverse - Interactive Schedule Dashboard Module
- * --------------------------------------------------
- * File: create.js
- * Description: Quản lý thời khóa biểu tương tác: Kéo - Thả (Drag & Drop),
- *              Màu sắc riêng từng môn, In + Lưu ảnh PNG, Tự động xếp lịch
- *              (gọi backend real nếu có, fallback random nếu không),
- *              và tự động lưu LocalStorage.
- */
+// Studyverse - thời khóa biểu tương tác: kéo thả môn học, màu riêng từng môn,
+// in + lưu ảnh PNG, tự động xếp lịch (gọi backend nếu có, fallback random),
+// tự lưu LocalStorage.
 
-// --- CẤU HÌNH LẤY TỪ /config.js (SV_CONFIG.schedule) ---
-// Dev chỉnh mặc định ở config.js. Ở đây chỉ đọc ra, không hard-code lại.
+// cấu hình đọc từ /config.js (SV_CONFIG.schedule)
+// dev chỉnh mặc định ở config.js, ở đây chỉ đọc ra
 const SCHED_CFG = (window.SV_CONFIG && window.SV_CONFIG.schedule) || SV_FALLBACK_CONFIG.schedule;
 
 // Khung giờ mặc định; bản đang dùng nằm ở this.slots (lưu LocalStorage).
@@ -61,7 +55,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** Khởi chạy ứng dụng */
+    // khởi chạy ứng dụng
     init() {
         this.loadData();
         this.registerEvents();
@@ -74,7 +68,7 @@ class ScheduleDashboard {
         window.removeSubject = (name) => this.removeSubject(name);
     }
 
-    /** Tự động lưu vào LocalStorage */
+    // tự động lưu LocalStorage
     saveData() {
         try {
             const dataToSave = {
@@ -92,7 +86,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** Tải dữ liệu từ LocalStorage */
+    // tải dữ liệu từ LocalStorage
     loadData() {
         try {
             const savedData = localStorage.getItem(SCHEDULE_STORAGE_KEY);
@@ -121,12 +115,12 @@ class ScheduleDashboard {
         this.initTimetable();
     }
 
-    /** Bản sao khung giờ mặc định (tránh biến đổi mảng gốc) */
+    // bản sao khung giờ mặc định, tránh biến đổi mảng gốc
     _defaultSlots() {
         return DEFAULT_SCHEDULE_SLOTS.map(s => ({ ...s }));
     }
 
-    /** Chuẩn hóa thời lượng tiết người dùng nhập (phút). */
+    // chuẩn hóa thời lượng tiết người dùng nhập (phút)
     _normalizeLessonDuration(value) {
         const duration = Number(value);
         return Number.isFinite(duration) && duration >= MIN_LESSON_DURATION && duration <= MAX_LESSON_DURATION
@@ -141,7 +135,7 @@ class ScheduleDashboard {
             : 45;
     }
 
-    /** Lấy thời lượng của tiết đầu tiên để tương thích dữ liệu cũ chưa có setting. */
+    // thời lượng của tiết đầu tiên, để tương thích dữ liệu cũ chưa có setting
     _inferLessonDuration(slots) {
         const firstLesson = (slots || []).find(slot => slot.type === 'lesson'
             && SV_TIME_RE.test(slot.start) && SV_TIME_RE.test(slot.end));
@@ -158,7 +152,7 @@ class ScheduleDashboard {
             : null;
     }
 
-    /** Đồng bộ giờ kết thúc của mọi tiết khi đang bật khóa cùng thời lượng. */
+    // đồng bộ giờ kết thúc của mọi tiết khi đang bật khóa cùng thời lượng
     _applyLockedLessonDuration(listEl, duration) {
         if (!listEl || !Number.isFinite(duration)) return;
         listEl.querySelectorAll('.time-config-row[data-type="lesson"]').forEach(row => {
@@ -170,9 +164,8 @@ class ScheduleDashboard {
         });
     }
 
-    /** Chuẩn hóa khung giờ đọc từ LocalStorage: nhận độ dài tùy ý (người dùng có
-     *  thể thêm/bớt tiết), bỏ khung hỏng, cấp id nếu dữ liệu cũ chưa có.
-     *  Dữ liệu trống hoặc không còn tiết học nào -> dùng bộ mặc định. */
+    // chuẩn hóa khung giờ đọc từ LocalStorage: nhận độ dài tùy ý, bỏ khung hỏng,
+    // cấp id nếu dữ liệu cũ chưa có; trống hoặc hết tiết học thì dùng bộ mặc định
     _sanitizeSlots(raw) {
         const defaults = this._defaultSlots();
         if (!Array.isArray(raw) || raw.length === 0) return defaults;
@@ -201,13 +194,13 @@ class ScheduleDashboard {
         return (out.length > 0 && hasLesson) ? out : defaults;
     }
 
-    /** Tên thứ hiển thị theo ngôn ngữ đang chọn */
+    // tên thứ hiển thị theo ngôn ngữ đang chọn
     _dayLabel(index) {
         const key = DAY_I18N_KEYS[index];
         return key ? svT(key) : DAYS[index];
     }
 
-    /** Tên hiển thị của một khung: tiết tự đánh số theo vị trí, giờ nghỉ dùng nhãn */
+    // tên hiển thị của một khung: tiết tự đánh số theo vị trí, giờ nghỉ dùng nhãn
     _slotDisplayName(slot, index) {
         if (slot.type === 'lesson') {
             let n = 0;
@@ -219,19 +212,19 @@ class ScheduleDashboard {
         return (typeof SV_I18N !== 'undefined' && SV_I18N[slot.label]) ? svT(slot.label) : (slot.label || svT('sched.genericBreak'));
     }
 
-    /** Chuyển "HH:MM" thành số phút */
+    // "HH:MM" -> số phút
     _toMinutes(hhmm) {
         const [h, m] = hhmm.split(':').map(Number);
         return h * 60 + m;
     }
 
-    /** Chuyển số phút thành "HH:MM" (tự bọc trong 1 ngày) */
+    // số phút -> "HH:MM" (tự bọc trong 1 ngày)
     _toHHMM(minutes) {
         const m = ((minutes % 1440) + 1440) % 1440;
         return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
     }
 
-    /** Giữ lại các ô đã xếp môn khi cấu trúc khung thay đổi (dựa vào id ổn định). */
+    // giữ lại các ô đã xếp môn khi cấu trúc khung thay đổi (dựa vào id ổn định)
     _remapTimetable(oldSlots, newSlots, oldData) {
         const oldIndexById = {};
         oldSlots.forEach((slot, i) => { oldIndexById[slot.id] = i; });
@@ -250,7 +243,7 @@ class ScheduleDashboard {
         return next;
     }
 
-    /** Đếm lại số tiết đã xếp từ timetableData (sau khi thêm/bớt khung) */
+    // đếm lại số tiết đã xếp sau khi thêm/bớt khung
     _recountSubjects() {
         this.subjectCounts = {};
         this.subjects.forEach(s => { this.subjectCounts[s.name] = 0; });
@@ -261,7 +254,7 @@ class ScheduleDashboard {
         }));
     }
 
-    /** Tạo ma trận TKB rỗng */
+    // tạo ma trận TKB rỗng
     initTimetable() {
         this.timetableData = [];
         for (let i = 0; i < DAYS.length; i++) {
@@ -269,7 +262,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** Lắng nghe sự kiện nút bấm & phím tắt */
+    // sự kiện nút bấm & phím tắt
     registerEvents() {
         const addSubBtn = document.getElementById('add-subject-btn');
         if (addSubBtn) addSubBtn.addEventListener('click', () => this.addSubject());
@@ -296,7 +289,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Thiết lập chọn màu sắc nhanh trong form thêm môn học */
+    // chọn màu nhanh trong form thêm môn học
     initColorPresetPicker() {
         const dots = document.querySelectorAll('.preset-colors .color-dot');
         const colorInput = document.getElementById('new-subject-color');
@@ -318,7 +311,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** In thời khóa biểu (dùng cửa sổ in trình duyệt) */
+    // in TKB qua cửa sổ in của trình duyệt
     exportOrPrint() {
         this.closePicker();
         this._hideExportChrome();
@@ -327,7 +320,7 @@ class ScheduleDashboard {
         setTimeout(() => this._showExportChrome(), 400);
     }
 
-    /** Lưu ảnh PNG của bảng TKB */
+    // lưu ảnh PNG của bảng TKB
     exportImg() {
         this.closePicker();
         this._hideExportChrome();
@@ -362,7 +355,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Ẩn các phần không cần thiết khi xuất ảnh / in */
+    // ẩn phần thừa khi xuất ảnh / in
     _hideExportChrome() {
         const hideList = document.querySelectorAll(
             '.navbar, .sidebar-panel, .schedule-banner, .timetable-toolbar'
@@ -377,7 +370,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Khôi phục UI sau khi xuất ảnh / in */
+    // khôi phục UI sau khi xuất ảnh / in
     _showExportChrome() {
         const hideList = document.querySelectorAll(
             '.navbar, .sidebar-panel, .schedule-banner, .timetable-toolbar'
@@ -391,7 +384,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Vẽ bảng thời khóa biểu */
+    // vẽ bảng thời khóa biểu
     renderTable() {
         const thead = document.getElementById('table-header');
         const tbody = document.getElementById('table-body');
@@ -452,7 +445,7 @@ class ScheduleDashboard {
         this.attachTableEvents();
     }
 
-    /** Đăng ký sự kiện Click, ContextMenu & DRAG & DROP trên các ô TKB */
+    // sự kiện click, chuột phải & drag & drop trên các ô TKB
     attachTableEvents() {
         // Toggle ngày học trên Header
         document.querySelectorAll('th[data-day]').forEach(th => {
@@ -481,7 +474,7 @@ class ScheduleDashboard {
                 this.toggleXMark(day, slot);
             });
 
-            // --- XỬ LÝ KÉO - THẢ (HTML5 DRAG & DROP) ---
+            // kéo - thả (HTML5 drag & drop)
             td.addEventListener('dragover', (e) => {
                 if (this.disabledDays[day]) return;
                 e.preventDefault();
@@ -505,7 +498,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Gán môn học vào một ô TKB */
+    // gán môn học vào một ô TKB
     assignSubjectToCell(subjectName, day, slot) {
         const subjObj = this.subjects.find(s => s.name === subjectName);
         if (!subjObj) return;
@@ -532,7 +525,7 @@ class ScheduleDashboard {
         this.updateStatus();
     }
 
-    /** Bật / Tắt cả ngày học */
+    // bật / tắt cả ngày học
     toggleDisableDay(day) {
         this.disabledDays[day] = !this.disabledDays[day];
 
@@ -554,7 +547,7 @@ class ScheduleDashboard {
         this.closePicker();
     }
 
-    /** Xử lý Click trên ô TKB */
+    // xử lý click trên ô TKB
     handleCellClick(day, slot, tdElement) {
         const current = this.timetableData[day][slot];
 
@@ -579,7 +572,7 @@ class ScheduleDashboard {
         this.showSubjectPicker(day, slot, tdElement);
     }
 
-    /** Bật/Tắt dấu X */
+    // bật / tắt dấu X nghỉ tiết
     toggleXMark(day, slot) {
         const current = this.timetableData[day][slot];
         if (current && current.type === 'subject') {
@@ -597,7 +590,7 @@ class ScheduleDashboard {
         this.renderTable();
     }
 
-    /** Hiển thị bảng chọn môn Popup (Fallback cho Click / Touch) */
+    // bảng chọn môn popup (dùng cho click / cảm ứng)
     showSubjectPicker(day, slot, tdElement) {
         if (this.subjects.length === 0) {
             this.showNotice(svT('sched.needOneSubject'), { title: svT('sched.noSubject') });
@@ -698,13 +691,13 @@ class ScheduleDashboard {
         setTimeout(() => document.addEventListener('click', outsideClick, true), 10);
     }
 
-    /** Hiển thị popup thông báo (dùng SV Modal dùng chung trong shared.js) */
+    // popup thông báo (SV Modal dùng chung trong shared.js)
     showNotice(message, opts = {}) {
         const { title = svT('common.notice'), icon = 'fa-circle-info', tone = '', confirmText = svT('sched.understood') } = opts;
         svNotice(message, { title, icon, tone, confirmText });
     }
 
-    /** Hiển thị popup xác nhận (dùng SV Modal dùng chung trong shared.js). Trả về Promise<boolean> */
+    // popup xác nhận (SV Modal dùng chung trong shared.js), trả về Promise<boolean>
     showConfirmDialog(message, opts = {}) {
         const {
             title = svT('common.confirm'), icon = 'fa-circle-question', tone = '',
@@ -713,7 +706,7 @@ class ScheduleDashboard {
         return svConfirm(message, { title, icon, tone, confirmText, cancelText, danger });
     }
 
-    /** Thêm mới môn học với màu sắc riêng */
+    // thêm môn học mới với màu riêng
     addSubject() {
         const nameInput = document.getElementById('new-subject-name');
         const sessInput = document.getElementById('new-subject-sessions');
@@ -746,7 +739,7 @@ class ScheduleDashboard {
         this.renderTable();
     }
 
-    /** Render danh sách các thẻ môn học Kéo - Thả (Draggable Subject Cards) */
+    // render các thẻ môn học kéo - thả
     renderSubjectList() {
         const container = document.getElementById('subjects-list');
         if (!container) return;
@@ -779,7 +772,7 @@ class ScheduleDashboard {
                 </div>
             `;
 
-            // --- XỬ LÝ SỰ KIỆN DRAG START & END ---
+            // drag start & end
             card.addEventListener('dragstart', (e) => {
                 this.draggedSubjectName = sub.name;
                 card.classList.add('dragging');
@@ -798,7 +791,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Xóa môn học */
+    // xóa môn học
     async removeSubject(name) {
         const confirmed = await this.showConfirmDialog(
             svT('sched.deleteSubjectMsg', { name }),
@@ -824,7 +817,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** Xếp lịch tự động (ưu tiên gọi backend real, nếu không có thì xếp ngẫu nhiên) */
+    // xếp lịch tự động: ưu tiên backend, không có thì xếp ngẫu nhiên
     async autoSchedule() {
         let needSchedule = [];
         this.subjects.forEach(subj => {
@@ -872,7 +865,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** Xếp lịch tự động ngẫu nhiên (fallback) */
+    // xếp lịch ngẫu nhiên (fallback khi không gọi được backend)
     _autoScheduleRandom() {
         let needSchedule = [];
         this.subjects.forEach(subj => {
@@ -920,11 +913,9 @@ class ScheduleDashboard {
         this.updateStatus();
     }
 
-    /** Áp dụng lịch tối ưu từ backend vào trạng thái hiện tại
-     * timetable: list 7 phần tử, index 0..6 = Thứ 2..Chủ nhật,
-     *            mỗi phần tử là [{start, end, subject}, ...]
-     * Vẫn chấp nhận object khóa số ("0".."6") hoặc tên thứ tiếng Anh (bản cũ).
-     */
+    // áp lịch tối ưu từ backend vào trạng thái hiện tại
+    // timetable: list 7 phần tử, index 0..6 = Thứ 2..CN, mỗi phần tử [{start, end, subject}, ...]
+    // vẫn nhận object khóa số ("0".."6") hoặc tên thứ tiếng Anh (bản cũ)
     _applyOptimizedSchedule(timetable) {
         const dayIndexByName = {};
         DAYS.forEach((d, i) => { dayIndexByName[d] = i; });
@@ -972,7 +963,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** Xây bảng ánh xạ "giờ bắt đầu - giờ kết thúc" → chỉ số slot */
+    // bảng ánh xạ "giờ bắt đầu - giờ kết thúc" -> chỉ số slot
     _buildSlotKeyMap() {
         // Khóa theo GIỜ BẮT ĐẦU: backend sinh slot 45' từ chính availability nên
         // start là điểm chung, còn end có thể lệch nếu người dùng đổi độ dài tiết.
@@ -985,7 +976,7 @@ class ScheduleDashboard {
         return map;
     }
 
-    /** Tạo body yêu cầu gửi backend */
+    // body yêu cầu gửi backend
     _buildScheduleRequest() {
         const subjects = this.subjects.map(s => ({
             name: s.name,
@@ -1023,7 +1014,7 @@ class ScheduleDashboard {
         };
     }
 
-    /** Cập nhật trạng thái thống kê */
+    // cập nhật trạng thái thống kê
     updateStatus() {
         let totalPlanned = 0;
         let totalScheduled = 0;
@@ -1057,7 +1048,7 @@ class ScheduleDashboard {
         statusDiv.innerHTML = statusHtml;
     }
 
-    /** Thống kê nhanh helper để debug/xác nhận */
+    // log nhanh trạng thái để kiểm tra
     _logScheduleState() {
         console.log('[Schedule] subjects:', this.subjects);
         console.log('[Schedule] subjectCounts:', this.subjectCounts);
@@ -1065,12 +1056,12 @@ class ScheduleDashboard {
         console.log('[Schedule] timetableData:', this.timetableData);
     }
 
-    /** Sinh id mới cho một khung vừa thêm */
+    // sinh id mới cho khung vừa thêm
     _newSlotId() {
         return 'slot-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
     }
 
-    /** HTML của một dòng trong hộp thoại cấu hình thời gian */
+    // HTML của một dòng trong hộp thoại cấu hình thời gian
     _timeRowHtml(slot) {
         const isBreak = slot.type === 'break';
         const labelAttr = isBreak ? ` data-label="${escapeHtml(slot.label || 'sched.genericBreak')}"` : '';
@@ -1106,7 +1097,7 @@ class ScheduleDashboard {
             </div>`;
     }
 
-    /** Cập nhật tên hiển thị (tiết đánh số theo vị trí, giờ nghỉ theo nhãn) */
+    // cập nhật tên hiển thị (tiết đánh số theo vị trí, giờ nghỉ theo nhãn)
     _refreshTimeConfigNames(listEl) {
         let lessonNo = 0;
         Array.from(listEl.querySelectorAll('.time-config-row')).forEach(row => {
@@ -1140,7 +1131,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Đồng bộ tên hiển thị + trạng thái nút lên/xuống trong hộp thoại cấu hình */
+    // đồng bộ tên hiển thị + trạng thái nút lên/xuống trong hộp thoại cấu hình
     _refreshTimeConfig(listEl) {
         this._refreshTimeConfigNames(listEl);
         const rows = Array.from(listEl.querySelectorAll('.time-config-row'));
@@ -1160,7 +1151,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** Chèn một khung vào danh sách (afterRow = null nghĩa là thêm vào cuối) */
+    // chèn một khung vào danh sách (afterRow = null là thêm vào cuối)
     _insertTimeConfigRow(listEl, afterRow, slot) {
         const wrap = document.createElement('div');
         wrap.innerHTML = this._timeRowHtml(slot);
@@ -1171,7 +1162,7 @@ class ScheduleDashboard {
         return row;
     }
 
-    /** Thêm tiết mới nối tiếp khung cuối (+5 phút, theo thời lượng đang chọn). */
+    // thêm tiết mới nối tiếp khung cuối
     _addTimeConfigPeriod(listEl, duration = this.lessonDuration) {
         const rows = listEl.querySelectorAll('.time-config-row');
         const last = rows[rows.length - 1];
@@ -1188,7 +1179,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Thêm giờ nghỉ mới nối tiếp khung cuối, mặc định dài 15 phút. */
+    // thêm giờ nghỉ mới nối tiếp khung cuối, mặc định 15 phút
     _addTimeConfigBreak(listEl) {
         const rows = listEl.querySelectorAll('.time-config-row');
         const last = rows[rows.length - 1];
@@ -1206,7 +1197,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Nhân bản một khung: cùng loại + độ dài, bắt đầu ngay khi khung gốc kết thúc */
+    // nhân bản khung: cùng loại + độ dài, bắt đầu ngay khi khung gốc kết thúc
     _duplicateTimeConfigRow(row, listEl) {
         const startVal = row.querySelector('.tc-start').value;
         const endVal = row.querySelector('.tc-end').value;
@@ -1227,7 +1218,7 @@ class ScheduleDashboard {
         return this._insertTimeConfigRow(listEl, row, clone);
     }
 
-    /** Xóa một khung; chặn xóa khung cuối cùng / tiết cuối cùng */
+    // xóa một khung; chặn xóa khung cuối cùng / tiết cuối cùng
     _deleteTimeConfigRow(row, listEl) {
         const total = listEl.querySelectorAll('.time-config-row').length;
         const lessons = listEl.querySelectorAll('.time-config-row[data-type="lesson"]').length;
@@ -1243,7 +1234,7 @@ class ScheduleDashboard {
         return true;
     }
 
-    /** Đổi thứ tự một khung: dir < 0 lên, dir > 0 xuống */
+    // đổi thứ tự khung: dir < 0 lên, dir > 0 xuống
     _moveTimeConfigRow(row, listEl, dir) {
         if (dir < 0 && row.previousElementSibling) {
             listEl.insertBefore(row, row.previousElementSibling);
@@ -1255,7 +1246,7 @@ class ScheduleDashboard {
         this._refreshTimeConfig(listEl);
     }
 
-    /** Tìm các khung bị trùng giờ hoặc chồng lấn (trả về Set chỉ số dòng) */
+    // tìm khung bị trùng hoặc chồng lấn giờ (trả về Set chỉ số dòng)
     _findTimeConfigConflicts(parsed) {
         const conflicts = new Set();
         for (let i = 0; i < parsed.length; i++) {
@@ -1272,7 +1263,7 @@ class ScheduleDashboard {
         return conflicts;
     }
 
-    /** Lưu cấu hình thời gian (dùng cho nút Lưu và Ctrl/⌘+Enter) */
+    // lưu cấu hình thời gian (nút Lưu và Ctrl/⌘+Enter)
     _saveTimeConfig(listEl) {
         const rowEls = Array.from(listEl.querySelectorAll('.time-config-row'));
         const modal = listEl.closest('.time-config-modal');
@@ -1381,7 +1372,7 @@ class ScheduleDashboard {
         });
     }
 
-    /** Mở hộp thoại "Cấu hình thời gian": chỉnh giờ, thêm/bớt/đổi thứ tự tiết */
+    // mở hộp thoại cấu hình thời gian: chỉnh giờ, thêm/bớt/đổi thứ tự tiết
     openTimeConfig() {
         this.closePicker();
         this.closeTimeConfig();
@@ -1620,7 +1611,7 @@ class ScheduleDashboard {
         if (firstInput) setTimeout(() => firstInput.focus(), 30);
     }
 
-    /** Đóng hộp thoại cấu hình thời gian */
+    // đóng hộp thoại cấu hình thời gian
     closeTimeConfig() {
         if (this.currentTimeModal) {
             this.currentTimeModal.remove();
@@ -1632,7 +1623,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** Đóng picker hiện tại */
+    // đóng picker hiện tại
     closePicker() {
         if (this.currentPicker) {
             this.currentPicker.remove();
@@ -1640,7 +1631,7 @@ class ScheduleDashboard {
         }
     }
 
-    /** Xóa toàn bộ dữ liệu */
+    // xóa toàn bộ dữ liệu
     async clearAll() {
         const confirmed = await this.showConfirmDialog(
             svT('sched.confirmClearAll'),

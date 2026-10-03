@@ -1,32 +1,21 @@
-/* ==========================================================================
-   STUDYVERSE - FRONTEND CONFIG (một chỗ để dev chỉnh mặc định)
-   --------------------------------------------------------------------------
-   Nạp TRƯỚC shared.js trên mọi trang:
-       <script src="/config.js"></script>
-       <script src="/shared.js"></script>
-
-   Chỉ cần sửa file này, không phải đụng code JS/CSS. Lưu ý:
-   - Các key trong `storage` mà đổi thì dữ liệu cũ (localStorage) sẽ không
-     được đọc lại nữa (coi như người dùng mất dữ liệu cũ).
-   - `id` trong `schedule.defaultSlots` dùng để giữ các ô đã xếp môn khi
-     thêm/bớt tiết; chỉ đổi id khi bạn chấp nhận mất liên kết đó.
-   ========================================================================== */
+// mặc định frontend, dev chỉnh ở đây thay vì sửa code
 window.SV_CONFIG = {
-    // --- Panel Cài đặt (theme + ngôn ngữ) ---
+    // panel cài đặt
     defaultLang: 'vi',                                   // 'vi' | 'en'
     defaultTheme: 'midnight',                            // phải nằm trong `themes`
     themes: ['midnight', 'ocean', 'cyan', 'sunset', 'royal', 'forest', 'light', 'pink'],
 
-    // --- Khóa lưu trong localStorage (đổi = mất dữ liệu cũ) ---
+    // khóa localStorage (đổi tên = dữ liệu cũ không đọc lại được)
     storage: {
         lang: 'sv-lang',
         theme: 'sv-theme',
         projects: 'studyverse_projects',
         schedule: 'studyverse_schedule_dashboard_data',
-        lastProject: 'lastSelectedProject'
+        lastProject: 'lastSelectedProject',
+        careerChat: 'studyverse_career_chat'   // lịch sử chat AI Career (giữ tối đa 100 tin nhắn)
     },
 
-    // --- Trang Thời khóa biểu (schedule/create.js) ---
+    // trang thời khóa biểu (schedule/create.js)
     schedule: {
         lessonDuration: 45,   // phút — độ dài mặc định khi thêm/nhân bản tiết
         gap: 5,               // phút — khoảng nghỉ khi nối tiếp khung cuối

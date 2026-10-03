@@ -8,10 +8,10 @@ from dotenv import load_dotenv
 from flask import Flask, Response, abort, jsonify, request, send_from_directory
 from openai import OpenAI
 
-# Một số môi trường (sandbox/CI) export sẵn placeholder rỗng kiểu "PASTE_..._HERE"
-# vào biến môi trường, khiến load_dotenv() mặc định không ghi đè và app dùng nhầm
-# placeholder thay cho key thật trong .env. Ta tự nạp .env và chỉ ghi đè khi giá trị
-# hiện tại trống hoặc là placeholder như vậy — key export thật từ shell vẫn được ưu tiên.
+# Một số môi trường export sẵn placeholder rỗng kiểu "PASTE_..._HERE" vào biến môi
+# trường, khiến load_dotenv() không ghi đè và app dùng nhầm placeholder. Ta tự nạp
+# .env và chỉ ghi đè khi giá trị hiện tại trống hoặc là placeholder — key export
+# thật từ shell vẫn được ưu tiên.
 _PLACEHOLDER_MARKERS = ('PASTE_', 'YOUR_', 'CHANGE_ME', 'XXX', 'xxxxxxxx', '<', '>')
 
 
@@ -44,7 +44,7 @@ _load_env_file()
 from schedule.schedule_utils import create_timetable_with_preferences
 #python -m http.server 8000
 #.venv/bin/python app.py
-# ==================== PHẦN CẤU HÌNH API ĐA NHÀ CUNG CẤP ====================
+# cấu hình API nhà cung cấp
 # Mỗi provider khai báo qua biến môi trường: <TEN>_API_KEY (+ tùy chọn <TEN>_BASE_URL, <TEN>_MODEL).
 # Tất cả đều dùng giao thức OpenAI-compatible (chat.completions).
 AI_PROVIDERS = {
@@ -109,12 +109,65 @@ def _get_provider_client(provider):
 
 DEFAULT_PROVIDER = (os.environ.get('AI_PROVIDER') or '').strip().lower() or None
 
+
+def _classify_provider_error(exc):
+    """Phân loại lỗi provider thành (code, thông báo tiếng Việt) để người dùng biết cách sửa.
+
+    Dùng status_code và tên lớp exception của thư viện openai (không leak nội dung key).
+    """
+    status = getattr(exc, 'status_code', None)
+    name = type(exc).__name__.lower()
+    try:
+        status = int(status) if status is not None else None
+    except (TypeError, ValueError):
+        status = None
+
+    if status == 401 or 'authenticationerror' in name:
+        return ('invalid_key', 'API key không hợp lệ hoặc đã bị thu hồi. Kiểm tra lại key trong .env.')
+    if status == 402:
+        return ('no_balance', 'Tài khoản provider đã hết số dư hoặc hạn mức. Nạp thêm hoặc đổi provider khác.')
+    if status == 403 or 'permissiondeniederror' in name:
+        return ('permission', 'Provider từ chối quyền truy cập (403). Kiểm tra project/quyền của API key.')
+    if status == 404 or 'notfounderror' in name:
+        return ('model_not_found', 'Không tìm thấy model đã cấu hình. Kiểm tra biến <TEN>_MODEL.')
+    if status == 429 or 'ratelimiterror' in name:
+        return ('rate_limit', 'Provider đang giới hạn tần suất (429). Vui lòng thử lại sau ít phút.')
+    if 'timeout' in name:
+        return ('timeout', 'Provider phản hồi quá chậm (timeout). Vui lòng thử lại sau.')
+    if 'connectionerror' in name:
+        return ('connection', 'Không kết nối được tới provider. Kiểm tra mạng và biến <TEN>_BASE_URL.')
+    if status is not None and 500 <= status < 600:
+        return ('provider_down', 'Provider đang gặp sự cố phía máy chủ. Vui lòng thử lại sau.')
+    return ('unknown', 'Dịch vụ AI hiện không phản hồi. Vui lòng thử lại sau.')
+
+
+def probe_provider(name, timeout=8.0):
+    """Kiểm tra nhanh một provider bằng một completion tối thiểu (1 token)."""
+    cfg = AI_PROVIDERS[name]
+    key = (cfg.get('key') or '').strip()
+    if not key:
+        return {'configured': False, 'healthy': False, 'code': 'no_key',
+                'message': 'Chưa cấu hình API key.'}
+    try:
+        client = OpenAI(api_key=key, base_url=cfg['base_url'], timeout=timeout)
+        client.chat.completions.create(
+            model=cfg['model'],
+            messages=[{'role': 'user', 'content': 'ping'}],
+            max_tokens=1,
+        )
+        return {'configured': True, 'healthy': True, 'code': 'ok', 'message': 'OK'}
+    except Exception as exc:
+        code, message = _classify_provider_error(exc)
+        app.logger.info('Probe provider "%s" failed (%s)', name, code)
+        return {'configured': True, 'healthy': False, 'code': code, 'message': message}
+
+
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_FILES = {
     'index.html', 'config.js', 'theme-init.js', 'config-preview.html', 'shared.js', 'shared.css', 'style.css', 'pockup.png',
-    'auth.js',
+    'auth.js', 'account.html', 'account.css',
     'career/chat.html', 'career/chat.js', 'career/chat.css',
     'schedule/create.html', 'schedule/create.js', 'schedule/create.css',
     'todo/mylist.html', 'todo/mylist.js', 'todo/mylist.css',
@@ -196,10 +249,13 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None):
                     'partial': True,
                 }, 502)
 
-    app.logger.exception('All AI providers failed', exc_info=last_error)
-    return None, (jsonify(error='Dịch vụ AI hiện không phản hồi. Vui lòng thử lại sau.'), 502)
+    code, message = _classify_provider_error(last_error)
+    app.logger.warning('All AI providers failed (code=%s)', code, exc_info=last_error)
+    # Trả dict thuần (không jsonify) để an toàn khi gọi từ thread worker
+    # của endpoint streaming — thread đó không có application context.
+    return None, ({'error': message, 'code': code}, 502)
  
-# ==================== PHẦN SERVE FILE TĨNH ====================
+# serve file tĩnh
 @app.route('/')
 def serve_index():
     return send_from_directory(BASE_DIR, 'index.html')
@@ -322,22 +378,32 @@ def career_chat_stream():
         threading.Thread(target=worker, daemon=True).start()
 
         reply, err = None, None
+        idle = 0
+        timed_out = False
         try:
             while True:
                 try:
-                    kind, payload = queue.get(timeout=120)
+                    kind, payload = queue.get(timeout=15)
                 except Empty:
-                    yield f"data: {json.dumps({'error': 'Hết thời gian chờ phản hồi AI.'}, ensure_ascii=False)}\n\n"
-                    break
+                    # Gửi "nhịp tim" để proxy/trình duyệt không cắt kết nối khi AI
+                    # còn đang xử lý; chỉ báo lỗi sau ~8 lần liên tiếp (khoảng 2 phút).
+                    idle += 1
+                    if idle >= 8:
+                        timed_out = True
+                        yield f"data: {json.dumps({'error': 'Hết thời gian chờ phản hồi AI.'}, ensure_ascii=False)}\n\n"
+                        break
+                    yield ': ping\n\n'
+                    continue
+                idle = 0
                 if kind == 'delta':
                     yield f"data: {json.dumps({'delta': payload}, ensure_ascii=False)}\n\n"
                 else:  # 'done'
                     reply, err = payload
                     break
 
-            if err is None:
+            if err is None and not timed_out:
                 yield f"data: {json.dumps({'success': True}, ensure_ascii=False)}\n\n"
-            else:
+            elif not timed_out:
                 # err là (dict lỗi, status) từ request_ai, hoặc Exception ngoài dự kiến
                 if isinstance(err, tuple) and len(err) == 2 and isinstance(err[0], dict):
                     detail = err[0]
@@ -345,7 +411,7 @@ def career_chat_stream():
                 else:
                     detail = {'error': 'Dịch vụ AI hiện không phản hồi. Vui lòng thử lại sau.'}
                     status = 502
-                yield f"data: {json.dumps({'success': False, 'error': detail.get('error', 'AI error'), 'status': status}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'success': False, 'error': detail.get('error', 'AI error'), 'code': detail.get('code'), 'status': status}, ensure_ascii=False)}\n\n"
         except GeneratorExit:
             # Client ngắt kết nối — worker dừng tự nhiên khi stream bị đóng.
             raise
@@ -360,7 +426,7 @@ def career_chat_stream():
     })
 
 
-# ==================== PHẦN GỢI Ý HỌC TẬP (NẾU CÕN) ====================
+# gợi ý học tập
 @app.route('/api/suggest', methods=['POST'])
 def suggest_study():
     try:
@@ -388,16 +454,34 @@ def suggest_study():
 # ==================== TRẠNG THÁI PROVIDER AI ====================
 @app.route('/api/ai-providers', methods=['GET'])
 def ai_providers_status():
-    """Danh sách provider đã nhận diện được (đã cấu hình key) theo thứ tự ưu tiên."""
+    """Danh sách provider đã nhận diện được (đã cấu hình key) theo thứ tự ưu tiên.
+
+    Thêm ?probe=1 để kiểm tra thật từng provider (gọi 1 completion tối thiểu).
+    """
     available = detect_available_providers()
-    return jsonify({
+    payload = {
         'available': available,
         'default': DEFAULT_PROVIDER or (available[0] if available else None),
         'supported': list(AI_PROVIDERS.keys()),
+    }
+    if request.args.get('probe', '').lower() in ('1', 'true', 'yes'):
+        payload['health'] = {name: probe_provider(name) for name in available}
+    return jsonify(payload)
+
+
+@app.route('/api/health', methods=['GET'])
+def health():
+    """Kiểm tra nhanh tình trạng server và cấu hình AI (không gọi ra ngoài)."""
+    available = detect_available_providers()
+    return jsonify({
+        'status': 'ok',
+        'ai_configured': bool(available),
+        'providers': available,
+        'default_provider': DEFAULT_PROVIDER or (available[0] if available else None),
     })
 
 
-# ==================== XẾP LỊCH REAL (SCHEDULE OPTIMIZE) ====================
+# xếp lịch (schedule optimize)
 @app.route('/api/schedule-optimize', methods=['POST'])
 def schedule_optimize():
     data, error = get_json_body()
@@ -417,6 +501,20 @@ def schedule_optimize():
             or not 1 <= lesson_duration <= 240):
         return jsonify({'error': 'Dữ liệu không hợp lệ'}), 400
     lesson_duration = int(lesson_duration)
+
+    # Giới hạn kích thước đầu vào để tránh request khổng lồ làm nghẽn server.
+    if len(subjects) > 50 or len(breaks) > 50 or len(availability) > 7:
+        return jsonify({'error': 'Dữ liệu không hợp lệ'}), 400
+    total_sessions = 0
+    for subj in subjects:
+        if not isinstance(subj, dict):
+            return jsonify({'error': 'Dữ liệu không hợp lệ'}), 400
+        sessions = subj.get('sessions', 0)
+        if isinstance(sessions, bool) or not isinstance(sessions, (int, float)) or sessions < 0:
+            return jsonify({'error': 'Dữ liệu không hợp lệ'}), 400
+        total_sessions += int(sessions)
+    if total_sessions > 500:
+        return jsonify({'error': 'Số tiết cần xếp quá lớn'}), 400
 
     # Chuyển availability key sang string cho Python
     availability_str = {str(k): v for k, v in availability.items()}
@@ -512,7 +610,7 @@ def ai_context():
     return jsonify(context)
 
 
-# ==================== KHỞI CHẠY APP ====================
+# khởi chạy app
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

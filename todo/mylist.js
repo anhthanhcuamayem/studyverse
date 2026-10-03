@@ -49,7 +49,7 @@ function normalizeProject(project, index = 0) {
     };
 }
 
-// --- DỮ LIỆU ---
+// dữ liệu projects
 function loadProjects() {
     try {
         const saved = JSON.parse(localStorage.getItem(PROJECTS_KEY));
@@ -77,7 +77,7 @@ let pageI18nReady = false;
 
 // escapeHtml + SV Modal (svNotice/svConfirm/svPrompt): dùng bản dùng chung trong shared.js
 
-// --- 1. HÀM KHỞI TẠO HỆ THỐNG ---
+// khởi tạo hệ thống
 function initPage() {
     const mainTitle = document.getElementById('mainProjectName');
     const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
@@ -143,7 +143,7 @@ try {
     document.body.style.visibility = 'visible';
 }
 
-// --- 2. ĐỔI NGÔN NGỮ (từ panel Cài đặt): vẽ lại nội dung do JS sinh ra ---
+// 2. đổi ngôn ngữ từ panel Cài đặt: vẽ lại nội dung do JS sinh ra
 document.addEventListener('sv:langchange', () => {
     if (!pageI18nReady) return;
     const currentScheduleValue = document.getElementById('taskScheduleInput')?.value || '';
@@ -169,9 +169,9 @@ document.addEventListener('sv:langchange', () => {
     }
 });
 
-// --- 3. HIỆU ỨNG THANH NAVBAR: đã gom vào shared.js (initNavbarIndicator) ---
+// hiệu ứng navbar đã gom vào shared.js (initNavbarIndicator)
 
-// --- 4. CÁC HÀM BỔ TRỢ ---
+// các hàm bổ trợ
 function formatDate(dateString) {
     if (!dateString || dateString === svT('todo.notSet') || dateString === "Chưa đặt") return svT('todo.notSet');
     if (dateString.includes('/')) return dateString;
@@ -462,7 +462,7 @@ function updateProgressBar(projectName) {
     text.textContent = pct + '%';
 }
 
-// --- DRAG AND DROP ---
+// drag and drop
 let draggedItem = null;
 let draggedProject = null;
 
@@ -650,7 +650,7 @@ function renderGlobalTaskList() {
     });
 }
 
-// --- 5. XỬ LÝ SỰ KIỆN CLICK ---
+// xử lý sự kiện click
 document.addEventListener('click', async function (event) {
     const mainTitle = document.getElementById('mainProjectName');
     const mainDeadlineDisp = document.getElementById('mainProjectDeadline');

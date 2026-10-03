@@ -60,11 +60,10 @@
                 <span data-i18n="home.desc2">and most effective way with Studyverse.</span>
             </p>
             <div class="home-entry-actions" aria-label="Studyverse access options">
-                <button type="button" class="btn-start" id="btnOpenLogin" data-i18n="home.login">Đăng nhập</button>
-                <button type="button" class="btn-entry-secondary" id="btnOpenRegister" data-i18n="home.register">Đăng ký</button>
+                <a class="btn-start" href="/account.html?mode=login" data-i18n="home.login">Đăng nhập</a>
+                <a class="btn-entry-secondary" href="/account.html?mode=register" data-i18n="home.register">Đăng ký</a>
                 <a href="/todo/mylist.html" class="btn-guest" id="btnContinueGuest" data-i18n="home.guest">Dùng ngay với Guest</a>
             </div>
-            <p class="guest-hint" data-i18n="home.guestHint">Guest lưu dữ liệu ngay trên trình duyệt này.</p>
             <div class="big-illustration-container">
                 <img src="pockup.png" alt="Studyverse Illustration" class="img-large">
             </div>
@@ -89,25 +88,6 @@
         </section>
     </main>
 
-    <div class="auth-modal-overlay" id="authModalOverlay" hidden>
-        <section class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
-            <button type="button" class="auth-modal-close" id="btnCloseAuth" aria-label="Close">&times;</button>
-            <div class="auth-modal-icon"><i class="fa-solid fa-user-lock"></i></div>
-            <h2 id="authModalTitle">Đăng nhập</h2>
-            <p id="authModalSubtitle">Đăng nhập để đồng bộ dữ liệu của bạn.</p>
-            <form id="authForm">
-                <label for="authEmail" data-i18n="auth.email">Email</label>
-                <input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com">
-                <label for="authPassword" data-i18n="auth.password">Mật khẩu</label>
-                <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="••••••••">
-                <button type="submit" class="auth-submit" id="authSubmit">Đăng nhập</button>
-            </form>
-            <p class="auth-message" id="authMessage" role="alert" aria-live="polite"></p>
-            <button type="button" class="auth-switch" id="authSwitch">Chưa có tài khoản? Đăng ký</button>
-        </section>
-    </div>
-
     <script src="/shared.js"></script>
-    <script src="auth.js?v=20260927-2"></script>
 </body>
 </html>
