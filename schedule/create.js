@@ -31,9 +31,16 @@ const SLOT_GAP = ('gap' in SCHED_CFG) ? SCHED_CFG.gap : 5;
 const MIN_LESSON_DURATION = 1;
 const MAX_LESSON_DURATION = 240;
 
-// Khóa lưu trữ của trang TKB
-const SCHEDULE_STORAGE_KEY = (window.SV_CONFIG && window.SV_CONFIG.storage && window.SV_CONFIG.storage.schedule)
+// Khóa lưu trữ của trang TKB. Tách theo tài khoản sau khi biết session (xem cuối file).
+const BASE_SCHEDULE_STORAGE_KEY = (window.SV_CONFIG && window.SV_CONFIG.storage && window.SV_CONFIG.storage.schedule)
     || 'studyverse_schedule_dashboard_data';
+let SCHEDULE_STORAGE_KEY = BASE_SCHEDULE_STORAGE_KEY;
+
+function applyStorageScope() {
+    SCHEDULE_STORAGE_KEY = typeof svScopedKey === 'function'
+        ? svScopedKey(BASE_SCHEDULE_STORAGE_KEY)
+        : BASE_SCHEDULE_STORAGE_KEY;
+}
 
 // escapeHtml: dùng bản dùng chung trong shared.js
 
@@ -1654,7 +1661,10 @@ class ScheduleDashboard {
 }
 
 // KHỞI TẠO DASHBOARD (navbar indicator đã dùng chung trong shared.js)
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Chờ biết user đang đăng nhập rồi mới đọc localStorage đã tách theo tài khoản.
+    if (typeof svAuthReady !== 'undefined') await svAuthReady;
+    applyStorageScope();
     const dashboard = new ScheduleDashboard();
 
     // Đổi ngôn ngữ (panel Cài đặt) → vẽ lại phần nội dung do JS sinh ra.

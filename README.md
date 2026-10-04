@@ -37,52 +37,36 @@ Yêu cầu: Python 3.10+.
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 pip install -r requirements.txt
-# Chỉ cần cấu hình ít nhất MỘT provider (đều theo chuẩn OpenAI-compatible).
-# Cách khuyến nghị: copy .env.example thành .env rồi điền key vào đó (file .env không được commit).
+# Cấu hình FreeLLMAPI từ .env (copy .env.example thành .env rồi điền key/model).
+# File .env không được commit.
 cp .env.example .env
-# Hoặc export trực tiếp:
-# export DEEPSEEK_API_KEY="sk-..."
-# export OPENAI_API_KEY="sk-..."
-# export GEMINI_API_KEY="..."                # Google AI Studio
-# export GROQ_API_KEY="gsk_..."
-# export OPENROUTER_API_KEY="sk-or-..."
-# export ANTHROPIC_API_KEY="sk-ant-..."
-# export AI_PROVIDER="deepseek"              # tùy chọn: ép dùng provider mặc định
-# export AI_PROVIDER_ORDER="deepseek,openai,freellm"  # tùy chọn: thứ tự failover
+# Điền FREELLM_API_KEY và FREELLM_MODEL trong .env.
+# FREELLM_BASE_URL mặc định là http://localhost:3001/v1.
 python app.py
 ```
 
 Mở `http://localhost:5000`. Nếu chưa cấu hình API key nào, các tính năng AI sẽ trả về thông báo cấu hình thay vì gọi dịch vụ bên ngoài.
 
-## Nhận diện & chọn AI provider
+## FreeLLMAPI (Freellmapi) gateway
 
-Backend hỗ trợ nhiều nhà cung cấp AI cùng lúc và **tự nhận diện** provider nào khả dụng dựa trên biến môi trường đã đặt:
+Studyverse giờ gọi AI qua endpoint OpenAI-compatible của FreeLLMAPI. FreeLLMAPI chạy ở `http://localhost:3001/v1` và được expose qua cloudflared tunnel dưới domain `ai.studyverse.cloud`.
 
-| Provider | Biến bắt buộc | Tùy chọn |
-|----------|---------------|----------|
-| DeepSeek | `DEEPSEEK_API_KEY` | `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL` (mặc định `deepseek-chat`) |
-| FreeLLM  | `FREELLM_API_KEY` | `FREELLM_BASE_URL`, `FREELLM_MODEL` (mặc định `auto:fast`) |
-| OpenAI   | `OPENAI_API_KEY` | `OPENAI_BASE_URL`, `OPENAI_MODEL` (mặc định `gpt-4o-mini`) |
-| Gemini   | `GEMINI_API_KEY` (hoặc `GOOGLE_API_KEY`) | `GEMINI_BASE_URL`, `GEMINI_MODEL` (mặc định `gemini-3.6-flash`) |
-| Groq     | `GROQ_API_KEY` | `GROQ_BASE_URL`, `GROQ_MODEL` (mặc định `llama-3.3-70b-versatile`) |
-| OpenRouter | `OPENROUTER_API_KEY` | `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL` (mặc định `openrouter/auto`) |
-| Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL` |
+| Biến | Ý nghĩa | Mặc định |
+|------|---------|----------|
+| `FREELLM_BASE_URL` | Base URL của FreeLLMAPI, thường kết thúc bằng `/v1` | `http://localhost:3001/v1` |
+| `FREELLM_API_KEY` | API key từ FreeLLMAPI | Chưa cấu hình |
+| `FREELLM_MODEL` | Model hoặc alias/combo hiện tại | `auto:fast` |
 
-Cách chọn provider khi có nhiều key:
-1. Trường `provider` trong body request (xem bên dưới).
-2. Biến môi trường `AI_PROVIDER` (provider mặc định cho toàn app).
-3. Provider đầu tiên còn key theo `AI_PROVIDER_ORDER` (mặc định: freellm → openai → gemini → groq → openrouter → anthropic).
-
-Nếu provider được chọn lỗi, backend **tự failover** sang provider tiếp theo còn key.
+Điền key và model/alias phù hợp với FreeLLMAPI vào `.env`. Endpoint `/api/ai-providers` sẽ báo `freellmapi` khi có key; thêm `?probe=1` để thử một completion thật.
 
 - `GET /api/ai-providers` — xem danh sách provider đã nhận diện được.
 - `GET /api/ai-providers?probe=1` — kiểm tra thật từng provider (gọi 1 completion tối thiểu) và trả về `health` kèm `code`/`message` cho từng provider.
 - `GET /api/health` — kiểm tra nhanh server còn sống và AI đã cấu hình chưa.
-- Body request cho `/api/career-ai` và `/api/suggest` có thể kèm `"provider": "groq"` để ép dùng một provider cụ thể cho request đó.
+- Các endpoint AI luôn dùng provider `freellmapi`; cấu hình model/agent được quản lý tại FreeLLMAPI.
 - `POST /api/career-ai-stream` — phiên bản streaming (SSE) của career chat: AI trả lời từng mảnh thay vì chờ cả câu. Body chấp nhận thêm `projects` và `schedule` (đọc từ LocalStorage của Todo/Schedule) để AI tư vấn dựa trên dữ liệu học tập thật của người dùng.
 - `POST /api/ai-context` — rút gọn dữ liệu projects/schedule gửi lên thành ngữ cảnh gọn nhẹ cho AI (server không lưu dữ liệu).
 
-Khi tất cả provider đều lỗi, phản hồi lỗi kèm `code` để chỉ rõ nguyên nhân thay vì thông báo chung chung:
+Khi gateway lỗi, phản hồi lỗi kèm `code` để chỉ rõ nguyên nhân thay vì thông báo chung chung:
 `invalid_key` (401), `no_balance` (402), `permission` (403), `model_not_found` (404), `rate_limit` (429), `provider_down` (5xx), `timeout`, `connection`, `unknown`.
 
 ### Lịch sử chat AI

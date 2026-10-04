@@ -2,9 +2,20 @@
 
 // Khóa localStorage lấy từ /config.js (SV_CONFIG.storage)
 const SV_STORAGE = (window.SV_CONFIG && window.SV_CONFIG.storage) || {};
-const PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
-const SCHEDULE_KEY = SV_STORAGE.schedule || 'studyverse_schedule_dashboard_data';
-const CHAT_KEY = SV_STORAGE.careerChat || 'studyverse_career_chat';
+const BASE_PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
+const BASE_SCHEDULE_KEY = SV_STORAGE.schedule || 'studyverse_schedule_dashboard_data';
+const BASE_CHAT_KEY = SV_STORAGE.careerChat || 'studyverse_career_chat';
+// Được gán lại sau khi biết session để tách dữ liệu theo tài khoản.
+let PROJECTS_KEY = BASE_PROJECTS_KEY;
+let SCHEDULE_KEY = BASE_SCHEDULE_KEY;
+let CHAT_KEY = BASE_CHAT_KEY;
+
+function applyStorageScope() {
+    const scope = typeof svScopedKey === 'function' ? svScopedKey : (key => key);
+    PROJECTS_KEY = scope(BASE_PROJECTS_KEY);
+    SCHEDULE_KEY = scope(BASE_SCHEDULE_KEY);
+    CHAT_KEY = scope(BASE_CHAT_KEY);
+}
 
 // escapeHtml() đến từ shared.js — luôn escape trước khi dựng HTML từ văn bản AI.
 // Markdown tối giản, an toàn: **đậm**, *nghiêng*, `code`, ```khối code```,
@@ -66,7 +77,11 @@ function svRenderMarkdown(raw) {
     return html;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Chờ biết user đang đăng nhập rồi mới đọc/lưu localStorage đã tách theo tài khoản.
+    if (typeof svAuthReady !== 'undefined') await svAuthReady;
+    applyStorageScope();
+
     const sendBtn = document.getElementById('sendBtn');
     const userInput = document.getElementById('userInput');
     const chatMessages = document.getElementById('chatMessages');

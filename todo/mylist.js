@@ -1,8 +1,12 @@
 // Khóa localStorage lấy từ /config.js (SV_CONFIG.storage) — dev đổi ở đó.
 const SV_STORAGE = (window.SV_CONFIG && window.SV_CONFIG.storage) || {};
-const PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
-const LAST_PROJECT_KEY = SV_STORAGE.lastProject || 'lastSelectedProject';
-const SCHEDULE_KEY = SV_STORAGE.schedule || 'studyverse_schedule_dashboard_data';
+const BASE_PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
+const BASE_LAST_PROJECT_KEY = SV_STORAGE.lastProject || 'lastSelectedProject';
+const BASE_SCHEDULE_KEY = SV_STORAGE.schedule || 'studyverse_schedule_dashboard_data';
+// Được gán lại trong applyStorageScope() sau khi biết session (xem boot()).
+let PROJECTS_KEY = BASE_PROJECTS_KEY;
+let LAST_PROJECT_KEY = BASE_LAST_PROJECT_KEY;
+let SCHEDULE_KEY = BASE_SCHEDULE_KEY;
 const TASK_STATUSES = ['todo', 'doing', 'done'];
 const TASK_PRIORITIES = ['low', 'medium', 'high'];
 const TASK_REPEATS = ['none', 'daily', 'weekly'];
@@ -69,7 +73,7 @@ function saveProjects(nextProjects) {
     return normalized;
 }
 
-let projects = loadProjects();
+let projects = [];
 
 // Bỏ qua sự kiện sv:langchange phát ra lúc khởi tạo (trước khi trang vẽ xong),
 // chỉ vẽ lại nội dung động khi người dùng thực sự đổi ngôn ngữ trong panel Cài đặt.
@@ -130,17 +134,33 @@ function initPage() {
     });
 }
 
-try {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initPage);
-    } else {
+// Tách dữ liệu localStorage theo tài khoản người dùng (khách giữ key gốc).
+function applyStorageScope() {
+    const scope = typeof svScopedKey === 'function' ? svScopedKey : (key => key);
+    PROJECTS_KEY = scope(BASE_PROJECTS_KEY);
+    LAST_PROJECT_KEY = scope(BASE_LAST_PROJECT_KEY);
+    SCHEDULE_KEY = scope(BASE_SCHEDULE_KEY);
+}
+
+async function boot() {
+    try {
+        // Chờ biết user đang đăng nhập rồi mới đọc localStorage.
+        if (typeof svAuthReady !== 'undefined') await svAuthReady;
+        applyStorageScope();
+        projects = loadProjects();
         initPage();
+    } catch (err) {
+        // Không bao giờ để lỗi dữ liệu làm hỏng navbar
+        console.error('initPage failed:', err);
+        document.body.style.opacity = '1';
+        document.body.style.visibility = 'visible';
     }
-} catch (err) {
-    // Không bao giờ để lỗi dữ liệu làm hỏng navbar
-    console.error('initPage failed:', err);
-    document.body.style.opacity = '1';
-    document.body.style.visibility = 'visible';
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+} else {
+    boot();
 }
 
 // 2. đổi ngôn ngữ từ panel Cài đặt: vẽ lại nội dung do JS sinh ra

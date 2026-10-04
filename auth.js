@@ -181,6 +181,11 @@
     }
 
     async function ensureSupabaseClient() {
+        // Dùng chung client với shared.js để tránh tạo 2 GoTrueClient trên cùng trang.
+        if (typeof svSupabase === 'function') {
+            if (!supabaseClient) supabaseClient = await svSupabase();
+            return supabaseClient;
+        }
         if (supabaseClient) return supabaseClient;
         if (clientPromise) return clientPromise;
 

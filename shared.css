@@ -721,3 +721,101 @@ body {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* NHẮC ĐĂNG NHẬP CHO KHÁCH (cố định ở góc dưới bên trái) */
+.sv-guest-notice {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    z-index: 950;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 330px;
+    max-width: calc(100vw - 24px);
+    padding: 14px 14px 14px 16px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-highlight);
+    border-radius: 14px;
+    color: var(--text-white);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45), 0 0 25px rgba(var(--primary-rgb), 0.08);
+    animation: svGuestNoticeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes svGuestNoticeIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.sv-guest-notice-hide {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sv-guest-notice-icon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.95rem;
+    color: var(--primary-blue);
+    background: rgba(var(--primary-rgb), 0.12);
+    border: 1px solid rgba(var(--primary-rgb), 0.3);
+}
+
+.sv-guest-notice-body { flex: 1; min-width: 0; }
+.sv-guest-notice-body strong { display: block; font-size: 0.9rem; margin-bottom: 3px; }
+.sv-guest-notice-body p { font-size: 0.78rem; line-height: 1.45; color: var(--text-gray); }
+
+.sv-guest-notice-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.sv-guest-notice-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: var(--primary-blue);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.sv-guest-notice-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+.sv-guest-notice-close {
+    padding: 2px 4px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.sv-guest-notice-close:hover { color: var(--text-white); }
+
+@media (max-width: 520px) {
+    .sv-guest-notice {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        width: auto;
+    }
+}
+
+@media print {
+    .sv-guest-notice { display: none !important; }
+}

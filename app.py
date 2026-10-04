@@ -44,52 +44,18 @@ _load_env_file()
 from schedule.schedule_utils import create_timetable_with_preferences
 #python -m http.server 8000
 #.venv/bin/python app.py
-# cấu hình API nhà cung cấp
-# Mỗi provider khai báo qua biến môi trường: <TEN>_API_KEY (+ tùy chọn <TEN>_BASE_URL, <TEN>_MODEL).
-# Tất cả đều dùng giao thức OpenAI-compatible (chat.completions).
+# Studyverse gọi AI qua FreeLLMAPI (Freellmapi), không dùng OmniRoute nữa.
+# FreeLLMAPI chạy ở http://localhost:3001/v1 và được expose qua cloudflared
+# tunnel dưới domain ai.studyverse.cloud.
 AI_PROVIDERS = {
-    'freellm': {
+    'freellmapi': {
         'key': os.environ.get('FREELLM_API_KEY'),
         'base_url': (os.environ.get('FREELLM_BASE_URL') or '').strip() or 'http://localhost:3001/v1',
-        'model': (os.environ.get('FREELLM_MODEL') or '').strip() or 'auto:fast',
-    },
-    'openai': {
-        'key': os.environ.get('OPENAI_API_KEY'),
-        'base_url': (os.environ.get('OPENAI_BASE_URL') or '').strip() or 'https://api.openai.com/v1',
-        'model': (os.environ.get('OPENAI_MODEL') or '').strip() or 'gpt-4o-mini',
-    },
-    'deepseek': {
-        'key': os.environ.get('DEEPSEEK_API_KEY'),
-        'base_url': (os.environ.get('DEEPSEEK_BASE_URL') or '').strip() or 'https://api.deepseek.com/v1',
-        'model': (os.environ.get('DEEPSEEK_MODEL') or '').strip() or 'deepseek-chat',
-    },
-    'gemini': {
-        # Google Gemini mở endpoint OpenAI-compatible, không cần thư viện riêng.
-        'key': os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY'),
-        'base_url': (os.environ.get('GEMINI_BASE_URL') or '').strip() or 'https://generativelanguage.googleapis.com/v1beta/openai',
-        'model': (os.environ.get('GEMINI_MODEL') or '').strip() or 'gemini-3.6-flash',
-    },
-    'groq': {
-        'key': os.environ.get('GROQ_API_KEY'),
-        'base_url': (os.environ.get('GROQ_BASE_URL') or '').strip() or 'https://api.groq.com/openai/v1',
-        'model': (os.environ.get('GROQ_MODEL') or '').strip() or 'llama-3.3-70b-versatile',
-    },
-    'openrouter': {
-        'key': os.environ.get('OPENROUTER_API_KEY'),
-        'base_url': (os.environ.get('OPENROUTER_BASE_URL') or '').strip() or 'https://openrouter.ai/api/v1',
-        'model': (os.environ.get('OPENROUTER_MODEL') or '').strip() or 'openrouter/auto',
-    },
-    'anthropic': {
-        # Anthropic có endpoint OpenAI-compatible (giao thức /v1/chat/completions).
-        'key': os.environ.get('ANTHROPIC_API_KEY'),
-        'base_url': (os.environ.get('ANTHROPIC_BASE_URL') or '').strip() or 'https://api.anthropic.com/v1',
-        'model': (os.environ.get('ANTHROPIC_MODEL') or '').strip() or 'claude-sonnet-4-20250514',
+        'model': (os.environ.get('FREELLM_MODEL') or '').strip(),
     },
 }
 
-# Thứ tự ưu tiên khi nhiều key được cấu hình cùng lúc (đổi nếu muốn ưu tiên nhà khác).
-AI_PROVIDER_ORDER = [name for name in (os.environ.get('AI_PROVIDER_ORDER') or '').split(',') if name.strip()]
-AI_PROVIDER_ORDER += [name for name in AI_PROVIDERS if name not in AI_PROVIDER_ORDER]
+AI_PROVIDER_ORDER = ['freellmapi']
 
 
 def detect_available_providers():

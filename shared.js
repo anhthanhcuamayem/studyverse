@@ -240,6 +240,11 @@ const SV_I18N = {
     'nav.career': { vi: 'Hướng nghiệp', en: 'AI Career' },
     'nav.account': { vi: 'Tài khoản', en: 'Account' },
     'nav.settings': { vi: 'Cài đặt', en: 'Settings' },
+    // Nhắc khách đăng nhập (góc dưới trái)
+    'guestNotice.title': { vi: 'Bạn chưa đăng nhập', en: 'You are not signed in' },
+    'guestNotice.message': { vi: 'Đăng nhập để lưu dữ liệu theo tài khoản và đồng bộ trên mọi thiết bị.', en: 'Sign in to keep your data with your account and sync across devices.' },
+    'guestNotice.action': { vi: 'Đăng nhập', en: 'Sign in' },
+    'guestNotice.close': { vi: 'Đóng thông báo', en: 'Dismiss' },
     // Settings panel
     'settings.title': { vi: 'Cài đặt', en: 'Settings' },
     'settings.language': { vi: 'Ngôn ngữ', en: 'Language' },
@@ -607,7 +612,11 @@ function initSettingsUI() {
 
     const accountLink = document.createElement('a');
     accountLink.className = 'nav-account';
-    accountLink.href = '/account.html';
+    // Sau khi đăng nhập, quay lại đúng trang hiện tại (trang account không tự trỏ về mình).
+    const onAccountPage = /\/account\.html$/.test(window.location.pathname);
+    accountLink.href = onAccountPage
+        ? '/account.html'
+        : `/account.html?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     accountLink.setAttribute('data-i18n-title', 'nav.account');
     accountLink.setAttribute('data-i18n-aria', 'nav.account');
     accountLink.innerHTML = '<i class="fa-regular fa-user" aria-hidden="true"></i>';
@@ -854,6 +863,171 @@ function svLogConfigIssues(cfg) {
     console.warn(`[config.js] Phát hiện ${issues.length} vấn đề — đang dùng giá trị dự phòng cho các khóa sai:`);
     issues.forEach(msg => console.warn('  • ' + msg));
     return issues;
+}
+
+// ===== Supabase session dùng chung cho các trang app =====
+// Các trang (todo, schedule, career) đọc session để biết user đang đăng nhập và
+// tách dữ liệu localStorage theo tài khoản. Khách (chưa đăng nhập) giữ key gốc
+// nên dữ liệu cũ vẫn dùng được như trước.
+let SV_STORAGE_SCOPE = '';
+let svAuthResolved = false;
+let svSupabaseClient = null;
+let svSupabasePromise = null;
+
+// Khóa localStorage theo user: giữ nguyên key gốc cho khách,
+// còn khi đã đăng nhập thì thành "<key>::<userId>".
+function svScopedKey(baseKey) {
+    return SV_STORAGE_SCOPE ? `${baseKey}::${SV_STORAGE_SCOPE}` : baseKey;
+}
+
+// Nhập dữ liệu khách (key gốc) vào tài khoản vừa đăng nhập — chỉ một lần cho mỗi tài khoản.
+// Chạy trước khi trang app đọc dữ liệu; không ghi đè dữ liệu đã có của tài khoản.
+function svMigrateGuestData(userId) {
+    if (!userId) return false;
+    const storage = SV_CFG.storage || {};
+    const dataKeys = [storage.projects, storage.schedule, storage.lastProject, storage.careerChat].filter(Boolean);
+    if (!dataKeys.length) return false;
+
+    const marker = `sv-guest-migrated::${userId}`;
+    try {
+        if (localStorage.getItem(marker) === '1') return false;
+
+        let moved = false;
+        dataKeys.forEach(baseKey => {
+            const guestValue = localStorage.getItem(baseKey);
+            if (guestValue === null || guestValue === '') return;
+            const scopedKey = svScopedKey(baseKey);
+            // Tài khoản đã có dữ liệu riêng thì giữ nguyên, không ghi đè.
+            if (localStorage.getItem(scopedKey) === null) {
+                localStorage.setItem(scopedKey, guestValue);
+                localStorage.removeItem(baseKey);
+                moved = true;
+            }
+        });
+
+        // Đánh dấu cả khi không có gì để nhập, để không thử lại mỗi lần đăng nhập.
+        localStorage.setItem(marker, '1');
+        return moved;
+    } catch (error) {
+        console.warn('Studyverse guest data migration failed.', error);
+        return false;
+    }
+}
+
+// Tạo (một lần) Supabase client từ /api/public-config, nạp CDN khi cần.
+function svSupabase() {
+    if (svSupabaseClient) return Promise.resolve(svSupabaseClient);
+    if (svSupabasePromise) return svSupabasePromise;
+
+    svSupabasePromise = (async () => {
+        const response = await fetch('/api/public-config', { headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error('Supabase configuration is unavailable.');
+        const config = await response.json();
+        const supabaseUrl = String(config.supabaseUrl || '').trim();
+        const publishableKey = String(config.supabasePublishableKey || '').trim();
+        if (!supabaseUrl || !publishableKey) throw new Error('Supabase configuration is incomplete.');
+
+        if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+                script.async = true;
+                script.onload = resolve;
+                script.onerror = () => reject(new Error('Could not load the account service.'));
+                document.head.appendChild(script);
+            });
+        }
+        if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+            throw new Error('Could not initialize the account service.');
+        }
+
+        svSupabaseClient = window.supabase.createClient(supabaseUrl, publishableKey, {
+            auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+        });
+        return svSupabaseClient;
+    })().catch(error => {
+        svSupabasePromise = null;
+        throw error;
+    });
+
+    return svSupabasePromise;
+}
+
+// Promise giải quyết khi đã biết trạng thái đăng nhập (trả session hoặc null).
+// Trang app nên `await svAuthReady` trước khi đọc localStorage đã tách theo user.
+const svAuthReady = (async () => {
+    try {
+        const client = await svSupabase();
+        client.auth.onAuthStateChange((event, session) => {
+            if (event === 'INITIAL_SESSION' || !svAuthResolved) return;
+            // Trang account tự xử lý điều hướng sau khi đăng nhập/đăng xuất;
+            // reload ở đây sẽ tranh chấp với auth.js.
+            if (document.getElementById('authForm')) return;
+            const nextScope = session && session.user ? session.user.id : '';
+            if (nextScope === SV_STORAGE_SCOPE) return;
+            SV_STORAGE_SCOPE = nextScope;
+            // Đổi tài khoản ở tab khác → nạp lại để đọc đúng dữ liệu của user mới.
+            window.location.reload();
+        });
+
+        const { data } = await client.auth.getSession();
+        if (data && data.session && data.session.user) {
+            SV_STORAGE_SCOPE = data.session.user.id;
+            // Đăng nhập lần đầu trên trình duyệt này → mang dữ liệu khách vào tài khoản.
+            svMigrateGuestData(data.session.user.id);
+        }
+        return data ? data.session : null;
+    } catch (error) {
+        console.warn('Studyverse session is unavailable.', error);
+        return null;
+    } finally {
+        svAuthResolved = true;
+    }
+})();
+
+// Nhắc khách đăng nhập — chỉ hiện khi thực sự chưa có session.
+svAuthReady.then(session => {
+    if (!session) initGuestNotice();
+});
+
+function initGuestNotice() {
+    // Trang account đã là nơi đăng nhập nên không cần nhắc; chỉ nhắc ở trang app.
+    if (document.getElementById('authForm')) return;
+    if (!document.body || document.querySelector('.sv-guest-notice')) return;
+    try {
+        if (sessionStorage.getItem('sv-guest-notice-dismissed') === '1') return;
+    } catch (e) { /* sessionStorage có thể bị chặn */ }
+
+    const nextPath = window.location.pathname + window.location.search;
+    const notice = document.createElement('div');
+    notice.className = 'sv-guest-notice';
+    notice.setAttribute('role', 'status');
+    notice.setAttribute('aria-live', 'polite');
+    notice.innerHTML = `
+        <i class="fa-regular fa-user sv-guest-notice-icon" aria-hidden="true"></i>
+        <div class="sv-guest-notice-body">
+            <strong data-i18n="guestNotice.title"></strong>
+            <p data-i18n="guestNotice.message"></p>
+        </div>
+        <div class="sv-guest-notice-actions">
+            <a class="sv-guest-notice-btn" data-i18n="guestNotice.action" href="/account.html?next=${encodeURIComponent(nextPath)}"></a>
+            <button type="button" class="sv-guest-notice-close" data-i18n-aria="guestNotice.close" aria-label="${escapeHtml(svT('guestNotice.close'))}">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>`;
+
+    // Điền chữ theo ngôn ngữ hiện tại (đổi ngôn ngữ sau đó do svApplyI18n lo).
+    notice.querySelector('[data-i18n="guestNotice.title"]').textContent = svT('guestNotice.title');
+    notice.querySelector('[data-i18n="guestNotice.message"]').textContent = svT('guestNotice.message');
+    notice.querySelector('[data-i18n="guestNotice.action"]').textContent = svT('guestNotice.action');
+
+    notice.querySelector('.sv-guest-notice-close').addEventListener('click', () => {
+        try { sessionStorage.setItem('sv-guest-notice-dismissed', '1'); } catch (e) { /* bỏ qua */ }
+        notice.classList.add('sv-guest-notice-hide');
+        setTimeout(() => notice.remove(), 220);
+    });
+
+    document.body.appendChild(notice);
 }
 
 // khởi tạo theme + ngôn ngữ trước khi trang render để tránh nhấp nháy
