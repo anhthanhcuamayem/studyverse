@@ -122,6 +122,10 @@
     font-family: 'Inter', sans-serif;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 /* Không để trang lộ palette mặc định trong lúc shared.js áp theme đã lưu.
    Class này được gỡ ngay sau khi theme được áp dụng. */
 html.sv-theme-loading body {
@@ -818,4 +822,80 @@ body {
 
 @media print {
     .sv-guest-notice { display: none !important; }
+}
+
+/* ==================== STUDYVERSE CUSTOM SVG ICONS ==================== */
+.sv-icon {
+    display: inline-block;
+    width: 1.15em;
+    height: 1.15em;
+    vertical-align: -0.16em;
+    fill: none;
+    flex-shrink: 0;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease;
+}
+
+/* Thẻ <i> bọc icon SVG */
+.sv-icon-host {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    font-style: normal;
+    line-height: 1;
+    text-rendering: optimizeLegibility;
+}
+
+/* Font Awesome fallback ẩn khi đã có SVG bên trong */
+.sv-icon-host::before {
+    display: none !important;
+}
+
+/* Micro-interaction khi hover */
+a:hover > .sv-icon-host .sv-icon,
+button:hover > .sv-icon-host .sv-icon,
+.nav-container a:hover .sv-icon,
+.btn-primary:hover .sv-icon,
+.account-primary:hover .sv-icon,
+.btn-start:hover .sv-icon,
+.btn-entry-secondary:hover .sv-icon {
+    transform: scale(1.12);
+}
+
+/* Hiệu ứng xoay tròn Loading */
+.sv-icon-spin {
+    animation: svIconSpin 1s linear infinite;
+    transform-origin: center;
+}
+
+@keyframes svIconSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Neon Glow & Dropshadow độc quyền */
+.sv-icon-glow {
+    filter: drop-shadow(0 0 6px rgba(var(--primary-rgb), 0.4));
+}
+
+.sv-icon-fire-flame-curved {
+    filter: drop-shadow(0 0 7px rgba(249, 115, 22, 0.55));
+    animation: svFlameFlicker 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes svFlameFlicker {
+    0% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 5px rgba(249, 115, 22, 0.45)); }
+    50% { transform: scale(1.06) translateY(-1px); filter: drop-shadow(0 0 9px rgba(249, 115, 22, 0.7)); }
+    100% { transform: scale(0.98) translateY(0); filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.5)); }
+}
+
+.sv-icon-robot, .sv-icon-wand-magic-sparkles {
+    filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.45));
+}
+
+.sv-icon-trophy {
+    filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.45));
+}
+
+.sv-icon-circle-check {
+    filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.4));
 }

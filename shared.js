@@ -275,6 +275,23 @@ const SV_I18N = {
     'home.login': { vi: 'Đăng nhập', en: 'Log in' },
     'home.register': { vi: 'Đăng ký', en: 'Sign up' },
     'home.guest': { vi: 'Dùng ngay với Guest', en: 'Continue as Guest' },
+    'home.enterApp': { vi: 'Vào ứng dụng', en: 'Go to App' },
+    'home.myAccount': { vi: 'Tài khoản', en: 'My Account' },
+    'home.heroBadge': { vi: 'Không gian học tập & quản lý thông minh', en: 'Smart Learning & Management Workspace' },
+    'home.cardAiTitle': { vi: 'AI Career Advisor', en: 'AI Career Advisor' },
+    'home.cardAiDesc': { vi: 'Đề xuất lộ trình tối ưu', en: 'Smart personalized roadmap' },
+    'home.cardTaskTitle': { vi: 'Nhiệm vụ hoàn thành', en: 'Task Completed' },
+    'home.cardTaskDesc': { vi: 'Toán cao cấp • 100%', en: 'Calculus • 100%' },
+    'home.cardSchedTitle': { vi: 'Thời khóa biểu', en: 'Timetable' },
+    'home.cardSchedDesc': { vi: 'Tự động xếp tiết học', en: 'Smart schedule planner' },
+    'home.cardStreakTitle': { vi: 'Chuỗi tập trung', en: 'Focus Streak' },
+    'home.cardStreakDesc': { vi: '🔥 7 ngày liên tục', en: '🔥 7 days streak' },
+    'home.statLocal': { vi: 'Bảo mật & lưu trên máy', en: 'Private & Local Storage' },
+    'home.statAi': { vi: 'Trợ lý AI đồng hành', en: '24/7 AI Career Guidance' },
+    'home.statThemes': { vi: 'Theme bảo vệ mắt', en: 'Eye-friendly Themes' },
+    'home.f1.tag': { vi: 'Kế hoạch', en: 'Planning' },
+    'home.f2.tag': { vi: 'Giao diện', en: 'Interface' },
+    'home.f3.tag': { vi: 'Bảo mật', en: 'Security' },
     'auth.email': { vi: 'Email', en: 'Email' },
     'auth.password': { vi: 'Mật khẩu', en: 'Password' },
     'auth.loginTitle': { vi: 'Đăng nhập', en: 'Log in' },
@@ -351,6 +368,27 @@ const SV_I18N = {
     'account.userExists': { vi: 'Email này đã có tài khoản. Hãy đăng nhập.', en: 'An account already exists for this email. Please sign in.' },
     'account.passwordTooShort': { vi: 'Mật khẩu cần có ít nhất 8 ký tự.', en: 'Password must be at least 8 characters.' },
     'account.signedOut': { vi: 'Bạn đã đăng xuất khỏi tài khoản.', en: 'You have signed out.' },
+    'account.profileTitle': { vi: 'Hồ sơ & Tùy biến AI', en: 'Profile & AI Customization' },
+    'account.displayNameLabel': { vi: 'Tên hiển thị (AI sẽ gọi bạn bằng tên này)', en: 'Display Name (AI will address you by this)' },
+    'account.displayNamePh': { vi: 'Nhập tên của bạn...', en: 'Enter your name...' },
+    'account.aiCallingLabel': { vi: 'Cách xưng hô với AI', en: 'AI Pronoun / Addressing' },
+    'account.aiCallingOpt1': { vi: 'Bạn - Mình (Thân thiện, lịch thiệp)', en: 'You - Me (Friendly, polite)' },
+    'account.aiCallingOpt2': { vi: 'Cậu - Tớ (Gần gũi, bạn bè)', en: 'Casual (Peer buddies)' },
+    'account.aiCallingOpt3': { vi: 'Em - Anh/Chị (Lễ phép, học hỏi)', en: 'Junior - Mentor (Respectful)' },
+    'account.aiCallingOpt4': { vi: 'Tôi - Bạn (Trang trọng, chuyên nghiệp)', en: 'Formal / Professional' },
+    'account.aiStyleLabel': { vi: 'Phong cách trả lời của AI', en: 'AI Response Tone' },
+    'account.aiStyleOpt1': { vi: 'Nhiệt tình & truyền cảm hứng 🔥', en: 'Enthusiastic & Inspiring 🔥' },
+    'account.aiStyleOpt2': { vi: 'Ngắn gọn, súc tích & thẳng thắn 🎯', en: 'Concise & Direct 🎯' },
+    'account.aiStyleOpt3': { vi: 'Tỉ mỉ & hướng dẫn chi tiết 📚', en: 'Detailed & Step-by-step 📚' },
+    'account.dailyGoalLabel': { vi: 'Mục tiêu học tập hàng ngày', en: 'Daily Study Goal' },
+    'account.dailyGoalPh': { vi: 'Ví dụ: 3 việc / ngày, 45 phút học tập...', en: 'e.g. 3 tasks/day, 45 mins study...' },
+    'account.saveProfile': { vi: 'Lưu thay đổi', en: 'Save Changes' },
+    'account.profileSaved': { vi: 'Đã lưu thông tin hồ sơ và tùy chọn AI!', en: 'Profile and AI settings saved!' },
+    'account.streakTitle': { vi: 'Chuỗi học tập', en: 'Study Streak' },
+    'account.streakDays': { vi: 'ngày liên tục', en: 'days streak' },
+    'account.streakBest': { vi: 'Kỷ lục cao nhất', en: 'Best streak' },
+    'account.streakTip': { vi: 'Hoạt động mỗi ngày để giữ lửa nhé!', en: 'Study daily to keep the flame alive!' },
+    'account.statsCompleted': { vi: 'Nhiệm vụ đã hoàn thành', en: 'Completed tasks' },
     'home.f1.title': { vi: 'Lập kế hoạch', en: 'Planning' },
     'home.f1.desc': { vi: 'Tạo danh sách công việc cá nhân hóa, giúp bạn chủ động trong học tập.', en: 'Build a personalized to-do list, helping you stay proactive in your studies.' },
     'home.f2.title': { vi: 'Giao diện bảo vệ mắt', en: 'Eye-friendly Interface' },
@@ -552,6 +590,63 @@ const SV_I18N = {
     'career.clearTitle': { vi: 'Xóa lịch sử', en: 'Clear history' },
     'career.copy': { vi: 'Sao chép câu trả lời', en: 'Copy reply' },
     'career.pageTitle': { vi: 'Tư vấn hướng nghiệp - Studyverse', en: 'Career Counseling - Studyverse' },
+    // AI đề xuất chỉnh sửa Todo / Thời khóa biểu (xem /api/ai-actions)
+    'aiAct.title': { vi: 'AI đề xuất thay đổi', en: 'AI suggests changes' },
+    'aiAct.todoGroup': { vi: 'Dự án & công việc', en: 'Projects & tasks' },
+    'aiAct.scheduleGroup': { vi: 'Thời khóa biểu', en: 'Schedule' },
+    'aiAct.apply': { vi: 'Áp dụng', en: 'Apply' },
+    'aiAct.dismiss': { vi: 'Bỏ qua', en: 'Dismiss' },
+    'aiAct.applied': { vi: 'Đã áp dụng ${count} thay đổi.', en: 'Applied ${count} change(s).' },
+    'aiAct.appliedTitle': { vi: 'Đã cập nhật dữ liệu', en: 'Data updated' },
+    'aiAct.applyFailed': { vi: 'Không áp dụng được thay đổi nào.', en: 'No change could be applied.' },
+    'aiAct.applyFailedTitle': { vi: 'Không áp dụng được', en: 'Could not apply' },
+    'aiAct.skipped': { vi: 'Bỏ qua ${count} đề xuất không hợp lệ', en: 'Skipped ${count} invalid suggestion(s)' },
+    'aiAct.newData': { vi: 'AI đã tạo dữ liệu mới cho trang bạn chưa dùng bao giờ.', en: 'AI created fresh data for a page you had not used yet.' },
+    // Hậu tố mô tả hạn chót / giá trị đã dịch, chèn vào các hàng mô tả bên dưới
+    'aiAct.dlSuffix': { vi: ' (hạn ${date})', en: ' (due ${date})' },
+    'aiAct.dlCleared': { vi: 'chưa đặt', en: 'not set' },
+    'aiAct.periodText': { vi: 'Tiết ${n}', en: 'Period ${n}' },
+    'aiAct.sessionsText': { vi: '${count} tiết', en: '${count} sessions' },
+    // Mô tả từng thay đổi trong bản xem trước
+    'aiAct.sum.projectCreate': { vi: 'Tạo dự án «${name}»${deadlineText}', en: 'Create project “${name}”${deadlineText}' },
+    'aiAct.sum.projectRename': { vi: 'Đổi tên dự án «${project}» thành «${name}»', en: 'Rename project “${project}” to “${name}”' },
+    'aiAct.sum.projectDeadline': { vi: 'Đổi hạn dự án «${project}» thành ${deadlineValue}', en: 'Set project “${project}” deadline to ${deadlineValue}' },
+    'aiAct.sum.taskCreate': { vi: 'Thêm việc «${name}» vào «${project}»${deadlineText}', en: 'Add task “${name}” to “${project}”${deadlineText}' },
+    'aiAct.sum.taskRename': { vi: 'Đổi tên việc «${task}» thành «${name}»', en: 'Rename task “${task}” to “${name}”' },
+    'aiAct.sum.taskDeadline': { vi: 'Đổi hạn việc «${task}» thành ${deadlineValue}', en: 'Set task “${task}” deadline to ${deadlineValue}' },
+    'aiAct.sum.taskPriority': { vi: 'Đặt ưu tiên việc «${task}» thành ${priorityText}', en: 'Set task “${task}” priority to ${priorityText}' },
+    'aiAct.sum.taskStatus': { vi: 'Chuyển việc «${task}» sang ${statusText}', en: 'Move task “${task}” to ${statusText}' },
+    'aiAct.sum.taskEstimate': { vi: 'Đặt thời lượng việc «${task}» thành ${minutes} phút', en: 'Set task “${task}” estimate to ${minutes} minutes' },
+    'aiAct.sum.taskRepeat': { vi: 'Đặt lặp lại việc «${task}» thành ${repeatText}', en: 'Set task “${task}” repeat to ${repeatText}' },
+    'aiAct.sum.taskDelete': { vi: 'Xóa việc «${name}» khỏi «${project}»', en: 'Delete task “${name}” from “${project}”' },
+    'aiAct.sum.subjectAdd': { vi: 'Thêm môn «${name}» (${sessionsText})', en: 'Add subject “${name}” (${sessionsText})' },
+    'aiAct.sum.subjectRemove': { vi: 'Xóa môn «${name}» khỏi thời khóa biểu', en: 'Remove subject “${name}” from the timetable' },
+    'aiAct.sum.lessonSet': { vi: 'Xếp «${name}» vào ${day} · ${periodText} (${time})', en: 'Place “${name}” on ${day} · ${periodText} (${time})' },
+    'aiAct.sum.lessonReplace': { vi: 'Đổi ${day} · ${periodText} (${time}) từ «${replaced}» sang «${name}»', en: 'Change ${day} · ${periodText} (${time}) from “${replaced}” to “${name}”' },
+    'aiAct.sum.lessonClear': { vi: 'Bỏ «${name}» khỏi ${day} · ${periodText} (${time})', en: 'Clear “${name}” from ${day} · ${periodText} (${time})' },
+    // Lý do một đề xuất bị bỏ
+    'aiAct.err.badBlock': { vi: 'Khối JSON AI trả về không đọc được.', en: 'The JSON block returned by the AI cannot be parsed.' },
+    'aiAct.err.invalid_json': { vi: 'Khối JSON AI trả về sai định dạng.', en: 'The AI JSON block is malformed.' },
+    'aiAct.err.invalid_shape': { vi: 'Mục #${index} sai cấu trúc.', en: 'Item #${index} has an invalid shape.' },
+    'aiAct.err.unknownType': { vi: 'Không hỗ trợ loại thay đổi «${type}».', en: 'Unsupported change type “${type}”.' },
+    'aiAct.err.missingName': { vi: 'Thiếu tên.', en: 'Missing name.' },
+    'aiAct.err.badDeadline': { vi: 'Hạn chót «${value}» không đúng dạng YYYY-MM-DD.', en: 'Deadline “${value}” is not in YYYY-MM-DD format.' },
+    'aiAct.err.badValue': { vi: 'Giá trị «${field}» không hợp lệ.', en: 'Invalid value for “${field}”.' },
+    'aiAct.err.badDay': { vi: 'Chỉ số thứ không hợp lệ.', en: 'Invalid day index.' },
+    'aiAct.err.badSlot': { vi: 'Khung giờ không hợp lệ.', en: 'Invalid time slot.' },
+    'aiAct.err.notLessonSlot': { vi: 'Khung giờ ${slot} là giờ nghỉ, không xếp môn được.', en: 'Slot ${slot} is a break, not a lesson.' },
+    'aiAct.err.noProject': { vi: 'Không tìm thấy dự án «${name}».', en: 'Project “${name}” was not found.' },
+    'aiAct.err.noTask': { vi: 'Không tìm thấy việc «${name}» trong «${project}».', en: 'Task “${name}” was not found in “${project}”.' },
+    'aiAct.err.noSubject': { vi: 'Môn «${name}» chưa có trong thời khóa biểu.', en: 'Subject “${name}” is not in the timetable.' },
+    'aiAct.err.projectExists': { vi: 'Dự án «${name}» đã tồn tại.', en: 'Project “${name}” already exists.' },
+    'aiAct.err.taskExists': { vi: 'Việc «${name}» đã có trong «${project}».', en: 'Task “${name}” already exists in “${project}”.' },
+    'aiAct.err.subjectExists': { vi: 'Môn «${name}» đã có.', en: 'Subject “${name}” already exists.' },
+    'aiAct.err.nothingToChange': { vi: 'Không có nội dung nào để thay đổi.', en: 'Nothing to change.' },
+    'aiAct.err.badEstimate': { vi: 'Thời lượng dự kiến không hợp lệ.', en: 'Invalid estimate.' },
+    'aiAct.err.badSessions': { vi: 'Số tiết không hợp lệ.', en: 'Invalid session count.' },
+    'aiAct.err.lessonAlreadySet': { vi: 'Ô này đã là «${name}».', en: 'This cell already holds “${name}”.' },
+    'aiAct.err.lessonEmpty': { vi: 'Ô này đang trống.', en: 'This cell is already empty.' },
+    'aiAct.err.tooManyActions': { vi: 'Chỉ áp dụng tối đa ${max} thay đổi mỗi lần.', en: 'At most ${max} changes can be applied at once.' },
 };
 
 function svLang() {
@@ -730,6 +825,10 @@ function initSettingsUI() {
 
     syncPanel();
     setPanelOpen(false);
+    if (typeof svEnhanceIcons === 'function') {
+        svEnhanceIcons(panel);
+        svEnhanceIcons(container);
+    }
 }
 
 const SV_CFG_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -880,33 +979,36 @@ function svScopedKey(baseKey) {
     return SV_STORAGE_SCOPE ? `${baseKey}::${SV_STORAGE_SCOPE}` : baseKey;
 }
 
-// Nhập dữ liệu khách (key gốc) vào tài khoản vừa đăng nhập — chỉ một lần cho mỗi tài khoản.
+// Nhập dữ liệu khách (key gốc) vào tài khoản vừa đăng nhập.
 // Chạy trước khi trang app đọc dữ liệu; không ghi đè dữ liệu đã có của tài khoản.
 function svMigrateGuestData(userId) {
     if (!userId) return false;
     const storage = SV_CFG.storage || {};
-    const dataKeys = [storage.projects, storage.schedule, storage.lastProject, storage.careerChat].filter(Boolean);
+    const dataKeys = [storage.projects, storage.schedule, storage.lastProject, storage.careerChat, storage.userProfile, storage.streak].filter(Boolean);
     if (!dataKeys.length) return false;
 
-    const marker = `sv-guest-migrated::${userId}`;
     try {
-        if (localStorage.getItem(marker) === '1') return false;
-
         let moved = false;
         dataKeys.forEach(baseKey => {
             const guestValue = localStorage.getItem(baseKey);
             if (guestValue === null || guestValue === '') return;
             const scopedKey = svScopedKey(baseKey);
-            // Tài khoản đã có dữ liệu riêng thì giữ nguyên, không ghi đè.
-            if (localStorage.getItem(scopedKey) === null) {
+            if (scopedKey === baseKey) return;
+            const currentScoped = localStorage.getItem(scopedKey);
+            let shouldMove = currentScoped === null;
+            if (!shouldMove) {
+                try {
+                    const parsed = JSON.parse(currentScoped);
+                    if (Array.isArray(parsed) && parsed.length === 0) shouldMove = true;
+                } catch (_) {}
+            }
+            // Tài khoản chưa có dữ liệu riêng hoặc mảng rỗng thì chuyển dữ liệu khách vào.
+            if (shouldMove) {
                 localStorage.setItem(scopedKey, guestValue);
                 localStorage.removeItem(baseKey);
                 moved = true;
             }
         });
-
-        // Đánh dấu cả khi không có gì để nhập, để không thử lại mỗi lần đăng nhập.
-        localStorage.setItem(marker, '1');
         return moved;
     } catch (error) {
         console.warn('Studyverse guest data migration failed.', error);
@@ -963,6 +1065,7 @@ const svAuthReady = (async () => {
             // Trang account tự xử lý điều hướng sau khi đăng nhập/đăng xuất;
             // reload ở đây sẽ tranh chấp với auth.js.
             if (document.getElementById('authForm')) return;
+            initHomeActions(session);
             const nextScope = session && session.user ? session.user.id : '';
             if (nextScope === SV_STORAGE_SCOPE) return;
             SV_STORAGE_SCOPE = nextScope;
@@ -985,9 +1088,23 @@ const svAuthReady = (async () => {
     }
 })();
 
+// Cập nhật các nút thao tác ở trang chủ (index.html) tùy theo trạng thái đăng nhập:
+// - Khách: hiện 3 nút (Đăng nhập, Đăng ký, Dùng ngay với Guest)
+// - Đã đăng nhập: thay bằng 2 nút (Vào ứng dụng, Tài khoản)
+function initHomeActions(session) {
+    const guestActions = document.getElementById('homeGuestActions');
+    const userActions = document.getElementById('homeUserActions');
+    if (!guestActions || !userActions) return;
+
+    const isLoggedIn = Boolean(session && session.user);
+    guestActions.hidden = isLoggedIn;
+    userActions.hidden = !isLoggedIn;
+}
+
 // Nhắc khách đăng nhập — chỉ hiện khi thực sự chưa có session.
 svAuthReady.then(session => {
     if (!session) initGuestNotice();
+    initHomeActions(session);
 });
 
 function initGuestNotice() {
@@ -1027,7 +1144,433 @@ function initGuestNotice() {
         setTimeout(() => notice.remove(), 220);
     });
 
+    if (typeof svEnhanceIcons === 'function') svEnhanceIcons(notice);
     document.body.appendChild(notice);
+}
+
+// ===== AI đề xuất chỉnh sửa Todo / Thời khóa biểu =====
+// AI trả lời kèm một khối ```studyverse-actions {...}```. Server đọc + kiểm tra khối đó
+// (/api/ai-actions) rồi trả về danh sách thay đổi đã chuẩn hóa. Trang AI Career hiển
+// thị bản xem trước; chỉ khi người dùng bấm xác nhận mới gọi svApplyAIActions() để ghi
+// vào LocalStorage (Todo: studyverse_projects — Schedule: studyverse_schedule_dashboard_data).
+
+const SV_ACTION_BLOCK_RE = /```[ \t]*(?:studyverse-actions|json-actions)[ \t]*\r?\n[\s\S]*?```/g;
+
+// Bỏ khối hành động khỏi văn bản hiển thị (khối này chỉ để máy đọc).
+function svStripActionBlock(text) {
+    let out = String(text ?? '').replace(SV_ACTION_BLOCK_RE, '');
+    // Model có thể trả JSON trần (không bọc ```) — khi đó cả câu trả lời là khối hành động.
+    const trimmed = out.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed && typeof parsed === 'object' && Array.isArray(parsed.actions)) return '';
+        } catch (e) { /* không phải JSON → giữ nguyên */ }
+    }
+    out = out.replace(/\n{3,}/g, '\n\n');
+    return out.trim();
+}
+
+const SV_ACTION_ENUM_KEYS = {
+    priority: { low: 'todo.lowPriority', medium: 'todo.mediumPriority', high: 'todo.highPriority' },
+    status: { todo: 'todo.todoStatus', doing: 'todo.doingStatus', done: 'todo.doneStatus' },
+    repeat: { none: 'todo.noRepeat', daily: 'todo.daily', weekly: 'todo.weekly' }
+};
+
+// Dịch các tham số thô của server thành chữ hiển thị (thứ trong tuần, hạn chót, enum...)
+function svActionParams(params) {
+    const out = Object.assign({}, params || {});
+    if (out.dayIndex != null) {
+        const keys = (SV_CFG.schedule && SV_CFG.schedule.dayI18nKeys) || [];
+        out.day = keys[out.dayIndex] ? svT(keys[out.dayIndex]) : '';
+        delete out.dayIndex;
+    }
+    if ('deadline' in out) {
+        out.deadlineText = out.deadline ? svT('aiAct.dlSuffix', { date: out.deadline }) : '';
+        out.deadlineValue = out.deadline ? out.deadline : svT('aiAct.dlCleared');
+    }
+    ['priority', 'status', 'repeat'].forEach(field => {
+        if (out[field] == null) return;
+        const key = SV_ACTION_ENUM_KEYS[field][out[field]];
+        out[field + 'Text'] = key ? svT(key) : String(out[field]);
+    });
+    if (out.period != null) out.periodText = svT('aiAct.periodText', { n: out.period });
+    if (out.sessions != null) out.sessionsText = svT('aiAct.sessionsText', { count: out.sessions });
+    if (out.index == null) out.index = '?';
+    return out;
+}
+
+// Một dòng mô tả thay đổi trong bản xem trước (server gửi khóa i18n + tham số).
+function svActionSummary(entry) {
+    if (!entry || typeof entry !== 'object' || !entry.key) return '';
+    const key = (entry.key === 'aiAct.sum.lessonSet' && entry.params && entry.params.replaced)
+        ? 'aiAct.sum.lessonReplace'
+        : entry.key;
+    return svT(key, svActionParams(entry.params));
+}
+
+// Lý do một đề xuất bị bỏ.
+function svActionProblem(problem) {
+    const code = problem && problem.code ? String(problem.code) : 'invalid_shape';
+    return svT('aiAct.err.' + code, svActionParams(problem && problem.params));
+}
+
+// ----- Ghi thay đổi vào LocalStorage (chỉ gọi sau khi người dùng xác nhận) -----
+let svActionIdCounter = 0;
+
+function svActionId() {
+    svActionIdCounter += 1;
+    return `${Date.now()}-${svActionIdCounter}`;
+}
+
+function svFindProject(projects, name) {
+    const target = String(name || '').trim().toLowerCase();
+    if (!target) return null;
+    return projects.find(p => String((p && p.name) || '').trim().toLowerCase() === target) || null;
+}
+
+function svFindTask(project, name) {
+    if (!Array.isArray(project.tasks)) project.tasks = [];
+    const target = String(name || '').trim().toLowerCase();
+    if (!target) return null;
+    return project.tasks.find(t => String((t && t.name) || '').trim().toLowerCase() === target) || null;
+}
+
+function svFreshTask(action) {
+    const task = {
+        id: svActionId(),
+        name: action.name,
+        deadline: String(action.deadline || ''),
+        status: 'todo',
+        completed: false,
+        priority: action.priority || 'medium',
+        estimate: Number(action.estimate) > 0 ? Math.round(Number(action.estimate)) : 25,
+        repeat: action.repeat || 'none',
+        subtasks: [],
+        schedule: null
+    };
+    if (Array.isArray(action.subtasks)) {
+        task.subtasks = action.subtasks.map((label, i) => ({
+            id: `${task.id}-s${i}`,
+            name: String(label),
+            completed: false
+        }));
+    }
+    return task;
+}
+
+function svApplyTodoActions(actions) {
+    const baseKey = (SV_CFG.storage || {}).projects || 'studyverse_projects';
+    const key = svScopedKey(baseKey);
+    let projects = [];
+    let fresh = false;
+    try {
+        let parsed = JSON.parse(localStorage.getItem(key));
+        if ((!Array.isArray(parsed) || parsed.length === 0) && key !== baseKey) {
+            const guest = JSON.parse(localStorage.getItem(baseKey));
+            if (Array.isArray(guest) && guest.length > 0) parsed = guest;
+        }
+        if (Array.isArray(parsed)) projects = parsed.filter(p => p && typeof p === 'object');
+        else fresh = true;
+    } catch (e) { fresh = true; }
+
+    let count = 0;
+    actions.forEach(action => {
+        switch (action.type) {
+            case 'todo.create_project': {
+                if (svFindProject(projects, action.name)) return;
+                // Để trống hạn chót: trang Todo tự điền nhãn "Chưa đặt" theo ngôn ngữ hiện tại.
+                projects.push({ name: action.name, deadline: String(action.deadline || ''), tasks: [] });
+                count += 1;
+                break;
+            }
+            case 'todo.update_project': {
+                const project = svFindProject(projects, action.project);
+                if (!project) return;
+                if (action.name) project.name = action.name;
+                if ('deadline' in action) project.deadline = String(action.deadline || '');
+                count += 1;
+                break;
+            }
+            case 'todo.create_task': {
+                const project = svFindProject(projects, action.project);
+                if (!project || svFindTask(project, action.name)) return;
+                project.tasks.push(svFreshTask(action));
+                count += 1;
+                break;
+            }
+            case 'todo.update_task': {
+                const project = svFindProject(projects, action.project);
+                const task = project && svFindTask(project, action.task);
+                if (!task) return;
+                const patch = action.patch || {};
+                if (patch.name) task.name = patch.name;
+                if ('deadline' in patch) task.deadline = String(patch.deadline || '');
+                if (patch.priority) task.priority = patch.priority;
+                if (patch.estimate) task.estimate = Math.round(Number(patch.estimate));
+                if (patch.repeat) task.repeat = patch.repeat;
+                if (patch.status) {
+                    task.status = patch.status;
+                    task.completed = patch.status === 'done';
+                }
+                count += 1;
+                break;
+            }
+            case 'todo.delete_task': {
+                const project = svFindProject(projects, action.project);
+                if (!project || !Array.isArray(project.tasks)) return;
+                const target = String(action.task || '').trim().toLowerCase();
+                const before = project.tasks.length;
+                project.tasks = project.tasks.filter(t => String((t && t.name) || '').trim().toLowerCase() !== target);
+                if (project.tasks.length !== before) count += 1;
+                break;
+            }
+            default:
+                break;
+        }
+    });
+
+    if (count) localStorage.setItem(key, JSON.stringify(projects));
+    return { count, fresh: fresh && count > 0 };
+}
+
+// Đọc dữ liệu TKB, tự dựng khung tối thiểu nếu trang Thời khóa biểu chưa từng được dùng.
+function svReadScheduleData() {
+    const baseKey = (SV_CFG.storage || {}).schedule || 'studyverse_schedule_dashboard_data';
+    const key = svScopedKey(baseKey);
+    const cfg = SV_CFG.schedule || {};
+    let data = null;
+    try {
+        let parsed = JSON.parse(localStorage.getItem(key));
+        if ((!parsed || typeof parsed !== 'object') && key !== baseKey) {
+            parsed = JSON.parse(localStorage.getItem(baseKey));
+        }
+        if (parsed && typeof parsed === 'object') data = parsed;
+    } catch (e) { /* dữ liệu hỏng → dựng lại từ mặc định */ }
+
+    const fresh = !data;
+    if (!data) {
+        data = {
+            subjects: [],
+            subjectCounts: {},
+            disabledDays: new Array(7).fill(false),
+            slots: (cfg.defaultSlots || []).map(slot => Object.assign({}, slot)),
+            lessonDuration: cfg.lessonDuration || 45,
+            lockLessonDuration: false
+        };
+    }
+    if (!Array.isArray(data.slots) || !data.slots.length) {
+        data.slots = (cfg.defaultSlots || []).map(slot => Object.assign({}, slot));
+    }
+    if (!Array.isArray(data.subjects)) data.subjects = [];
+    if (!data.subjectCounts || typeof data.subjectCounts !== 'object') data.subjectCounts = {};
+    if (!Array.isArray(data.disabledDays)) data.disabledDays = new Array(7).fill(false);
+
+    // Lưới phải khớp 7 thứ × số khung hiện tại
+    const rows = Array.isArray(data.timetableData) ? data.timetableData : [];
+    const grid = [];
+    for (let day = 0; day < 7; day++) {
+        const row = Array.isArray(rows[day]) ? rows[day].slice(0, data.slots.length) : [];
+        while (row.length < data.slots.length) row.push(null);
+        grid.push(row);
+    }
+    data.timetableData = grid;
+    return { key, data, fresh };
+}
+
+function svRecountSubjectCounts(data) {
+    const counts = {};
+    data.subjects.forEach(subject => { counts[subject.name] = 0; });
+    data.timetableData.forEach(row => row.forEach(cell => {
+        if (cell && cell.type === 'subject' && counts[cell.name] !== undefined) counts[cell.name] += 1;
+    }));
+    data.subjectCounts = counts;
+}
+
+function svApplyScheduleActions(actions) {
+    const { key, data, fresh } = svReadScheduleData();
+    const colors = (SV_CFG.schedule && SV_CFG.schedule.subjectColors) || [];
+    const findSubject = name => data.subjects.find(subject =>
+        String((subject && subject.name) || '').trim().toLowerCase() === String(name || '').trim().toLowerCase()) || null;
+
+    let count = 0;
+    actions.forEach(action => {
+        switch (action.type) {
+            case 'schedule.add_subject': {
+                if (findSubject(action.name)) return;
+                data.subjects.push({
+                    name: action.name,
+                    sessions: Number(action.sessions) > 0 ? Math.round(Number(action.sessions)) : 1,
+                    color: colors.length ? colors[data.subjects.length % colors.length] : '#007AFF'
+                });
+                count += 1;
+                break;
+            }
+            case 'schedule.remove_subject': {
+                const subject = findSubject(action.name);
+                if (!subject) return;
+                const target = subject.name.trim().toLowerCase();
+                data.timetableData.forEach(row => row.forEach((cell, slot) => {
+                    if (cell && cell.type === 'subject' && String(cell.name || '').trim().toLowerCase() === target) {
+                        row[slot] = null;
+                    }
+                }));
+                data.subjects = data.subjects.filter(item => item !== subject);
+                count += 1;
+                break;
+            }
+            case 'schedule.set_lesson': {
+                const subject = findSubject(action.subject);
+                const day = Number(action.day);
+                const slot = Number(action.slot);
+                if (!subject || !Number.isInteger(day) || !Number.isInteger(slot)) return;
+                if (day < 0 || day > 6 || slot < 0 || slot >= data.slots.length) return;
+                if (data.slots[slot] && data.slots[slot].type === 'break') return;
+                const current = data.timetableData[day][slot];
+                if (current && current.type === 'subject' && current.name === subject.name) return;
+                data.timetableData[day][slot] = { type: 'subject', name: subject.name };
+                count += 1;
+                break;
+            }
+            case 'schedule.clear_lesson': {
+                const day = Number(action.day);
+                const slot = Number(action.slot);
+                if (!Number.isInteger(day) || !Number.isInteger(slot)) return;
+                if (day < 0 || day > 6 || slot < 0 || slot >= data.slots.length) return;
+                if (!data.timetableData[day][slot]) return;
+                data.timetableData[day][slot] = null;
+                count += 1;
+                break;
+            }
+            default:
+                break;
+        }
+    });
+
+    if (count) {
+        svRecountSubjectCounts(data);
+        localStorage.setItem(key, JSON.stringify(data));
+    }
+    return { count, fresh: fresh && count > 0 };
+}
+
+// Áp dụng danh sách thay đổi đã chuẩn hóa từ /api/ai-actions.
+// Trả về {todo, schedule, created: [...], error?} — số thay đổi thực sự ghi được.
+function svApplyAIActions(actions) {
+    const result = { todo: 0, schedule: 0, created: [] };
+    if (!Array.isArray(actions) || !actions.length) return result;
+
+    const todoActions = actions.filter(a => a && a.target === 'todo');
+    const scheduleActions = actions.filter(a => a && a.target === 'schedule');
+    try {
+        if (todoActions.length) {
+            const applied = svApplyTodoActions(todoActions);
+            result.todo = applied.count;
+            if (applied.fresh) result.created.push('todo');
+        }
+        if (scheduleActions.length) {
+            const applied = svApplyScheduleActions(scheduleActions);
+            result.schedule = applied.count;
+            if (applied.fresh) result.created.push('schedule');
+        }
+    } catch (error) {
+        console.error('Studyverse apply AI actions failed.', error);
+        result.error = true;
+    }
+    return result;
+}
+
+// ===== Quản lý Chuỗi ngày học tập (Streak) =====
+function svGetLocalDateStr(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function svGetStreak() {
+    const storageKey = svScopedKey((SV_CFG.storage && SV_CFG.storage.streak) || 'studyverse_streak_data');
+    const today = svGetLocalDateStr();
+    try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return { currentStreak: 1, bestStreak: 1, lastActiveDate: today, activeDates: [today] };
+        const data = JSON.parse(raw);
+        return {
+            currentStreak: Math.max(1, Number(data.currentStreak) || 1),
+            bestStreak: Math.max(1, Number(data.bestStreak) || 1),
+            lastActiveDate: data.lastActiveDate || today,
+            activeDates: Array.isArray(data.activeDates) && data.activeDates.length ? data.activeDates : [today]
+        };
+    } catch (_) {
+        return { currentStreak: 1, bestStreak: 1, lastActiveDate: today, activeDates: [today] };
+    }
+}
+
+function svRecordStreakActivity() {
+    const storageKey = svScopedKey((SV_CFG.storage && SV_CFG.storage.streak) || 'studyverse_streak_data');
+    const today = svGetLocalDateStr();
+    const current = svGetStreak();
+
+    if (current.lastActiveDate === today) {
+        return current;
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = svGetLocalDateStr(yesterday);
+
+    let nextStreak = current.currentStreak;
+    if (current.lastActiveDate === yesterdayStr) {
+        nextStreak += 1;
+    } else {
+        nextStreak = 1;
+    }
+
+    const bestStreak = Math.max(current.bestStreak || 1, nextStreak);
+    const activeDates = Array.isArray(current.activeDates) ? current.activeDates.filter(d => d !== today) : [];
+    activeDates.push(today);
+    if (activeDates.length > 30) activeDates.shift();
+
+    const updated = {
+        currentStreak: nextStreak,
+        bestStreak: bestStreak,
+        lastActiveDate: today,
+        activeDates: activeDates
+    };
+
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+    } catch (_) {}
+
+    return updated;
+}
+
+// ===== Quản lý Hồ sơ người dùng & Tùy biến AI =====
+function svGetUserProfile() {
+    const storageKey = svScopedKey((SV_CFG.storage && SV_CFG.storage.userProfile) || 'studyverse_user_profile');
+    try {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (data && typeof data === 'object') return data;
+        }
+    } catch (_) {}
+    return {
+        displayName: '',
+        aiCalling: 'Bạn - Mình',
+        aiStyle: 'Nhiệt tình & truyền cảm hứng',
+        dailyGoal: ''
+    };
+}
+
+function svSaveUserProfile(profileUpdates) {
+    const storageKey = svScopedKey((SV_CFG.storage && SV_CFG.storage.userProfile) || 'studyverse_user_profile');
+    const existing = svGetUserProfile();
+    const updated = { ...existing, ...profileUpdates };
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+    } catch (_) {}
+    return updated;
 }
 
 // khởi tạo theme + ngôn ngữ trước khi trang render để tránh nhấp nháy
@@ -1044,6 +1587,10 @@ function initGuestNotice() {
         if (document.documentElement) {
             document.documentElement.lang = svLang();
         }
+
+        // Tự động duy trì streak học tập
+        svRecordStreakActivity();
+
         // Áp i18n sớm nếu DOM đã sẵn sàng (script cuối body), else chờ DOMContentLoaded.
         // Thứ tự quan trọng: dựng UI settings TRƯỚC rồi mới svApplyI18n(), để title/aria-label
         // của nút bánh răng và các swatch màu được dịch ngay từ lần load đầu.

@@ -96,7 +96,14 @@ class ScheduleDashboard {
     // tải dữ liệu từ LocalStorage
     loadData() {
         try {
-            const savedData = localStorage.getItem(SCHEDULE_STORAGE_KEY);
+            let savedData = localStorage.getItem(SCHEDULE_STORAGE_KEY);
+            if (!savedData && SCHEDULE_STORAGE_KEY !== BASE_SCHEDULE_STORAGE_KEY) {
+                const guestData = localStorage.getItem(BASE_SCHEDULE_STORAGE_KEY);
+                if (guestData) {
+                    savedData = guestData;
+                    localStorage.setItem(SCHEDULE_STORAGE_KEY, guestData);
+                }
+            }
             if (savedData) {
                 const parsed = JSON.parse(savedData);
                 this.timetableData = parsed.timetableData || [];

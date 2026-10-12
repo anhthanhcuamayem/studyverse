@@ -98,19 +98,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         let projects = [];
         let schedule = null;
         try {
-            const savedProjects = JSON.parse(localStorage.getItem(PROJECTS_KEY));
+            let savedProjects = JSON.parse(localStorage.getItem(PROJECTS_KEY));
+            if ((!Array.isArray(savedProjects) || savedProjects.length === 0) && PROJECTS_KEY !== BASE_PROJECTS_KEY) {
+                const guestProjects = JSON.parse(localStorage.getItem(BASE_PROJECTS_KEY));
+                if (Array.isArray(guestProjects) && guestProjects.length > 0) {
+                    savedProjects = guestProjects;
+                }
+            }
             if (Array.isArray(savedProjects)) projects = savedProjects;
         } catch (e) { /* bỏ qua dữ liệu hỏng */ }
+
         try {
-            const savedSchedule = JSON.parse(localStorage.getItem(SCHEDULE_KEY));
+            let savedSchedule = JSON.parse(localStorage.getItem(SCHEDULE_KEY));
+            const hasRealData = s => s && typeof s === 'object' && (
+                (Array.isArray(s.subjects) && s.subjects.length > 0) ||
+                (Array.isArray(s.timetableData) && s.timetableData.some(row => Array.isArray(row) && row.some(cell => cell && cell.name)))
+            );
+            if (!hasRealData(savedSchedule) && SCHEDULE_KEY !== BASE_SCHEDULE_KEY) {
+                const guestSchedule = JSON.parse(localStorage.getItem(BASE_SCHEDULE_KEY));
+                if (hasRealData(guestSchedule)) {
+                    savedSchedule = guestSchedule;
+                }
+            }
             if (savedSchedule && typeof savedSchedule === 'object') schedule = savedSchedule;
         } catch (e) { /* bỏ qua dữ liệu hỏng */ }
-        // Chỉ gửi khi có dữ liệu, tránh payload rỗng không cần thiết
-        const hasProjects = projects.length > 0;
-        const hasSchedule = !!(schedule && Array.isArray(schedule.timetableData) && schedule.timetableData.length > 0);
-        const body = {};
-        if (hasProjects) body.projects = projects;
-        if (hasSchedule) body.schedule = schedule;
+
+        if (!schedule && typeof svReadScheduleData === 'function') {
+            // Chưa từng mở trang Thời khóa biểu → gửi khung giờ mặc định từ config.js để AI
+            // vẫn đề xuất xếp tiết được (chỉ số khung phải khớp với bản áp dụng).
+            schedule = svReadScheduleData().data;
+        }
+
+        const profile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+        const streakData = typeof svGetStreak === 'function' ? svGetStreak() : null;
+        const userProfile = profile ? {
+            ...profile,
+            streak: streakData ? streakData.currentStreak : 1
+        } : null;
+
+        // Luôn gửi projects và schedule để server biết rõ trạng thái hiện tại của dữ liệu
+        const body = {
+            projects: projects
+        };
+        if (schedule) body.schedule = schedule;
+        if (userProfile) body.user_profile = userProfile;
         return body;
     }
 
@@ -252,6 +283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const decoder = new TextDecoder();
         let buffer = '';
         let finalError = null;
+        let finished = false;  // đã nhận event kết thúc ({"success": ...} / {"error": ...}) chưa?
 
         while (true) {
             const { done, value } = await reader.read();
@@ -272,6 +304,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             onDelta(evt.delta);
                         } else if (evt.error) {
                             finalError = evt.error;
+                            finished = true;
+                        } else if (evt.success) {
+                            finished = true;
                         }
                     } catch (e) { /* bỏ qua event lỗi định dạng */ }
                 }
@@ -279,6 +314,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (finalError) throw new Error(finalError);
+        // Server luôn gửi event kết thúc ({"success": true} hoặc {"error": ...}) trước [DONE].
+        // Không thấy event đó nghĩa là kết nối bị đứt giữa chừng (proxy/mạng) — nếu bỏ qua,
+        // phần trả lời dở (đôi khi chỉ một chữ) sẽ bị coi là câu trả lời hoàn chỉnh và lưu vào
+        // lịch sử. Ném lỗi để sendToAI() thử lại qua endpoint không streaming.
+        if (!finished) throw new Error(svT('career.unknown'));
     }
 
     // Fallback: gọi endpoint thường khi streaming lỗi giữa chừng
@@ -296,6 +336,131 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await response.json();
         if (data.success) return data.reply;
         throw new Error(data.error || svT('career.unknown'));
+    }
+
+    // ===== AI đề xuất chỉnh sửa Todo / Thời khóa biểu =====
+    // Câu trả lời có thể kèm khối ```studyverse-actions```; server đọc/kiểm tra khối đó
+    // rồi trả về danh sách thay đổi. Người dùng duyệt trong thẻ xem trước trước khi ghi.
+    async function fetchActionPlan(replyText) {
+        try {
+            const response = await fetch('/api/ai-actions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reply: replyText, ...collectContext() })
+            });
+            if (!response.ok) return null;
+            const plan = await response.json();
+            return plan && typeof plan === 'object' ? plan : null;
+        } catch (error) {
+            console.warn('Không đọc được đề xuất thay đổi của AI:', error);
+            return null;
+        }
+    }
+
+    function actionGroup(container, labelKey, entries) {
+        if (!entries.length) return;
+        const heading = document.createElement('div');
+        heading.className = 'ai-action-group';
+        heading.textContent = svT(labelKey);
+        container.appendChild(heading);
+
+        const list = document.createElement('ul');
+        list.className = 'ai-action-list';
+        entries.forEach(entry => {
+            const item = document.createElement('li');
+            item.textContent = typeof entry === 'string' ? entry : svActionSummary(entry);
+            list.appendChild(item);
+        });
+        container.appendChild(list);
+    }
+
+    function renderActionCard(contentDiv, plan) {
+        const summary = Array.isArray(plan.summary) ? plan.summary : [];
+        const problems = Array.isArray(plan.problems) ? plan.problems.map(svActionProblem) : [];
+        const actions = Array.isArray(plan.actions) ? plan.actions : [];
+        if (!summary.length && !problems.length) return;
+
+        const card = document.createElement('div');
+        card.className = 'ai-action-card';
+
+        const head = document.createElement('div');
+        head.className = 'ai-action-head';
+        const headIcon = document.createElement('i');
+        headIcon.className = 'fa-solid fa-wand-magic-sparkles';
+        headIcon.setAttribute('aria-hidden', 'true');
+        head.appendChild(headIcon);
+        head.appendChild(document.createTextNode(' ' + svT('aiAct.title')));
+        card.appendChild(head);
+
+        actionGroup(card, 'aiAct.todoGroup', summary.filter(e => e && e.target === 'todo'));
+        actionGroup(card, 'aiAct.scheduleGroup', summary.filter(e => e && e.target === 'schedule'));
+
+        if (problems.length) {
+            const warn = document.createElement('div');
+            warn.className = 'ai-action-warn';
+            const warnIcon = document.createElement('i');
+            warnIcon.className = 'fa-solid fa-triangle-exclamation';
+            warnIcon.setAttribute('aria-hidden', 'true');
+            warn.appendChild(warnIcon);
+            warn.appendChild(document.createTextNode(' ' + svT('aiAct.skipped', { count: problems.length })));
+            const warnList = document.createElement('ul');
+            warnList.className = 'ai-action-list';
+            problems.forEach(text => {
+                const item = document.createElement('li');
+                item.textContent = text;
+                warnList.appendChild(item);
+            });
+            warn.appendChild(warnList);
+            card.appendChild(warn);
+        }
+
+        const controls = document.createElement('div');
+        controls.className = 'ai-action-controls';
+
+        if (actions.length) {
+            const applyBtn = document.createElement('button');
+            applyBtn.type = 'button';
+            applyBtn.className = 'ai-action-apply';
+            applyBtn.textContent = svT('aiAct.apply');
+            applyBtn.addEventListener('click', () => {
+                const result = svApplyAIActions(actions);
+                const applied = (result.todo || 0) + (result.schedule || 0);
+                controls.remove();
+                const status = document.createElement('div');
+                status.className = 'ai-action-status ' + (applied ? 'is-ok' : 'is-warn');
+                status.textContent = applied ? svT('aiAct.applied', { count: applied }) : svT('aiAct.applyFailed');
+                card.appendChild(status);
+                if (applied) {
+                    svNotice(svT('aiAct.applied', { count: applied }), { title: svT('aiAct.appliedTitle'), icon: 'fa-circle-check', tone: 'success' });
+                } else {
+                    svNotice(svT('aiAct.applyFailed'), { title: svT('aiAct.applyFailedTitle'), icon: 'fa-triangle-exclamation', tone: 'warn' });
+                }
+            });
+            controls.appendChild(applyBtn);
+        }
+
+        const dismissBtn = document.createElement('button');
+        dismissBtn.type = 'button';
+        dismissBtn.className = 'ai-action-dismiss';
+        dismissBtn.textContent = svT('aiAct.dismiss');
+        dismissBtn.addEventListener('click', () => card.remove());
+        controls.appendChild(dismissBtn);
+        card.appendChild(controls);
+
+        contentDiv.appendChild(card);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Hiển thị câu trả lời hoàn chỉnh: bỏ khối hành động khỏi phần chữ, render markdown,
+    // lưu lịch sử (bản đã bỏ khối) rồi xin server bản xem trước các thay đổi đề xuất.
+    async function finalizeAnswer(messageDiv, contentDiv, full) {
+        const visible = svStripActionBlock(full);
+        contentDiv.innerHTML = svRenderMarkdown(visible);
+        addCopyButton(messageDiv, () => visible);
+        pushHistory('assistant', visible);
+
+        const plan = await fetchActionPlan(full);
+        if (plan) renderActionCard(contentDiv, plan);
     }
 
     async function sendToAI(message) {
@@ -317,11 +482,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             await streamAI(message, onDelta);
-            const full = contentP.textContent;
             // Render markdown sau khi stream xong để không phá vỡ từng mảnh đang gõ.
-            contentDiv.innerHTML = svRenderMarkdown(full);
-            addCopyButton(messageDiv, () => full);
-            pushHistory('assistant', full);
+            await finalizeAnswer(messageDiv, contentDiv, contentP.textContent);
         } catch (error) {
             console.error(error);
             // Streaming fail (mạng/provider cũ không hỗ trợ) → thử bản thường
@@ -330,9 +492,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 typingDiv.remove();
                 messageDiv.remove();
                 const { messageDiv: botDiv, contentDiv: botContent } = addMessage('', false);
-                botContent.innerHTML = svRenderMarkdown(reply);
-                addCopyButton(botDiv, () => reply);
-                pushHistory('assistant', reply);
+                await finalizeAnswer(botDiv, botContent, reply);
             } catch (fallbackError) {
                 console.error(fallbackError);
                 typingDiv.remove();

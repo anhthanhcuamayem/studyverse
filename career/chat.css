@@ -92,14 +92,14 @@
     flex-shrink: 0;
 }
 .message.user .avatar {
-    background: #2c3e66;
+    background: var(--primary-blue, #007AFF);
 }
 .message .avatar i {
     font-size: 1.2rem;
     color: white;
 }
 .message .content {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--card-hover-bg, rgba(255, 255, 255, 0.05));
     border-radius: 18px;
     padding: 12px 18px;
     border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
@@ -130,21 +130,23 @@
 .message .content li { margin: 2px 0; }
 .message .content a { color: #6db3ff; text-decoration: underline; }
 .message .content code {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(var(--primary-rgb, 0, 122, 255), 0.12);
+    color: var(--text-white, #ffffff);
     padding: 1px 5px;
     border-radius: 5px;
     font-size: 0.85em;
     font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 .message .content pre.sv-code {
-    background: rgba(0, 0, 0, 0.35);
+    background: #0d1117;
     border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
     border-radius: 10px;
     padding: 10px 12px;
     overflow-x: auto;
     margin: 8px 0;
+    color: #e6edf3;
 }
-.message .content pre.sv-code code { background: none; padding: 0; }
+.message .content pre.sv-code code { background: none; padding: 0; color: inherit; }
 
 /* nút sao chép câu trả lời AI */
 .msg-copy {
@@ -178,19 +180,23 @@
 }
 .chat-input-area textarea {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--card-hover-bg, rgba(255, 255, 255, 0.05));
     border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
     border-radius: 24px;
     padding: 12px 18px;
-    color: white;
+    color: var(--text-white, #ffffff);
     font-family: inherit;
     font-size: 0.9rem;
     resize: none;
     outline: none;
     transition: 0.2s;
 }
+.chat-input-area textarea::placeholder {
+    color: var(--text-muted, rgba(255, 255, 255, 0.45));
+}
 .chat-input-area textarea:focus {
     border-color: var(--primary-blue, #007AFF);
+    box-shadow: 0 0 0 3px var(--primary-blue-glow, rgba(0, 122, 255, 0.25));
 }
 .btn-send {
     background: var(--primary-blue, #007AFF);
@@ -249,6 +255,99 @@
     border-color: var(--primary-blue, #007AFF);
     transform: translateY(-1px);
 }
+/* thẻ xem trước thay đổi do AI đề xuất cho Todo / Thời khóa biểu */
+.ai-action-card {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(var(--primary-rgb), 0.35);
+    border-radius: 14px;
+    background: rgba(var(--primary-rgb), 0.08);
+    font-size: 0.85rem;
+}
+.ai-action-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--primary-blue, #007AFF);
+    margin-bottom: 8px;
+}
+.ai-action-group {
+    margin: 8px 0 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted, #9aa0a6);
+}
+.ai-action-list { margin: 0; padding-left: 20px; }
+.ai-action-list li { margin: 3px 0; line-height: 1.45; }
+.ai-action-warn {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255, 149, 0, 0.12);
+    border: 1px solid rgba(255, 149, 0, 0.35);
+    color: #ffb340;
+}
+.ai-action-warn .ai-action-list { margin-top: 4px; }
+.ai-action-controls { display: flex; gap: 8px; margin-top: 12px; }
+.ai-action-apply, .ai-action-dismiss {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.ai-action-apply {
+    background: var(--primary-blue, #007AFF);
+    color: #fff;
+    border: 1px solid var(--primary-blue, #007AFF);
+}
+.ai-action-apply:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.ai-action-dismiss {
+    background: transparent;
+    color: var(--text-muted, #9aa0a6);
+    border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.16));
+}
+.ai-action-dismiss:hover { color: #fff; border-color: var(--text-muted, #9aa0a6); }
+.ai-action-status { margin-top: 10px; font-weight: 600; font-size: 0.82rem; }
+.ai-action-status.is-ok { color: #34C759; }
+.ai-action-status.is-warn { color: #ffb340; }
+
+/* LIGHT & PINK THEMES: Đảm bảo tương phản cao cho khung chat và ô nhập */
+[data-theme="pink"] .chat-card,
+[data-theme="light"] .chat-card,
+[data-theme="cyan"] .chat-card {
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="pink"] .chat-input-area textarea,
+[data-theme="light"] .chat-input-area textarea,
+[data-theme="cyan"] .chat-input-area textarea {
+    background: var(--card-hover-bg);
+    border: 1px solid var(--border-highlight);
+    color: var(--text-white);
+}
+
+[data-theme="pink"] .chat-input-area textarea::placeholder,
+[data-theme="light"] .chat-input-area textarea::placeholder,
+[data-theme="cyan"] .chat-input-area textarea::placeholder {
+    color: var(--text-muted);
+}
+
+[data-theme="pink"] .ai-action-dismiss:hover,
+[data-theme="light"] .ai-action-dismiss:hover,
+[data-theme="cyan"] .ai-action-dismiss:hover {
+    color: var(--text-white);
+    border-color: var(--text-muted);
+}
+
 @media (max-width: 768px) {
     .main-career { padding-top: 100px; padding-bottom: 16px; } /* navbar mobile cao 64px */
     .container { padding: 0 12px; }

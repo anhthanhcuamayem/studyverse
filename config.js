@@ -12,7 +12,9 @@ window.SV_CONFIG = {
         projects: 'studyverse_projects',
         schedule: 'studyverse_schedule_dashboard_data',
         lastProject: 'lastSelectedProject',
-        careerChat: 'studyverse_career_chat'   // lịch sử chat AI Career (giữ tối đa 100 tin nhắn)
+        careerChat: 'studyverse_career_chat',   // lịch sử chat AI Career (giữ tối đa 100 tin nhắn)
+        userProfile: 'studyverse_user_profile',
+        streak: 'studyverse_streak_data'
     },
 
     // trang thời khóa biểu (schedule/create.js)

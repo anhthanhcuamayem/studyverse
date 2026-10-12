@@ -56,7 +56,14 @@ function normalizeProject(project, index = 0) {
 // dữ liệu projects
 function loadProjects() {
     try {
-        const saved = JSON.parse(localStorage.getItem(PROJECTS_KEY));
+        let saved = JSON.parse(localStorage.getItem(PROJECTS_KEY));
+        if ((!Array.isArray(saved) || saved.length === 0) && PROJECTS_KEY !== BASE_PROJECTS_KEY) {
+            const guest = JSON.parse(localStorage.getItem(BASE_PROJECTS_KEY));
+            if (Array.isArray(guest) && guest.length > 0) {
+                saved = guest;
+                localStorage.setItem(PROJECTS_KEY, JSON.stringify(guest));
+            }
+        }
         return Array.isArray(saved) ? saved.map(normalizeProject).filter(project => project.name) : [];
     } catch {
         localStorage.removeItem(PROJECTS_KEY);

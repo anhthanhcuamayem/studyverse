@@ -25,6 +25,18 @@
     const accountEmail = document.getElementById('accountEmail');
     const accountAvatar = document.getElementById('accountAvatar');
     const signOutButton = document.getElementById('signOutButton');
+    const profileForm = document.getElementById('profileSettingsForm');
+    const profileDisplayNameInput = document.getElementById('profileDisplayName');
+    const profileAiCallingInput = document.getElementById('profileAiCalling');
+    const profileAiStyleInput = document.getElementById('profileAiStyle');
+    const profileDailyGoalInput = document.getElementById('profileDailyGoal');
+    const accountDisplayName = document.getElementById('accountDisplayName');
+    const streakCount = document.getElementById('streakCount');
+    const streakBestCount = document.getElementById('streakBestCount');
+    const tasksDoneCount = document.getElementById('tasksDoneCount');
+    const tasksTotalCount = document.getElementById('tasksTotalCount');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    const saveProfileBtnLabel = document.getElementById('saveProfileBtnLabel');
 
     const url = new URL(window.location.href);
     const validModes = ['login', 'register', 'forgot', 'recovery'];
@@ -160,13 +172,100 @@
         form.hidden = !uiReady || (Boolean(signedInUser) && !recoveryActive);
         if (!signedInUser || recoveryActive) return;
 
+        const localProfile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
+        const meta = (signedInUser && signedInUser.user_metadata) || {};
+        const displayName = meta.display_name || meta.full_name || localProfile.displayName || (signedInUser.email ? signedInUser.email.split('@')[0] : 'Studyverse');
+
         accountEmail.textContent = signedInUser.email || '';
-        accountAvatar.textContent = (signedInUser.email || 'S').trim().charAt(0).toUpperCase();
+        if (accountDisplayName) accountDisplayName.textContent = displayName;
+        accountAvatar.textContent = displayName.trim().charAt(0).toUpperCase();
+
+        if (profileDisplayNameInput) profileDisplayNameInput.value = displayName;
+        if (profileAiCallingInput) profileAiCallingInput.value = meta.ai_calling || localProfile.aiCalling || 'Bạn - Mình';
+        if (profileAiStyleInput) profileAiStyleInput.value = meta.ai_style || localProfile.aiStyle || 'Nhiệt tình & truyền cảm hứng';
+        if (profileDailyGoalInput) profileDailyGoalInput.value = meta.daily_goal || localProfile.dailyGoal || '';
+
+        const streak = typeof svGetStreak === 'function' ? svGetStreak() : { currentStreak: 1, bestStreak: 1 };
+        if (streakCount) streakCount.textContent = streak.currentStreak;
+        if (streakBestCount) streakBestCount.textContent = streak.bestStreak;
+
+        try {
+            const projectsKey = typeof svScopedKey === 'function' ? svScopedKey('studyverse_projects') : 'studyverse_projects';
+            const rawProjects = localStorage.getItem(projectsKey);
+            if (rawProjects) {
+                const projects = JSON.parse(rawProjects);
+                if (Array.isArray(projects)) {
+                    let totalTasks = 0;
+                    let doneTasks = 0;
+                    projects.forEach(p => {
+                        if (Array.isArray(p.tasks)) {
+                            totalTasks += p.tasks.length;
+                            doneTasks += p.tasks.filter(t => t.status === 'done' || t.completed).length;
+                        }
+                    });
+                    if (tasksDoneCount) tasksDoneCount.textContent = doneTasks;
+                    if (tasksTotalCount) tasksTotalCount.textContent = `/ ${totalTasks}`;
+                }
+            }
+        } catch (_) {}
+
         title.textContent = translate('account.accountReady', 'You are signed in');
         subtitle.textContent = translate('account.accountReadyCopy', 'Your Studyverse account is ready.');
         modeSwitchRow.hidden = true;
         divider.hidden = true;
         guestLink.hidden = true;
+    }
+
+    async function saveProfile(event) {
+        if (event) event.preventDefault();
+        if (!signedInUser) return;
+
+        const newName = profileDisplayNameInput ? profileDisplayNameInput.value.trim() : '';
+        const newCalling = profileAiCallingInput ? profileAiCallingInput.value : 'Bạn - Mình';
+        const newStyle = profileAiStyleInput ? profileAiStyleInput.value : 'Nhiệt tình & truyền cảm hứng';
+        const newGoal = profileDailyGoalInput ? profileDailyGoalInput.value.trim() : '';
+        const effectiveName = newName || (signedInUser.email ? signedInUser.email.split('@')[0] : 'Studyverse');
+
+        if (saveProfileBtn) {
+            saveProfileBtn.disabled = true;
+            if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.loading', 'Please wait…');
+        }
+
+        try {
+            if (typeof svSaveUserProfile === 'function') {
+                svSaveUserProfile({
+                    displayName: effectiveName,
+                    aiCalling: newCalling,
+                    aiStyle: newStyle,
+                    dailyGoal: newGoal
+                });
+            }
+
+            const client = await ensureSupabaseClient();
+            if (client) {
+                await client.auth.updateUser({
+                    data: {
+                        display_name: effectiveName,
+                        ai_calling: newCalling,
+                        ai_style: newStyle,
+                        daily_goal: newGoal
+                    }
+                });
+            }
+
+            if (accountDisplayName) accountDisplayName.textContent = effectiveName;
+            if (accountAvatar) accountAvatar.textContent = effectiveName.charAt(0).toUpperCase();
+
+            setNotice(translate('account.profileSaved', 'Profile and AI settings saved!'), 'success');
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            setNotice(showFriendlyError(error), 'error');
+        } finally {
+            if (saveProfileBtn) {
+                saveProfileBtn.disabled = false;
+                if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.saveProfile', 'Save Changes');
+            }
+        }
     }
 
     function setBusy(busy) {
@@ -261,9 +360,20 @@
                 result = await client.auth.signUp({
                     email,
                     password: passwordInput.value,
-                    options: { emailRedirectTo: `${window.location.origin}/account.html?confirmed=1` }
+                    options: {
+                        emailRedirectTo: `${window.location.origin}/account.html?confirmed=1`,
+                        data: {
+                            display_name: email.split('@')[0]
+                        }
+                    }
                 });
                 if (result.error) throw result.error;
+
+                // Nếu tính năng bảo vệ lộ email (Email Enumeration Protection) bật, Supabase trả về identities rỗng khi email đã có tài khoản
+                if (result.data && result.data.user && Array.isArray(result.data.user.identities) && result.data.user.identities.length === 0) {
+                    setNotice(translate('account.userExists', 'An account already exists for this email.'), 'error');
+                    return;
+                }
 
                 if (result.data.session) {
                     window.location.assign(getSafeNextUrl());
@@ -326,6 +436,7 @@
     }
 
     form.addEventListener('submit', submitAuth);
+    if (profileForm) profileForm.addEventListener('submit', saveProfile);
     modeSwitchButton.addEventListener('click', () => {
         clearPasswords();
         setMode(mode === 'login' ? 'register' : 'login');

@@ -61,13 +61,97 @@
                 <div class="account-notice" id="authNotice" role="status" aria-live="polite" hidden></div>
 
                 <div class="account-session" id="signedInPanel" hidden>
-                    <div class="account-avatar" id="accountAvatar">S</div>
-                    <div class="account-session-copy">
-                        <span data-i18n="account.signedInAs">Đang đăng nhập bằng</span>
-                        <strong id="accountEmail"></strong>
+                    <div class="account-profile-header">
+                        <div class="account-avatar" id="accountAvatar">S</div>
+                        <div class="account-session-copy">
+                            <h3 class="account-user-name" id="accountDisplayName">Học viên Studyverse</h3>
+                            <span class="account-user-email" id="accountEmail"></span>
+                        </div>
                     </div>
-                    <a class="account-primary account-continue" href="/todo/mylist.html"><span data-i18n="account.openApp">Mở Studyverse</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-                    <button class="account-quiet-button" id="signOutButton" type="button" data-i18n="account.signOut">Đăng xuất</button>
+
+                    <!-- Streak & Stats Widget -->
+                    <div class="account-stats-grid">
+                        <div class="account-stat-card streak-card">
+                            <div class="stat-icon-wrap"><i class="fa-solid fa-fire-flame-curved" aria-hidden="true"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="account.streakTitle">Chuỗi học tập</span>
+                                <div class="stat-value"><strong id="streakCount">1</strong> <small data-i18n="account.streakDays">ngày liên tục</small></div>
+                                <span class="stat-sub"><i class="fa-solid fa-trophy" aria-hidden="true"></i> <span data-i18n="account.streakBest">Kỷ lục</span>: <b id="streakBestCount">1</b></span>
+                            </div>
+                        </div>
+                        <div class="account-stat-card tasks-card">
+                            <div class="stat-icon-wrap"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="account.statsCompleted">Nhiệm vụ xong</span>
+                                <div class="stat-value"><strong id="tasksDoneCount">0</strong> <small id="tasksTotalCount">/ 0</small></div>
+                                <span class="stat-sub" data-i18n="account.streakTip">Giữ lửa mỗi ngày!</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile & AI Settings Form -->
+                    <form class="account-profile-form" id="profileSettingsForm">
+                        <div class="profile-section-title">
+                            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                            <span data-i18n="account.profileTitle">Hồ sơ & Tùy biến AI</span>
+                        </div>
+
+                        <div class="account-field">
+                            <label for="profileDisplayName" data-i18n="account.displayNameLabel">Tên hiển thị (AI sẽ gọi bạn bằng tên này)</label>
+                            <div class="account-input-wrap">
+                                <i class="fa-regular fa-user" aria-hidden="true"></i>
+                                <input id="profileDisplayName" name="displayName" type="text" maxlength="40" placeholder="Nhập tên của bạn..." data-i18n-placeholder="account.displayNamePh">
+                            </div>
+                        </div>
+
+                        <div class="account-field-grid">
+                            <div class="account-field">
+                                <label for="profileAiCalling" data-i18n="account.aiCallingLabel">Cách xưng hô với AI</label>
+                                <div class="account-select-wrap">
+                                    <i class="fa-regular fa-comments" aria-hidden="true"></i>
+                                    <select id="profileAiCalling" name="aiCalling">
+                                        <option value="Bạn - Mình" data-i18n="account.aiCallingOpt1">Bạn - Mình (Thân thiện, lịch thiệp)</option>
+                                        <option value="Cậu - Tớ" data-i18n="account.aiCallingOpt2">Cậu - Tớ (Gần gũi, bạn bè)</option>
+                                        <option value="Em - Anh/Chị" data-i18n="account.aiCallingOpt3">Em - Anh/Chị (Lễ phép, học hỏi)</option>
+                                        <option value="Tôi - Bạn" data-i18n="account.aiCallingOpt4">Tôi - Bạn (Trang trọng, chuyên nghiệp)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="account-field">
+                                <label for="profileAiStyle" data-i18n="account.aiStyleLabel">Phong cách trả lời của AI</label>
+                                <div class="account-select-wrap">
+                                    <i class="fa-solid fa-brain" aria-hidden="true"></i>
+                                    <select id="profileAiStyle" name="aiStyle">
+                                        <option value="Nhiệt tình & truyền cảm hứng" data-i18n="account.aiStyleOpt1">Nhiệt tình & truyền cảm hứng 🔥</option>
+                                        <option value="Ngắn gọn, súc tích & thẳng thắn" data-i18n="account.aiStyleOpt2">Ngắn gọn, súc tích & thẳng thắn 🎯</option>
+                                        <option value="Tỉ mỉ & hướng dẫn chi tiết" data-i18n="account.aiStyleOpt3">Tỉ mỉ & hướng dẫn chi tiết 📚</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="account-field">
+                            <label for="profileDailyGoal" data-i18n="account.dailyGoalLabel">Mục tiêu học tập hàng ngày</label>
+                            <div class="account-input-wrap">
+                                <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
+                                <input id="profileDailyGoal" name="dailyGoal" type="text" maxlength="60" placeholder="Ví dụ: 3 việc / ngày, 45 phút học tập..." data-i18n-placeholder="account.dailyGoalPh">
+                            </div>
+                        </div>
+
+                        <button class="account-secondary profile-save-btn" id="saveProfileBtn" type="submit">
+                            <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i>
+                            <span id="saveProfileBtnLabel" data-i18n="account.saveProfile">Lưu thay đổi</span>
+                        </button>
+                    </form>
+
+                    <div class="account-actions-row">
+                        <a class="account-primary account-continue" href="/todo/mylist.html">
+                            <span data-i18n="account.openApp">Mở Studyverse</span>
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                        <button class="account-quiet-button" id="signOutButton" type="button" data-i18n="account.signOut">Đăng xuất</button>
+                    </div>
                 </div>
 
                 <form class="account-form" id="authForm" novalidate hidden>
@@ -118,6 +202,7 @@
         <footer class="account-footer"><span>© <span id="currentYear"></span> Studyverse</span><span><i class="fa-solid fa-lock" aria-hidden="true"></i> <span data-i18n="account.footerSecure">Kết nối bảo mật bằng Supabase Auth</span></span></footer>
     </div>
 
+    <script src="/icons.js"></script>
     <script src="/shared.js?v=20261003-2"></script>
     <script src="/auth.js?v=20261003-2"></script>
 </body>
