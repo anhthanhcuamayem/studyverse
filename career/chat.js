@@ -90,8 +90,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     let conversationHistory = []; // Lưu lịch sử chat
     let isSending = false;
 
-    // Đọc lời chào mỗi lần dùng (không cache) để đổi ngôn ngữ là đổi ngay
-    const greetingText = () => svT('career.greeting');
+    // Đọc lời chào mỗi lần dùng (không cache) để đổi ngôn ngữ và thông tin người dùng là đổi ngay
+    const greetingText = () => {
+        const prof = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+        const name = (prof && prof.displayName) ? prof.displayName.trim() : '';
+        const streakData = typeof svGetStreak === 'function' ? svGetStreak() : null;
+        const streak = streakData ? streakData.currentStreak : 1;
+        const isEn = typeof svLang === 'function' && svLang() === 'en';
+        if (name) {
+            return isEn
+                ? `Hi ${name}! I'm kumalala, your AI Study & Career Advisor. I'm connected to your Studyverse space (streak: ${streak} days 🔥). Tell me what you'd like to explore, study, or plan today!`
+                : `Chào ${name}! Mình là kumalala của Studyverse, trợ lý học tập & hướng nghiệp của bạn. Mình đã kết nối với dữ liệu học tập của bạn (chuỗi: ${streak} ngày 🔥). Hôm nay bạn muốn tìm hiểu sở thích, ngành học hay giải quyết công việc nào?`;
+        }
+        return svT('career.greeting');
+    };
 
     // ngữ cảnh người dùng đọc từ LocalStorage do Todo & Schedule lưu
     function collectContext() {
@@ -582,6 +594,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.setAttribute('aria-label', svT('career.copy'));
             btn.title = svT('career.copy');
         });
+        if (!isSending && conversationHistory.length === 0) {
+            chatMessages.innerHTML = '';
+            addMessage(greetingText(), false);
+        }
+    });
+
+    // Thay đổi hồ sơ / tên hiển thị → cập nhật lời chào nếu chưa bắt đầu trò chuyện
+    document.addEventListener('sv:profilechange', () => {
         if (!isSending && conversationHistory.length === 0) {
             chatMessages.innerHTML = '';
             addMessage(greetingText(), false);

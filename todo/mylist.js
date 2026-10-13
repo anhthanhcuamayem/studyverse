@@ -793,9 +793,13 @@ document.addEventListener('click', async function (event) {
                 const wasDone = task.status === 'done' || task.completed;
                 task.status = wasDone ? 'todo' : 'done';
                 task.completed = task.status === 'done';
-                if (!wasDone && task.repeat !== 'none') {
-                    const nextTask = makeRecurringTask(task);
-                    if (nextTask) savedProjects[projectIndex].tasks.push(nextTask);
+                if (!wasDone) {
+                    if (typeof svPlayCompletionSound === 'function') svPlayCompletionSound();
+                    if (typeof svRecordStreakActivity === 'function') svRecordStreakActivity();
+                    if (task.repeat !== 'none') {
+                        const nextTask = makeRecurringTask(task);
+                        if (nextTask) savedProjects[projectIndex].tasks.push(nextTask);
+                    }
                 }
                 saveProjects(savedProjects);
                 renderTasks(currentProjectName);

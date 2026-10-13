@@ -136,6 +136,15 @@
                 <path d="M14 17.5a6.5 6.5 0 0 0 1.2.1c.9 0 1.8-.2 2.6-.5L21 18.5l-.8-2.6a5.5 5.5 0 0 0 1.3-3.6c0-1.8-1-3.4-2.5-4.4" stroke="url(#svg-grad-cyan)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             `
         },
+        'layer-group': {
+            gradient: 'primary',
+            glow: true,
+            body: `
+                <path d="M12 2.5L2 7.5l10 5 10-5-10-5z" fill="url(#svg-grad-primary)" fill-opacity="0.25" stroke="url(#svg-grad-primary)" stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M2 12l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M2 16.5l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            `
+        },
 
         // --- AI & Gamification Core ---
         'robot': {
@@ -525,7 +534,8 @@
         'fa-download': 'download',
         'fa-file-code': 'file-code',
         'fa-chevron-up': 'chevron-up',
-        'fa-chevron-down': 'chevron-down'
+        'fa-chevron-down': 'chevron-down',
+        'fa-layer-group': 'layer-group'
     };
 
     function resolveIconName(rawName) {

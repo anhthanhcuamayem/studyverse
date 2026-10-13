@@ -44,6 +44,12 @@ def _load_env_file(path='.env'):
 _load_env_file()
 
 from schedule.schedule_utils import create_timetable_with_preferences
+from flashcard.flashcard_utils import (
+    extract_file_content,
+    generate_flashcards_heuristic,
+    build_ai_prompt,
+    parse_ai_cards_response,
+)
 #python -m http.server 8000
 #.venv/bin/python app.py
 # Studyverse gọi AI qua FreeLLMAPI (Freellmapi), không dùng OmniRoute nữa.
@@ -239,7 +245,7 @@ def probe_provider(name, timeout=8.0):
 
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 32 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_FILES = {
     'index.html', 'config.js', 'theme-init.js', 'config-preview.html', 'shared.js', 'shared.css', 'style.css', 'pockup.png',
@@ -248,7 +254,17 @@ PUBLIC_FILES = {
     'career/chat.html', 'career/chat.js', 'career/chat.css',
     'schedule/create.html', 'schedule/create.js', 'schedule/create.css',
     'todo/mylist.html', 'todo/mylist.js', 'todo/mylist.css',
+    'flashcard/flashcard.html', 'flashcard/flashcard.js', 'flashcard/flashcard.css',
 }
+
+ROUTE_ALIASES = {
+    'account': 'account.html',
+    'career': 'career/chat.html',
+    'schedule': 'schedule/create.html',
+    'todo': 'todo/mylist.html',
+    'flashcard': 'flashcard/flashcard.html',
+}
+
 
 
 
@@ -413,6 +429,10 @@ def public_config():
 
 @app.route('/<path:path>')
 def serve_static(path):
+    # Hỗ trợ URL ngắn (ví dụ /flashcard, /todo, /schedule, /career, /account)
+    norm = path.strip('/')
+    if norm in ROUTE_ALIASES:
+        return send_from_directory(BASE_DIR, ROUTE_ALIASES[norm])
     # Chỉ public các static assets cần thiết, không lộ source hay dữ liệu người dùng.
     if path not in PUBLIC_FILES:
         abort(404)
@@ -566,6 +586,7 @@ def _build_career_messages(user_message, history, user_context, schedule_ctx, us
         + "\n\n".join(context_sections)
         + "\n\nQUY TẮC:\n"
         "- Nếu người dùng hỏi về công việc, tiến độ, môn học, deadline, lịch rảnh, kế hoạch học tập, hoặc hỏi về khả năng đọc dữ liệu của AI: BẮT BUỘC xác nhận bạn đọc được và sử dụng chính xác thông tin trên để giải đáp cụ thể theo từng dự án/môn học.\n"
+        "- Nếu người dùng hỏi về tên họ, danh tính, thông tin hồ sơ, sở thích, mục tiêu học tập hoặc chuỗi ngày học tập (streak): BẮT BUỘC nhận diện và trả lời chính xác theo THÔNG TIN HỒ SƠ & TÙY CHỌN CỦA NGƯỜI DÙNG ở trên.\n"
         "- Nếu người dùng yêu cầu lập kế hoạch tuần, hãy đối chiếu các công việc còn dở trong Todo với các khung giờ trống trong Thời khóa biểu để gợi ý khung thời gian học tối ưu."
     )
 
@@ -586,6 +607,12 @@ def _build_career_messages(user_message, history, user_context, schedule_ctx, us
         daily_goal = user_profile.get('dailyGoal') or user_profile.get('daily_goal')
         if daily_goal and isinstance(daily_goal, str) and daily_goal.strip():
             profile_lines.append(f"- Mục tiêu học tập hàng ngày: {daily_goal.strip()}.")
+        interests = user_profile.get('interests') or user_profile.get('field_of_study') or user_profile.get('major')
+        if interests and isinstance(interests, str) and interests.strip():
+            profile_lines.append(f"- Sở thích / Lĩnh vực quan tâm: {interests.strip()} (Hãy liên hệ và gợi ý định hướng nghề nghiệp, tài liệu và phương pháp học gắn liền với lĩnh vực này).")
+        ai_focus = user_profile.get('aiFocus') or user_profile.get('ai_focus')
+        if ai_focus and isinstance(ai_focus, str) and ai_focus.strip():
+            profile_lines.append(f"- Trọng tâm hỗ trợ mong muốn: {ai_focus.strip()}.")
 
         if profile_lines:
             system += "\n\n## THÔNG TIN HỒ SƠ & TÙY CHỌN CỦA NGƯỜI DÙNG:\n" + "\n".join(profile_lines)
@@ -705,8 +732,18 @@ def suggest_study():
             return jsonify({'error': 'Vui lòng nhập chủ đề cần tư vấn'}), 400
         
         # Gọi AI (tự nhận diện provider nếu không chỉ định)
+        system_content = "Bạn là một người hướng dẫn học tập, hãy đưa ra các phương pháp học hiệu quả cho chủ đề được hỏi."
+        user_profile = data.get('user_profile')
+        if isinstance(user_profile, dict):
+            name = user_profile.get('displayName') or user_profile.get('display_name')
+            if name and isinstance(name, str) and name.strip():
+                system_content += f" Người học tên là {name.strip()}."
+            interests = user_profile.get('interests')
+            if interests and isinstance(interests, str) and interests.strip():
+                system_content += f" Lĩnh vực quan tâm: {interests.strip()}."
+
         ai_suggestion, error = request_ai([
-            {"role": "system", "content": "Bạn là một người hướng dẫn học tập, hãy đưa ra các phương pháp học hiệu quả cho chủ đề được hỏi."},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": f"Hãy gợi ý cách học tốt môn/chủ đề: {topic.strip()}"}
         ], AI_MAX_TOKENS, provider=provider)
         if error:
@@ -932,6 +969,9 @@ def ai_context():
         'projects': _summarize_projects(data.get('projects')),
         'schedule': _summarize_schedule(data.get('schedule')),
     }
+    user_profile = data.get('user_profile')
+    if isinstance(user_profile, dict):
+        context['user_profile'] = user_profile
     return jsonify(context)
 
 
@@ -1419,6 +1459,116 @@ def ai_actions_preview():
         payload.get('actions'), data.get('projects'), data.get('schedule')
     )
     return jsonify({'actions': actions, 'summary': summary, 'problems': problems})
+
+
+# ==================== PHẦN FLASHCARD ====================
+@app.route('/api/flashcards/parse-file', methods=['POST'])
+def flashcard_parse_file():
+    """Nhận tệp tin tải lên (multipart/form-data) hoặc chuỗi JSON,
+    trích xuất nội dung văn bản và flashcard có cấu trúc sẵn (nếu có).
+    Hỗ trợ: .txt, .md, .json, .csv, .tsv, .docx, .pdf.
+    """
+    file_storage = request.files.get('file')
+    if file_storage:
+        filename = file_storage.filename or 'document.txt'
+        file_bytes = file_storage.read()
+        if not file_bytes:
+            return jsonify({'error': 'Tệp tải lên rỗng.'}), 400
+    else:
+        # Hỗ trợ nhận qua json body: { filename, content / text }
+        data, error = get_json_body()
+        if error:
+            return error
+        filename = data.get('filename') or 'pasted_text.txt'
+        content = data.get('content') or data.get('text') or ''
+        if not content:
+            return jsonify({'error': 'Vui lòng cung cấp tệp tin hoặc nội dung văn bản.'}), 400
+        file_bytes = content.encode('utf-8')
+
+    try:
+        result = extract_file_content(file_bytes, filename)
+        return jsonify({
+            'ok': True,
+            'filename': result['filename'],
+            'extension': result['extension'],
+            'text': result['text'],
+            'cards': result['cards'],
+            'has_prestructured_cards': result['has_prestructured_cards'],
+            'char_count': result['char_count'],
+        })
+    except ValueError as val_err:
+        return jsonify({'error': str(val_err)}), 400
+    except Exception as exc:
+        app.logger.warning('Lỗi xử lý file flashcard (%s): %s', filename, exc)
+        return jsonify({'error': f'Không thể phân tích tệp tin: {str(exc)}'}), 500
+
+
+@app.route('/api/flashcards/generate', methods=['POST'])
+def flashcard_generate():
+    """Phân tích nội dung văn bản để tạo danh sách flashcard.
+    Hỗ trợ chế độ 'ai' (với fallback tự động sang heuristic khi AI không khả dụng)
+    hoặc chế độ 'heuristic' (chạy trực tiếp offline).
+    Body JSON: { text, num_cards?, style?, mode?, provider? }
+    """
+    data, error = get_json_body()
+    if error:
+        return error
+
+    text = data.get('text')
+    if not isinstance(text, str) or not text.strip():
+        return jsonify({'error': 'Nội dung văn bản không được để trống.'}), 400
+
+    if len(text) > 100_000:
+        return jsonify({'error': 'Văn bản quá dài (tối đa 100,000 ký tự).'}), 400
+
+    raw_num = data.get('num_cards', 10)
+    try:
+        num_cards = max(1, min(int(raw_num), 50))
+    except (TypeError, ValueError):
+        num_cards = 10
+
+    style = data.get('style') or 'concept'
+    if style not in ('concept', 'qa', 'quiz'):
+        style = 'concept'
+
+    mode = data.get('mode') or 'ai'
+    provider = data.get('provider')
+
+    # Nếu chọn AI:
+    if mode == 'ai':
+        available = detect_available_providers()
+        if available or provider:
+            messages = build_ai_prompt(text, num_cards=num_cards, style=style)
+            reply, ai_error = request_ai(messages, max_tokens=1800, provider=provider)
+            if not ai_error and reply:
+                cards = parse_ai_cards_response(reply)
+                if cards:
+                    return jsonify({
+                        'ok': True,
+                        'source': 'ai',
+                        'count': len(cards),
+                        'cards': cards
+                    })
+
+        # Fallback tự động sang Heuristic nếu AI thất bại / không khả dụng
+        heuristic_cards = generate_flashcards_heuristic(text, num_cards=num_cards)
+        return jsonify({
+            'ok': True,
+            'source': 'heuristic',
+            'fallback': True,
+            'notice': 'Trợ lý AI tạm thời không phản hồi, đã tự động phân tích theo thuật toán nội bộ.',
+            'count': len(heuristic_cards),
+            'cards': heuristic_cards
+        })
+
+    # Chế độ Heuristic:
+    cards = generate_flashcards_heuristic(text, num_cards=num_cards)
+    return jsonify({
+        'ok': True,
+        'source': 'heuristic',
+        'count': len(cards),
+        'cards': cards
+    })
 
 
 # khởi chạy app

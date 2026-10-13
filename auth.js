@@ -1,8 +1,9 @@
-// Studyverse account page: Supabase email/password auth and account recovery.
+// Studyverse account page: Supabase email/password auth, profile personalization, streak & configs.
 (function initAccountPage() {
     const form = document.getElementById('authForm');
     if (!form) return;
 
+    // Elements cho form xác thực Supabase
     const emailInput = document.getElementById('authEmail');
     const emailField = document.getElementById('emailField');
     const passwordInput = document.getElementById('authPassword');
@@ -21,20 +22,49 @@
     const modeSwitchButton = document.getElementById('modeSwitchButton');
     const divider = document.getElementById('accountDivider');
     const guestLink = document.getElementById('guestLink');
+
+    // Tabs & Panels
+    const accountTabs = document.getElementById('accountTabs');
+    const tabProfileBtn = document.getElementById('tabProfileBtn');
+    const tabAuthBtn = document.getElementById('tabAuthBtn');
+    const tabAuthLabel = document.getElementById('tabAuthLabel');
     const signedInPanel = document.getElementById('signedInPanel');
+
+    // Profile & Header elements
     const accountEmail = document.getElementById('accountEmail');
     const accountAvatar = document.getElementById('accountAvatar');
-    const signOutButton = document.getElementById('signOutButton');
-    const profileForm = document.getElementById('profileSettingsForm');
-    const profileDisplayNameInput = document.getElementById('profileDisplayName');
-    const profileAiCallingInput = document.getElementById('profileAiCalling');
-    const profileAiStyleInput = document.getElementById('profileAiStyle');
-    const profileDailyGoalInput = document.getElementById('profileDailyGoal');
     const accountDisplayName = document.getElementById('accountDisplayName');
+    const accountModePill = document.getElementById('accountModePill');
+    const accountModePillLabel = document.getElementById('accountModePillLabel');
+    const signOutButton = document.getElementById('signOutButton');
+    const cloudNudgeBanner = document.getElementById('cloudNudgeBanner');
+    const nudgeLoginBtn = document.getElementById('nudgeLoginBtn');
+
+    // Streak & Stats elements
+    const streakFlameWrap = document.getElementById('streakFlameWrap');
     const streakCount = document.getElementById('streakCount');
     const streakBestCount = document.getElementById('streakBestCount');
+    const streakLevelPill = document.getElementById('streakLevelPill');
     const tasksDoneCount = document.getElementById('tasksDoneCount');
     const tasksTotalCount = document.getElementById('tasksTotalCount');
+    const weekDaysContainer = document.getElementById('weekDaysContainer');
+    const badgesGrid = document.getElementById('badgesGrid');
+
+    // Form settings elements
+    const profileForm = document.getElementById('profileSettingsForm');
+    const profileDisplayNameInput = document.getElementById('profileDisplayName');
+    const profileDailyGoalInput = document.getElementById('profileDailyGoal');
+    const profileInterestsInput = document.getElementById('profileInterests');
+    const profileAiCallingInput = document.getElementById('profileAiCalling');
+    const profileAiStyleInput = document.getElementById('profileAiStyle');
+    const profileAiFocusInput = document.getElementById('profileAiFocus');
+    const profileNotifyStreakInput = document.getElementById('profileNotifyStreak');
+    const profileNotifyDeadlineInput = document.getElementById('profileNotifyDeadline');
+    const profileSoundEnabledInput = document.getElementById('profileSoundEnabled');
+    const accountThemeSwatches = document.getElementById('accountThemeSwatches');
+    const accountLangToggle = document.getElementById('accountLangToggle');
+    const goalChips = document.getElementById('goalChips');
+    const interestChips = document.getElementById('interestChips');
     const saveProfileBtn = document.getElementById('saveProfileBtn');
     const saveProfileBtnLabel = document.getElementById('saveProfileBtnLabel');
 
@@ -44,12 +74,13 @@
     const recoveryFromHash = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
     if (recoveryFromHash) mode = 'recovery';
 
+    // Nếu người dùng truy cập với ?mode=... thì hiển thị tab auth, còn mặc định hiển thị hồ sơ & cài đặt
+    let activeTab = (url.searchParams.has('mode') || recoveryFromHash) ? 'auth' : 'profile';
+
     let supabaseClient = null;
     let clientPromise = null;
     let signedInUser = null;
     let isBusy = false;
-    // Chỉ hiện form sau khi đã xác định được trạng thái đăng nhập (tránh flash form
-    // đăng nhập với người dùng đã đăng nhập trong lúc chờ getSession/CDN).
     let uiReady = false;
 
     document.getElementById('currentYear').textContent = String(new Date().getFullYear());
@@ -64,12 +95,12 @@
 
     function showFriendlyError(error) {
         const message = String(error && error.message ? error.message : '').toLowerCase();
-        if (message.includes('invalid login credentials')) return translate('account.invalidCredentials', 'Email or password is incorrect.');
-        if (message.includes('email not confirmed')) return translate('account.emailNotConfirmed', 'Confirm your email before signing in.');
-        if (message.includes('session missing') || message.includes('auth session')) return translate('account.recoveryLinkInvalid', 'This reset link is invalid or expired.');
-        if (message.includes('user already registered') || message.includes('already been registered')) return translate('account.userExists', 'An account already exists for this email.');
-        if (message.includes('password') && (message.includes('least') || message.includes('characters'))) return translate('account.passwordTooShort', 'Password must be at least 8 characters.');
-        return error && error.message ? error.message : translate('auth.genericError', 'Something went wrong. Please try again.');
+        if (message.includes('invalid login credentials')) return translate('account.invalidCredentials', 'Email hoặc mật khẩu chưa chính xác.');
+        if (message.includes('email not confirmed')) return translate('account.emailNotConfirmed', 'Hãy xác nhận email trước khi đăng nhập.');
+        if (message.includes('session missing') || message.includes('auth session')) return translate('account.recoveryLinkInvalid', 'Liên kết đặt lại không hợp lệ hoặc đã hết hạn.');
+        if (message.includes('user already registered') || message.includes('already been registered')) return translate('account.userExists', 'Email này đã có tài khoản. Hãy đăng nhập.');
+        if (message.includes('password') && (message.includes('least') || message.includes('characters'))) return translate('account.passwordTooShort', 'Mật khẩu cần có ít nhất 8 ký tự.');
+        return error && error.message ? error.message : translate('auth.genericError', 'Không thể thực hiện lúc này. Vui lòng thử lại.');
     }
 
     function clearPasswords() {
@@ -91,6 +122,33 @@
         });
     }
 
+    // Chuyển đổi giữa 2 tab: Profile & Settings vs Cloud Auth
+    function switchTab(targetTab) {
+        activeTab = targetTab;
+        if (tabProfileBtn && tabAuthBtn) {
+            tabProfileBtn.classList.toggle('active', activeTab === 'profile');
+            tabProfileBtn.setAttribute('aria-selected', String(activeTab === 'profile'));
+            tabAuthBtn.classList.toggle('active', activeTab === 'auth');
+            tabAuthBtn.setAttribute('aria-selected', String(activeTab === 'auth'));
+        }
+
+        if (activeTab === 'profile') {
+            form.hidden = true;
+            modeSwitchRow.hidden = true;
+            divider.hidden = true;
+            guestLink.hidden = true;
+            signedInPanel.hidden = false;
+            renderProfileView(signedInUser);
+        } else {
+            signedInPanel.hidden = true;
+            form.hidden = false;
+            modeSwitchRow.hidden = false;
+            divider.hidden = mode === 'forgot' || mode === 'recovery';
+            guestLink.hidden = false;
+            setMode(mode, { keepNotice: true });
+        }
+    }
+
     function setMode(nextMode, { keepNotice = false } = {}) {
         mode = validModes.includes(nextMode) ? nextMode : 'login';
         if (!keepNotice) setNotice('');
@@ -100,10 +158,10 @@
         const isForgot = mode === 'forgot';
         const isRecovery = mode === 'recovery';
         const copy = {
-            login: ['account.loginTitle', 'Welcome back', 'account.loginSubtitle', 'Sign in to continue your learning journey.'],
-            register: ['account.registerTitle', 'Create your account', 'account.registerSubtitle', 'Start organizing your study your way.'],
-            forgot: ['account.forgotTitle', 'Reset your password', 'account.forgotSubtitle', 'Enter your email and we’ll send you a password reset link.'],
-            recovery: ['account.recoveryTitle', 'Create a new password', 'account.recoverySubtitle', 'Choose a new password for your account.']
+            login: ['account.loginTitle', 'Chào mừng trở lại', 'account.loginSubtitle', 'Đăng nhập để tiếp tục hành trình học tập.'],
+            register: ['account.registerTitle', 'Tạo tài khoản', 'account.registerSubtitle', 'Bắt đầu sắp xếp việc học theo cách của bạn.'],
+            forgot: ['account.forgotTitle', 'Đặt lại mật khẩu', 'account.forgotSubtitle', 'Nhập email, chúng tôi sẽ gửi cho bạn đường dẫn đặt lại mật khẩu.'],
+            recovery: ['account.recoveryTitle', 'Tạo mật khẩu mới', 'account.recoverySubtitle', 'Chọn một mật khẩu mới cho tài khoản của bạn.']
         }[mode];
 
         title.textContent = translate(copy[0], copy[1]);
@@ -127,71 +185,242 @@
         confirmPasswordInput.autocomplete = 'new-password';
         emailInput.placeholder = translate('account.emailPlaceholder', 'you@example.com');
         passwordInput.placeholder = isLogin
-            ? translate('account.passwordPlaceholderLogin', 'Your password')
-            : translate('account.passwordPlaceholder', 'At least 8 characters');
-        confirmPasswordInput.placeholder = translate('account.confirmPlaceholder', 'Enter your password again');
-        // Hint mật khẩu theo mode: đăng nhập không yêu cầu độ dài tối thiểu.
+            ? translate('account.passwordPlaceholderLogin', 'Mật khẩu của bạn')
+            : translate('account.passwordPlaceholder', 'Tối thiểu 8 ký tự');
+        confirmPasswordInput.placeholder = translate('account.confirmPlaceholder', 'Nhập lại mật khẩu');
         passwordHint.textContent = isLogin
-            ? translate('account.passwordHintLogin', 'Enter your password to sign in.')
-            : translate('account.passwordHint', 'Use at least 8 characters.');
+            ? translate('account.passwordHintLogin', 'Nhập mật khẩu của bạn để đăng nhập.')
+            : translate('account.passwordHint', 'Dùng ít nhất 8 ký tự.');
         forgotButton.hidden = !isLogin;
-        modeSwitchRow.hidden = !uiReady;
-        divider.hidden = !uiReady || isForgot || isRecovery;
-        guestLink.hidden = !uiReady;
+        modeSwitchRow.hidden = !uiReady || (activeTab === 'profile');
+        divider.hidden = !uiReady || isForgot || isRecovery || (activeTab === 'profile');
+        guestLink.hidden = !uiReady || (activeTab === 'profile');
 
         if (isRegister) {
-            modeSwitchPrompt.textContent = translate('account.loginPrompt', 'Already have an account?');
-            modeSwitchButton.textContent = translate('account.switchToLogin', 'Sign in');
+            modeSwitchPrompt.textContent = translate('account.loginPrompt', 'Đã có tài khoản?');
+            modeSwitchButton.textContent = translate('account.switchToLogin', 'Đăng nhập');
         } else if (isForgot) {
-            modeSwitchPrompt.textContent = translate('account.loginPrompt', 'Already have an account?');
-            modeSwitchButton.textContent = translate('account.switchToLogin', 'Sign in');
+            modeSwitchPrompt.textContent = translate('account.loginPrompt', 'Đã có tài khoản?');
+            modeSwitchButton.textContent = translate('account.switchToLogin', 'Đăng nhập');
         } else if (isRecovery) {
-            modeSwitchPrompt.textContent = translate('account.recoveryHelp', 'Having trouble with the reset link?');
-            modeSwitchButton.textContent = translate('account.recoveryBack', 'Back to sign in');
+            modeSwitchPrompt.textContent = translate('account.recoveryHelp', 'Không nhận được email?');
+            modeSwitchButton.textContent = translate('account.recoveryBack', 'Quay lại đăng nhập');
         } else {
-            modeSwitchPrompt.textContent = translate('account.registerPrompt', 'New to Studyverse?');
-            modeSwitchButton.textContent = translate('account.switchToRegister', 'Create one');
+            modeSwitchPrompt.textContent = translate('account.registerPrompt', 'Chưa có tài khoản?');
+            modeSwitchButton.textContent = translate('account.switchToRegister', 'Đăng ký');
         }
-
-        form.hidden = !uiReady || (Boolean(signedInUser) && !isRecovery);
-        signedInPanel.hidden = !signedInUser || isRecovery;
-        if (signedInUser && !isRecovery) renderSignedIn(signedInUser);
     }
 
-    // Hiện form sau khi trạng thái đăng nhập đã được xác định (có session hoặc lỗi cấu hình).
+    // Hiện giao diện sau khi khởi tạo
     function revealAuthUI() {
         if (uiReady) return;
         uiReady = true;
-        setMode(mode, { keepNotice: true });
+        switchTab(activeTab);
     }
 
-    function renderSignedIn(user) {
+    // Render nhịp học 7 ngày trong tuần
+    function renderWeekActivity(streakData) {
+        if (!weekDaysContainer) return;
+        weekDaysContainer.innerHTML = '';
+
+        const isEn = typeof svLang === 'function' && svLang() === 'en';
+        const daysOfWeek = isEn ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+        const today = new Date();
+        const currentDayIndex = (today.getDay() + 6) % 7; // Thứ 2 = 0, CN = 6
+        const activeDatesSet = new Set(streakData.activeDates || []);
+
+        const activeLabel = isEn ? 'Studied' : 'Đã học tập';
+        const todayLabel = isEn ? 'Today' : 'Hôm nay';
+        const restLabel = isEn ? 'Rest day' : 'Nghỉ ngơi';
+
+        // Dựng 7 ngày của tuần hiện tại
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - (currentDayIndex - i));
+            const dateStr = typeof svGetLocalDateStr === 'function' ? svGetLocalDateStr(d) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+            const isToday = i === currentDayIndex;
+            const isActive = activeDatesSet.has(dateStr);
+
+            const dayDiv = document.createElement('div');
+            dayDiv.className = `strip-day ${isActive ? 'active' : ''} ${isToday ? 'today' : ''}`;
+            dayDiv.innerHTML = `
+                <span class="strip-day-name">${daysOfWeek[i]}</span>
+                <span class="strip-day-dot">
+                    <i class="fa-solid ${isActive ? 'fa-fire-flame-curved' : 'fa-circle'}"></i>
+                </span>
+            `;
+            dayDiv.title = `${dateStr}: ${isActive ? activeLabel : (isToday ? todayLabel : restLabel)}`;
+            weekDaysContainer.appendChild(dayDiv);
+        }
+    }
+
+    // Render huy hiệu thành tích
+    function renderBadges(streakData) {
+        if (!badgesGrid || typeof svGetStreakBadges !== 'function') return;
+        badgesGrid.innerHTML = '';
+        const badges = svGetStreakBadges(streakData.bestStreak);
+
+        badges.forEach(b => {
+            const card = document.createElement('div');
+            card.className = `badge-card ${b.unlocked ? 'unlocked' : 'locked'}`;
+
+            const title = translate(b.titleKey, b.titleKey);
+            const desc = translate(b.descKey, b.descKey);
+            const statusLabel = b.unlocked
+                ? translate('account.badgeUnlocked', 'Đã mở khóa 🎉')
+                : (translate('account.badgeRemaining', 'còn {n} ngày').replace('{n}', b.remaining));
+
+            card.innerHTML = `
+                <div class="badge-icon-box" style="${b.unlocked ? `color: ${b.color}; background: ${b.color}20;` : ''}">
+                    <i class="fa-solid ${b.icon}"></i>
+                </div>
+                <strong class="badge-name">${escapeHtml(title)}</strong>
+                <span class="badge-desc">${escapeHtml(desc)}</span>
+                <span class="badge-status-tag"><i class="fa-solid ${b.unlocked ? 'fa-check' : 'fa-lock'}"></i> ${escapeHtml(statusLabel)}</span>
+            `;
+            badgesGrid.appendChild(card);
+        });
+    }
+
+    // Render Theme Swatches
+    function renderThemeSwatches() {
+        if (!accountThemeSwatches) return;
+        accountThemeSwatches.innerHTML = '';
+        const themes = (window.SV_CONFIG && window.SV_CONFIG.themes) || ['midnight', 'ocean', 'cyan', 'sunset', 'royal', 'forest', 'light', 'pink'];
+        const currentTheme = typeof svTheme === 'function' ? svTheme() : 'midnight';
+
+        themes.forEach(t => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `account-swatch-btn sv-sw-${t} ${t === currentTheme ? 'active' : ''}`;
+            btn.dataset.theme = t;
+            btn.title = translate(`theme.${t}`, t);
+            btn.setAttribute('aria-label', translate(`theme.${t}`, t));
+            btn.addEventListener('click', () => {
+                if (typeof svSaveUserProfile === 'function') {
+                    svSaveUserProfile({ theme: t });
+                }
+                accountThemeSwatches.querySelectorAll('.account-swatch-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+            accountThemeSwatches.appendChild(btn);
+        });
+    }
+
+    // Render Language Switcher
+    function renderLangButtons() {
+        if (!accountLangToggle) return;
+        const currentLang = typeof svLang === 'function' ? svLang() : 'vi';
+        accountLangToggle.querySelectorAll('.lang-pill').forEach(btn => {
+            const lang = btn.dataset.lang;
+            btn.classList.toggle('active', lang === currentLang);
+            btn.onclick = () => {
+                if (typeof svSaveUserProfile === 'function') {
+                    svSaveUserProfile({ lang: lang });
+                }
+            };
+        });
+    }
+
+    // Hiển thị Hồ sơ & Cài đặt (cả người dùng đã đăng nhập hoặc khách)
+    function renderProfileView(user = null) {
         signedInUser = user || null;
         const recoveryActive = mode === 'recovery';
-        signedInPanel.hidden = !signedInUser || recoveryActive;
-        form.hidden = !uiReady || (Boolean(signedInUser) && !recoveryActive);
-        if (!signedInUser || recoveryActive) return;
+
+        if (recoveryActive) {
+            switchTab('auth');
+            return;
+        }
 
         const localProfile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
         const meta = (signedInUser && signedInUser.user_metadata) || {};
-        const displayName = meta.display_name || meta.full_name || localProfile.displayName || (signedInUser.email ? signedInUser.email.split('@')[0] : 'Studyverse');
 
-        accountEmail.textContent = signedInUser.email || '';
-        if (accountDisplayName) accountDisplayName.textContent = displayName;
-        accountAvatar.textContent = displayName.trim().charAt(0).toUpperCase();
+        // Đồng bộ dữ liệu đám mây vào cache cục bộ nếu mới đăng nhập
+        if (signedInUser && signedInUser.user_metadata) {
+            if (meta.display_name && !localProfile.displayName) {
+                if (typeof svSaveUserProfile === 'function') {
+                    svSaveUserProfile({
+                        displayName: meta.display_name || '',
+                        dailyGoal: meta.daily_goal || localProfile.dailyGoal || '',
+                        interests: meta.interests || localProfile.interests || '',
+                        aiCalling: meta.ai_calling || localProfile.aiCalling || 'Bạn - Mình',
+                        aiStyle: meta.ai_style || localProfile.aiStyle || 'Nhiệt tình & truyền cảm hứng',
+                        aiFocus: meta.ai_focus || localProfile.aiFocus || 'Hướng nghiệp & Lập kế hoạch tương lai',
+                        notifyStreak: meta.notify_streak !== undefined ? Boolean(meta.notify_streak) : localProfile.notifyStreak,
+                        notifyDeadline: meta.notify_deadline !== undefined ? Boolean(meta.notify_deadline) : localProfile.notifyDeadline,
+                        soundEnabled: meta.sound_enabled !== undefined ? Boolean(meta.sound_enabled) : localProfile.soundEnabled,
+                    });
+                }
+            }
+        }
 
-        if (profileDisplayNameInput) profileDisplayNameInput.value = displayName;
+        const effectiveDisplayName = meta.display_name || meta.full_name || localProfile.displayName || (signedInUser && signedInUser.email ? signedInUser.email.split('@')[0] : '');
+        const displayToShow = effectiveDisplayName.trim() || translate('account.guestDefaultName', 'Học viên Studyverse');
+
+        if (accountDisplayName) accountDisplayName.textContent = displayToShow;
+        if (accountAvatar) accountAvatar.textContent = (displayToShow || 'S').trim().charAt(0).toUpperCase();
+
+        if (signedInUser) {
+            if (accountEmail) accountEmail.textContent = signedInUser.email || '';
+            if (accountModePill) {
+                accountModePill.className = 'account-mode-pill cloud';
+                if (accountModePillLabel) accountModePillLabel.textContent = translate('account.cloudBadge', 'Đã đồng bộ Cloud');
+            }
+            if (cloudNudgeBanner) cloudNudgeBanner.hidden = true;
+            if (signOutButton) signOutButton.hidden = false;
+            if (accountTabs) accountTabs.hidden = true;
+        } else {
+            if (accountEmail) accountEmail.textContent = translate('account.localDataNotice', 'Dữ liệu và hồ sơ lưu an toàn trên trình duyệt này');
+            if (accountModePill) {
+                accountModePill.className = 'account-mode-pill';
+                if (accountModePillLabel) accountModePillLabel.textContent = translate('account.localBadge', 'Hồ sơ máy này');
+            }
+            if (cloudNudgeBanner) cloudNudgeBanner.hidden = false;
+            if (signOutButton) signOutButton.hidden = true;
+            if (accountTabs) accountTabs.hidden = false;
+        }
+
+        // Form fields
+        if (profileDisplayNameInput) profileDisplayNameInput.value = meta.display_name || localProfile.displayName || '';
+        if (profileDailyGoalInput) profileDailyGoalInput.value = meta.daily_goal || localProfile.dailyGoal || '';
+        if (profileInterestsInput) profileInterestsInput.value = meta.interests || localProfile.interests || '';
         if (profileAiCallingInput) profileAiCallingInput.value = meta.ai_calling || localProfile.aiCalling || 'Bạn - Mình';
         if (profileAiStyleInput) profileAiStyleInput.value = meta.ai_style || localProfile.aiStyle || 'Nhiệt tình & truyền cảm hứng';
-        if (profileDailyGoalInput) profileDailyGoalInput.value = meta.daily_goal || localProfile.dailyGoal || '';
+        if (profileAiFocusInput) profileAiFocusInput.value = meta.ai_focus || localProfile.aiFocus || 'Hướng nghiệp & Lập kế hoạch tương lai';
 
+        if (profileNotifyStreakInput) profileNotifyStreakInput.checked = meta.notify_streak !== undefined ? Boolean(meta.notify_streak) : localProfile.notifyStreak !== false;
+        if (profileNotifyDeadlineInput) profileNotifyDeadlineInput.checked = meta.notify_deadline !== undefined ? Boolean(meta.notify_deadline) : localProfile.notifyDeadline !== false;
+        if (profileSoundEnabledInput) profileSoundEnabledInput.checked = meta.sound_enabled !== undefined ? Boolean(meta.sound_enabled) : localProfile.soundEnabled !== false;
+
+        // Streak & Badges
         const streak = typeof svGetStreak === 'function' ? svGetStreak() : { currentStreak: 1, bestStreak: 1 };
         if (streakCount) streakCount.textContent = streak.currentStreak;
         if (streakBestCount) streakBestCount.textContent = streak.bestStreak;
 
+        if (typeof svGetStreakLevel === 'function' && streakLevelPill) {
+            const levelInfo = svGetStreakLevel(streak.currentStreak);
+            streakLevelPill.textContent = `${translate('account.streakLevel', 'Cấp độ')} ${levelInfo.level}: ${levelInfo.name}`;
+            streakLevelPill.style.color = levelInfo.color;
+            streakLevelPill.style.borderColor = `${levelInfo.color}55`;
+            streakLevelPill.style.background = `${levelInfo.color}15`;
+            if (streakFlameWrap) {
+                streakFlameWrap.classList.add('flame-active');
+            }
+        }
+
+        renderWeekActivity(streak);
+        renderBadges(streak);
+        renderThemeSwatches();
+        renderLangButtons();
+
+        // Đếm tasks đã hoàn thành từ studyverse_projects
         try {
             const projectsKey = typeof svScopedKey === 'function' ? svScopedKey('studyverse_projects') : 'studyverse_projects';
-            const rawProjects = localStorage.getItem(projectsKey);
+            let rawProjects = localStorage.getItem(projectsKey);
+            if (!rawProjects && projectsKey !== 'studyverse_projects') {
+                rawProjects = localStorage.getItem('studyverse_projects');
+            }
             if (rawProjects) {
                 const projects = JSON.parse(rawProjects);
                 if (Array.isArray(projects)) {
@@ -209,61 +438,92 @@
             }
         } catch (_) {}
 
-        title.textContent = translate('account.accountReady', 'You are signed in');
-        subtitle.textContent = translate('account.accountReadyCopy', 'Your Studyverse account is ready.');
-        modeSwitchRow.hidden = true;
-        divider.hidden = true;
-        guestLink.hidden = true;
+        if (signedInUser) {
+            title.textContent = translate('account.accountReady', 'Bạn đã đăng nhập');
+            subtitle.textContent = translate('account.accountReadyCopy', 'Tài khoản Studyverse của bạn đang hoạt động.');
+        } else {
+            title.textContent = translate('account.profileTitle', 'Hồ sơ & Tùy biến AI');
+            subtitle.textContent = translate('account.guestProfileSubtitle', 'Tùy chỉnh thông tin để AI hỗ trợ bạn tốt nhất.');
+        }
     }
 
+    // Lưu Hồ sơ & Cấu hình (Lưu LocalStorage và Supabase nếu đã đăng nhập)
     async function saveProfile(event) {
         if (event) event.preventDefault();
-        if (!signedInUser) return;
 
         const newName = profileDisplayNameInput ? profileDisplayNameInput.value.trim() : '';
+        const newGoal = profileDailyGoalInput ? profileDailyGoalInput.value.trim() : '';
+        const newInterests = profileInterestsInput ? profileInterestsInput.value.trim() : '';
         const newCalling = profileAiCallingInput ? profileAiCallingInput.value : 'Bạn - Mình';
         const newStyle = profileAiStyleInput ? profileAiStyleInput.value : 'Nhiệt tình & truyền cảm hứng';
-        const newGoal = profileDailyGoalInput ? profileDailyGoalInput.value.trim() : '';
-        const effectiveName = newName || (signedInUser.email ? signedInUser.email.split('@')[0] : 'Studyverse');
+        const newFocus = profileAiFocusInput ? profileAiFocusInput.value : 'Hướng nghiệp & Lập kế hoạch tương lai';
+        const notifyStreak = profileNotifyStreakInput ? profileNotifyStreakInput.checked : true;
+        const notifyDeadline = profileNotifyDeadlineInput ? profileNotifyDeadlineInput.checked : true;
+        const soundEnabled = profileSoundEnabledInput ? profileSoundEnabledInput.checked : true;
+
+        const effectiveName = newName || (signedInUser && signedInUser.email ? signedInUser.email.split('@')[0] : 'Học viên Studyverse');
 
         if (saveProfileBtn) {
             saveProfileBtn.disabled = true;
-            if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.loading', 'Please wait…');
+            if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.loading', 'Đang xử lý…');
         }
 
         try {
+            const updates = {
+                displayName: newName,
+                dailyGoal: newGoal,
+                interests: newInterests,
+                aiCalling: newCalling,
+                aiStyle: newStyle,
+                aiFocus: newFocus,
+                notifyStreak: notifyStreak,
+                notifyDeadline: notifyDeadline,
+                soundEnabled: soundEnabled
+            };
+
             if (typeof svSaveUserProfile === 'function') {
-                svSaveUserProfile({
-                    displayName: effectiveName,
-                    aiCalling: newCalling,
-                    aiStyle: newStyle,
-                    dailyGoal: newGoal
-                });
+                svSaveUserProfile(updates);
             }
 
-            const client = await ensureSupabaseClient();
-            if (client) {
-                await client.auth.updateUser({
-                    data: {
-                        display_name: effectiveName,
-                        ai_calling: newCalling,
-                        ai_style: newStyle,
-                        daily_goal: newGoal
+            if (signedInUser) {
+                const client = await ensureSupabaseClient();
+                if (client) {
+                    const updateRes = await client.auth.updateUser({
+                        data: {
+                            display_name: newName,
+                            daily_goal: newGoal,
+                            interests: newInterests,
+                            ai_calling: newCalling,
+                            ai_style: newStyle,
+                            ai_focus: newFocus,
+                            notify_streak: notifyStreak,
+                            notify_deadline: notifyDeadline,
+                            sound_enabled: soundEnabled
+                        }
+                    });
+                    if (updateRes && updateRes.error) throw updateRes.error;
+                    if (updateRes && updateRes.data && updateRes.data.user) {
+                        signedInUser = updateRes.data.user;
                     }
-                });
+                }
             }
 
             if (accountDisplayName) accountDisplayName.textContent = effectiveName;
-            if (accountAvatar) accountAvatar.textContent = effectiveName.charAt(0).toUpperCase();
+            if (accountAvatar) accountAvatar.textContent = (effectiveName || 'S').trim().charAt(0).toUpperCase();
 
-            setNotice(translate('account.profileSaved', 'Profile and AI settings saved!'), 'success');
+            setNotice(
+                signedInUser
+                    ? translate('account.profileSavedCloud', 'Đã lưu hồ sơ và đồng bộ lên Supabase Cloud thành công!')
+                    : translate('account.profileSavedLocal', 'Đã lưu cấu hình và hồ sơ trên máy này! AI sẽ ghi nhớ tên và tùy chọn của bạn.'),
+                'success'
+            );
         } catch (error) {
             console.error('Failed to update profile:', error);
             setNotice(showFriendlyError(error), 'error');
         } finally {
             if (saveProfileBtn) {
                 saveProfileBtn.disabled = false;
-                if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.saveProfile', 'Save Changes');
+                if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.saveProfile', 'Lưu thay đổi');
             }
         }
     }
@@ -275,12 +535,11 @@
         const icon = submitButton.querySelector('i');
         if (icon) icon.className = busy ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-arrow-right';
         submitLabel.textContent = busy
-            ? translate('account.loading', 'Please wait…')
+            ? translate('account.loading', 'Đang xử lý…')
             : translate({ login: 'account.submitLogin', register: 'account.submitRegister', forgot: 'account.submitForgot', recovery: 'account.submitRecovery' }[mode], mode);
     }
 
     async function ensureSupabaseClient() {
-        // Dùng chung client với shared.js để tránh tạo 2 GoTrueClient trên cùng trang.
         if (typeof svSupabase === 'function') {
             if (!supabaseClient) supabaseClient = await svSupabase();
             return supabaseClient;
@@ -336,7 +595,7 @@
         if (!form.reportValidity()) return;
 
         if ((mode === 'register' || mode === 'recovery') && passwordInput.value !== confirmPasswordInput.value) {
-            setNotice(translate('account.passwordMismatch', 'The passwords do not match.'), 'error');
+            setNotice(translate('account.passwordMismatch', 'Hai mật khẩu chưa trùng khớp.'), 'error');
             confirmPasswordInput.focus();
             return;
         }
@@ -352,37 +611,54 @@
             if (mode === 'login') {
                 result = await client.auth.signInWithPassword({ email, password: passwordInput.value });
                 if (result.error) throw result.error;
-                window.location.assign(getSafeNextUrl());
+                signedInUser = result.data.user;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                renderProfileView(signedInUser);
+                switchTab('profile');
+                setNotice(translate('account.accountReady', 'Bạn đã đăng nhập thành công!'), 'success');
                 return;
             }
 
             if (mode === 'register') {
+                const localProfile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
                 result = await client.auth.signUp({
                     email,
                     password: passwordInput.value,
                     options: {
                         emailRedirectTo: `${window.location.origin}/account.html?confirmed=1`,
                         data: {
-                            display_name: email.split('@')[0]
+                            display_name: localProfile.displayName || email.split('@')[0],
+                            daily_goal: localProfile.dailyGoal || '',
+                            interests: localProfile.interests || '',
+                            ai_calling: localProfile.aiCalling || 'Bạn - Mình',
+                            ai_style: localProfile.aiStyle || 'Nhiệt tình & truyền cảm hứng',
+                            ai_focus: localProfile.aiFocus || 'Hướng nghiệp & Lập kế hoạch tương lai',
+                            notify_streak: localProfile.notifyStreak !== false,
+                            notify_deadline: localProfile.notifyDeadline !== false,
+                            sound_enabled: localProfile.soundEnabled !== false
                         }
                     }
                 });
                 if (result.error) throw result.error;
 
-                // Nếu tính năng bảo vệ lộ email (Email Enumeration Protection) bật, Supabase trả về identities rỗng khi email đã có tài khoản
                 if (result.data && result.data.user && Array.isArray(result.data.user.identities) && result.data.user.identities.length === 0) {
-                    setNotice(translate('account.userExists', 'An account already exists for this email.'), 'error');
+                    setNotice(translate('account.userExists', 'Email này đã có tài khoản. Hãy đăng nhập.'), 'error');
                     return;
                 }
 
                 if (result.data.session) {
-                    window.location.assign(getSafeNextUrl());
+                    signedInUser = result.data.user;
+                    if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                    if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                    renderProfileView(signedInUser);
+                    switchTab('profile');
                     return;
                 }
 
                 clearPasswords();
                 setMode('login');
-                setNotice(translate('account.signupCheckEmail', 'Account created. Check your email to finish registration.'), 'success');
+                setNotice(translate('account.signupCheckEmail', 'Tài khoản đã tạo. Hãy mở email xác nhận để hoàn tất đăng ký.'), 'success');
                 return;
             }
 
@@ -391,17 +667,15 @@
                     redirectTo: `${window.location.origin}/account.html?mode=recovery`
                 });
                 if (result.error) throw result.error;
-                setNotice(translate('account.emailSent', 'If the email address is valid, a reset link will arrive shortly.'), 'success');
+                setNotice(translate('account.emailSent', 'Nếu địa chỉ email hợp lệ, liên kết đặt lại mật khẩu sẽ sớm được gửi đến hộp thư của bạn.'), 'success');
                 return;
             }
 
-            // Recovery dùng session từ liên kết đặt lại mật khẩu. Nếu không có session
-            // (liên kết hết hạn/đã dùng) thì báo lỗi thân thiện thay vì lỗi thô của Supabase.
             const { data: recoverySession } = await client.auth.getSession();
             if (!recoverySession || !recoverySession.session) {
                 clearPasswords();
                 setMode('login');
-                setNotice(translate('account.recoveryLinkInvalid', 'This reset link is invalid or expired.'), 'error');
+                setNotice(translate('account.recoveryLinkInvalid', 'Liên kết đặt lại không hợp lệ hoặc đã hết hạn.'), 'error');
                 return;
             }
 
@@ -409,8 +683,14 @@
             if (result.error) throw result.error;
             clearPasswords();
             setMode('login');
-            if (result.data && result.data.user) renderSignedIn(result.data.user);
-            setNotice(translate('account.passwordUpdated', 'Password updated. You can continue to Studyverse.'), 'success');
+            if (result.data && result.data.user) {
+                signedInUser = result.data.user;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                renderProfileView(signedInUser);
+                switchTab('profile');
+            }
+            setNotice(translate('account.passwordUpdated', 'Mật khẩu đã được cập nhật. Bạn có thể tiếp tục vào Studyverse.'), 'success');
         } catch (error) {
             console.error('Studyverse account action failed:', error);
             setNotice(showFriendlyError(error), 'error');
@@ -425,9 +705,11 @@
         try {
             const { error } = await supabaseClient.auth.signOut();
             if (error) throw error;
-            renderSignedIn(null);
-            setMode('login');
-            setNotice(translate('account.signedOut', 'You have signed out.'), 'success');
+            if (typeof svSetStorageScope === 'function') svSetStorageScope('');
+            signedInUser = null;
+            renderProfileView(null);
+            switchTab('profile');
+            setNotice(translate('account.signedOut', 'Bạn đã đăng xuất khỏi tài khoản.'), 'success');
         } catch (error) {
             setNotice(showFriendlyError(error), 'error');
         } finally {
@@ -435,19 +717,87 @@
         }
     }
 
+    // Sự kiện tương tác
     form.addEventListener('submit', submitAuth);
     if (profileForm) profileForm.addEventListener('submit', saveProfile);
-    modeSwitchButton.addEventListener('click', () => {
-        clearPasswords();
-        setMode(mode === 'login' ? 'register' : 'login');
-        emailInput.focus();
-    });
-    forgotButton.addEventListener('click', () => {
-        clearPasswords();
-        setMode('forgot');
-        emailInput.focus();
-    });
-    signOutButton.addEventListener('click', signOut);
+
+    if (tabProfileBtn) tabProfileBtn.addEventListener('click', () => switchTab('profile'));
+    if (tabAuthBtn) tabAuthBtn.addEventListener('click', () => switchTab('auth'));
+    if (nudgeLoginBtn) nudgeLoginBtn.addEventListener('click', () => switchTab('auth'));
+
+    if (modeSwitchButton) {
+        modeSwitchButton.addEventListener('click', () => {
+            clearPasswords();
+            setMode(mode === 'login' ? 'register' : 'login');
+            emailInput.focus();
+        });
+    }
+
+    if (forgotButton) {
+        forgotButton.addEventListener('click', () => {
+            clearPasswords();
+            setMode('forgot');
+            emailInput.focus();
+        });
+    }
+
+    if (signOutButton) signOutButton.addEventListener('click', signOut);
+
+    // Xử lý Quick Chips (Mục tiêu học tập & Sở thích)
+    if (goalChips && profileDailyGoalInput) {
+        const syncGoalChips = () => {
+            const current = profileDailyGoalInput.value.trim().toLowerCase();
+            goalChips.querySelectorAll('.quick-chip').forEach(chip => {
+                const val = (chip.dataset.goal || chip.textContent).trim().toLowerCase();
+                chip.classList.toggle('active', Boolean(current && current === val));
+            });
+        };
+        profileDailyGoalInput.addEventListener('input', syncGoalChips);
+
+        goalChips.querySelectorAll('.quick-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const goal = chip.dataset.goal || chip.textContent;
+                if (profileDailyGoalInput.value.trim().toLowerCase() === goal.toLowerCase()) {
+                    profileDailyGoalInput.value = '';
+                } else {
+                    profileDailyGoalInput.value = goal;
+                }
+                syncGoalChips();
+                profileDailyGoalInput.focus();
+            });
+        });
+        syncGoalChips();
+    }
+
+    if (interestChips && profileInterestsInput) {
+        const syncInterestChips = () => {
+            const currentItems = profileInterestsInput.value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            interestChips.querySelectorAll('.quick-chip').forEach(chip => {
+                const val = (chip.dataset.interest || chip.textContent).trim().toLowerCase();
+                chip.classList.toggle('active', currentItems.includes(val));
+            });
+        };
+        profileInterestsInput.addEventListener('input', syncInterestChips);
+
+        interestChips.querySelectorAll('.quick-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const interest = chip.dataset.interest || chip.textContent;
+                const raw = profileInterestsInput.value;
+                let items = raw.split(',').map(s => s.trim()).filter(Boolean);
+                const idx = items.findIndex(item => item.toLowerCase() === interest.toLowerCase());
+                if (idx !== -1) {
+                    items.splice(idx, 1);
+                } else {
+                    items.push(interest);
+                }
+                profileInterestsInput.value = items.join(', ');
+                syncInterestChips();
+                profileInterestsInput.focus();
+            });
+        });
+        syncInterestChips();
+    }
+
     document.querySelectorAll('[data-toggle-password]').forEach(button => {
         button.addEventListener('click', () => {
             const input = document.getElementById(button.dataset.togglePassword);
@@ -459,44 +809,55 @@
         });
     });
 
-    setMode(mode);
+    // Hiển thị UI ngay lập tức không phụ thuộc tốc độ tải CDN
+    revealAuthUI();
 
+    // Khởi tạo Supabase client & theo dõi auth state
     const authError = new URLSearchParams(window.location.hash.slice(1)).get('error_description');
     if (authError) setNotice(authError, 'error');
 
     ensureSupabaseClient().then(async client => {
         client.auth.onAuthStateChange((event, session) => {
             if (event === 'PASSWORD_RECOVERY') {
-                setMode('recovery');
+                mode = 'recovery';
+                switchTab('auth');
                 return;
             }
-            if (session && mode !== 'recovery') renderSignedIn(session.user);
-            else if (!session && signedInUser) {
-                renderSignedIn(null);
-                setMode('login');
+            if (session && mode !== 'recovery') {
+                signedInUser = session.user;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                renderProfileView(signedInUser);
+            } else if (!session && signedInUser) {
+                signedInUser = null;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope('');
+                renderProfileView(null);
             }
         });
 
         const { data, error } = await client.auth.getSession();
         if (error) throw error;
         if (data.session && mode !== 'recovery') {
-            renderSignedIn(data.session.user);
-            if (url.searchParams.has('confirmed') && !authError) setNotice(translate('account.confirmEmail', 'Your account is confirmed.'), 'success');
+            signedInUser = data.session.user;
+            if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+            if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+            renderProfileView(signedInUser);
+            if (url.searchParams.has('confirmed') && !authError) {
+                setNotice(translate('account.confirmEmail', 'Tài khoản đã được xác nhận. Bạn có thể tiếp tục vào Studyverse.'), 'success');
+            }
         } else if (url.searchParams.has('confirmed') && !authError) {
-            setNotice(translate('account.confirmEmail', 'Your account is confirmed. Sign in to continue.'), 'success');
+            setNotice(translate('account.confirmEmail', 'Tài khoản đã được xác nhận. Đăng nhập để tiếp tục.'), 'success');
         } else if (mode === 'recovery' && !data.session) {
-            setNotice(translate('account.recoveryLinkInvalid', 'This reset link is invalid or expired.'), 'error');
+            setNotice(translate('account.recoveryLinkInvalid', 'Liên kết đặt lại không hợp lệ hoặc đã hết hạn.'), 'error');
         }
-        revealAuthUI();
     }).catch(error => {
-        console.warn('Studyverse account service is unavailable.', error);
-        setNotice(translate('account.authUnavailable', 'Account service is unavailable. Check the configuration and try again.'), 'error');
-        revealAuthUI();
+        console.warn('Studyverse account service is offline or not configured in .env', error);
+        // Supabase không khả dụng không làm treo trải nghiệm: UI đã được hiển thị
     });
 
     document.addEventListener('sv:langchange', () => {
         syncPasswordToggleLabels();
-        if (signedInUser && mode !== 'recovery') renderSignedIn(signedInUser);
-        else setMode(mode, { keepNotice: true });
+        renderProfileView(signedInUser);
+        if (activeTab === 'auth') setMode(mode, { keepNotice: true });
     });
 })();

@@ -43,6 +43,15 @@ def test_index_root_serves_home(client):
     assert b'<html' in response.data.lower()
 
 
+def test_route_aliases_are_served(client):
+    for alias in ['account', 'career', 'schedule', 'todo', 'flashcard']:
+        res1 = client.get(f'/{alias}')
+        assert res1.status_code == 200, f'GET /{alias} failed'
+        res2 = client.get(f'/{alias}/')
+        assert res2.status_code == 200, f'GET /{alias}/ failed'
+
+
+
 @pytest.mark.parametrize('path', [
     'app.py', 'schedule/schedule_utils.py', '.env', '.env.example',
     'README.md', 'requirements.txt', 'conftest.py', 'pytest.ini',
@@ -1014,5 +1023,190 @@ def test_career_messages_includes_user_profile():
     assert 'Nhiệt tình & truyền cảm hứng' in system
     assert '7 ngày' in system
     assert 'Hoàn thành 3 việc mỗi ngày' in system
+
+
+def test_career_messages_includes_interests_and_focus():
+    """System prompt của AI phải chứa sở thích/ngành học và trọng tâm hỗ trợ của người dùng."""
+    profile = {
+        'displayName': 'Linh',
+        'aiCalling': 'Em - Anh/Chị',
+        'aiStyle': 'Tỉ mỉ & hướng dẫn chi tiết',
+        'streak': 14,
+        'dailyGoal': '45 phút học tập tập trung',
+        'interests': 'Công nghệ thông tin & Trí tuệ nhân tạo',
+        'aiFocus': 'Phương pháp học & Xử lý deadline'
+    }
+    messages = app_module._build_career_messages(
+        user_message="Tư vấn lộ trình học AI",
+        history=[],
+        user_context=[],
+        schedule_ctx=None,
+        user_profile=profile
+    )
+    system = messages[0]['content']
+    assert 'Linh' in system
+    assert 'Em - Anh/Chị' in system
+    assert 'Tỉ mỉ & hướng dẫn chi tiết' in system
+    assert '14 ngày' in system
+    assert '45 phút học tập tập trung' in system
+    assert 'Công nghệ thông tin & Trí tuệ nhân tạo' in system
+    assert 'Phương pháp học & Xử lý deadline' in system
+
+
+def test_career_ai_accepts_user_profile_payload(client, monkeypatch):
+    """Endpoint /api/career-ai và /api/career-ai-stream nhận payload chứa user_profile hợp lệ."""
+    called_messages = []
+
+    def mock_request_ai(messages, max_tokens, provider=None, on_delta=None):
+        called_messages.extend(messages)
+        if on_delta:
+            on_delta("Chào bạn, mình là kumalala")
+        return "Chào bạn, mình là kumalala", None
+
+    monkeypatch.setattr(app_module, 'request_ai', mock_request_ai)
+
+    payload = {
+        'message': 'Xin chào',
+        'user_profile': {
+            'displayName': 'Nam',
+            'streak': 5,
+            'interests': 'Kinh tế & Marketing',
+            'dailyGoal': '3 việc mỗi ngày'
+        }
+    }
+    res = client.post('/api/career-ai', json=payload)
+    assert res.status_code == 200
+    assert any('Nam' in m.get('content', '') for m in called_messages)
+    assert any('Kinh tế & Marketing' in m.get('content', '') for m in called_messages)
+
+
+def test_account_page_contains_interactive_features(client):
+    """Trang account.html phải có đầy đủ các thành phần đổi tên, streak, huy hiệu và cấu hình."""
+    res = client.get('/account.html')
+    assert res.status_code == 200
+    html = res.data.decode('utf-8')
+    assert 'id="profileDisplayName"' in html
+    assert 'id="streakCount"' in html
+    assert 'id="streakLevelPill"' in html
+    assert 'id="badgesGrid"' in html
+    assert 'id="weekDaysContainer"' in html
+    assert 'id="profileInterests"' in html
+    assert 'id="profileDailyGoal"' in html
+    assert 'id="accountThemeSwatches"' in html
+    assert 'id="saveProfileBtn"' in html
+    assert 'id="accountTabs"' in html
+    assert 'id="profileNotifyStreak"' in html
+    assert 'id="profileNotifyDeadline"' in html
+    assert 'id="profileSoundEnabled"' in html
+
+
+def test_ai_context_includes_user_profile(client):
+    """POST /api/ai-context trả về user_profile khi được cung cấp."""
+    payload = {
+        'projects': [],
+        'schedule': None,
+        'user_profile': {
+            'displayName': 'Khánh',
+            'interests': 'Khoa học dữ liệu',
+            'streak': 9,
+            'dailyGoal': 'Học 60 phút'
+        }
+    }
+    res = client.post('/api/ai-context', json=payload)
+    assert res.status_code == 200
+    data = res.get_json()
+    assert 'user_profile' in data
+    assert data['user_profile']['displayName'] == 'Khánh'
+    assert data['user_profile']['streak'] == 9
+
+
+def test_suggest_includes_user_profile_in_prompt(client, monkeypatch):
+    """POST /api/suggest làm giàu system prompt khi có user_profile."""
+    captured_messages = []
+
+    def mock_request_ai(messages, max_tokens, provider=None, on_delta=None):
+        captured_messages.extend(messages)
+        return "Gợi ý lộ trình cho bạn", None
+
+    monkeypatch.setattr(app_module, 'request_ai', mock_request_ai)
+
+    payload = {
+        'topic': 'Machine Learning',
+        'user_profile': {
+            'displayName': 'Minh',
+            'interests': 'Trí tuệ nhân tạo'
+        }
+    }
+    res = client.post('/api/suggest', json=payload)
+    assert res.status_code == 200
+    sys_content = captured_messages[0]['content']
+    assert 'Minh' in sys_content
+    assert 'Trí tuệ nhân tạo' in sys_content
+
+
+def test_career_messages_identity_instruction():
+    """System prompt yêu cầu AI trả lời chính xác tên, streak, mục tiêu khi được hỏi."""
+    messages = app_module._build_career_messages(
+        user_message="Bạn có biết tên mình không?",
+        history=[],
+        user_context=[],
+        schedule_ctx=None,
+        user_profile={'displayName': 'Hương', 'streak': 12}
+    )
+    system = messages[0]['content']
+    assert 'Hương' in system
+    assert '12 ngày' in system
+    assert 'BẮT BUỘC nhận diện và trả lời chính xác theo THÔNG TIN HỒ SƠ' in system
+
+
+def test_shared_js_streak_and_helpers_execution():
+    """Chạy kiểm thử logic streak, lịch ngày, svSetLang, svSaveUserProfile bằng Node.js."""
+    import subprocess
+    js_code = r'''
+    const fs = require('fs');
+    const code = fs.readFileSync('shared.js', 'utf8');
+    const storage = {};
+    global.localStorage = {
+        getItem: k => storage[k] !== undefined ? storage[k] : null,
+        setItem: (k, v) => { storage[k] = String(v); },
+        removeItem: k => { delete storage[k]; }
+    };
+    global.location = { search: '', pathname: '/' };
+    global.window = {
+        location: global.location,
+        SV_CONFIG: { storage: { streak: 'studyverse_streak_data', lang: 'sv-lang', theme: 'sv-theme', userProfile: 'studyverse_user_profile' } }
+    };
+    global.document = {
+        documentElement: { lang: 'vi', dataset: {}, classList: { remove: () => {} } },
+        dispatchEvent: () => true,
+        addEventListener: () => {},
+        querySelector: () => null,
+        querySelectorAll: () => []
+    };
+    global.CustomEvent = class CustomEvent { constructor(name, opts) { this.name = name; this.opts = opts; } };
+
+    eval(code);
+
+    // Ngày 1: Ghi nhận và lưu vào localStorage
+    const d1 = svRecordStreakActivity();
+    if (d1.currentStreak !== 1 || d1.bestStreak !== 1) process.exit(1);
+    if (!storage['studyverse_streak_data']) process.exit(2);
+
+    // Tính ngày trước đó
+    const prev = svGetPreviousDateStr('2026-10-15');
+    if (prev !== '2026-10-14') process.exit(3);
+
+    // Ngôn ngữ & theme
+    svSetLang('en');
+    if (localStorage.getItem('sv-lang') !== 'en') process.exit(4);
+    svSaveUserProfile({ displayName: 'Thanh', lang: 'vi' });
+    if (localStorage.getItem('sv-lang') !== 'vi') process.exit(5);
+
+    process.exit(0);
+    '''
+    result = subprocess.run(['node', '-e', js_code], capture_output=True, text=True)
+    assert result.returncode == 0, f"Node test failed: {result.stderr}"
+
+
 
 

@@ -137,7 +137,8 @@ function svMoveIndicator(element, speed = '0.3s') {
     const indicator = document.querySelector('.indicator');
     if (!element || !indicator) return;
     indicator.style.transition = `transform ${speed} ease-out`;
-    indicator.style.transform = `translateX(${element.offsetLeft}px)`;
+    const offset = element.offsetLeft + Math.round((element.offsetWidth - indicator.offsetWidth) / 2);
+    indicator.style.transform = `translateX(${offset}px)`;
 }
 
 function initNavbarIndicator() {
@@ -149,7 +150,8 @@ function initNavbarIndicator() {
     const active = document.querySelector('.list.active');
     if (active) {
         indicator.style.transition = 'none';
-        indicator.style.transform = `translateX(${active.offsetLeft}px)`;
+        const offset = active.offsetLeft + Math.round((active.offsetWidth - indicator.offsetWidth) / 2);
+        indicator.style.transform = `translateX(${offset}px)`;
         void indicator.offsetWidth;
         setTimeout(() => { indicator.style.transition = ''; }, 50);
     }
@@ -202,7 +204,8 @@ const SV_FALLBACK_CONFIG = {
     storage: {
         lang: 'sv-lang', theme: 'sv-theme', projects: 'studyverse_projects',
         schedule: 'studyverse_schedule_dashboard_data', lastProject: 'lastSelectedProject',
-        careerChat: 'studyverse_career_chat'
+        careerChat: 'studyverse_career_chat', flashcards: 'studyverse_flashcards',
+        lastFlashcardDeck: 'studyverse_last_flashcard_deck'
     },
     schedule: {
         lessonDuration: 45,
@@ -238,8 +241,47 @@ const SV_I18N = {
     'nav.project': { vi: 'Dự án', en: 'My Project' },
     'nav.schedule': { vi: 'Thời khóa biểu', en: 'Schedule' },
     'nav.career': { vi: 'Hướng nghiệp', en: 'AI Career' },
+    'nav.flashcard': { vi: 'Flashcard', en: 'Flashcards' },
     'nav.account': { vi: 'Tài khoản', en: 'Account' },
     'nav.settings': { vi: 'Cài đặt', en: 'Settings' },
+    // Flashcard page
+    'fc.pageTitle': { vi: 'Flashcards - Studyverse', en: 'Flashcards - Studyverse' },
+    'fc.badge': { vi: 'Ôn tập & Ghi nhớ thông minh', en: 'Smart Spaced Repetition' },
+    'fc.title': { vi: 'Học bằng Flashcard', en: 'Flashcard Study' },
+    'fc.subtitle': { vi: 'Nhập tài liệu, tự động phân tích và ôn tập thẻ ghi nhớ trực quan', en: 'Import documents, automatically extract and review interactive flashcards' },
+    'fc.deck': { vi: 'Bộ thẻ', en: 'Deck' },
+    'fc.newDeck': { vi: '+ Bộ thẻ mới', en: '+ New Deck' },
+    'fc.tabStudy': { vi: 'Lật thẻ ghi nhớ', en: 'Flip Cards' },
+    'fc.tabQuiz': { vi: 'Trắc nghiệm', en: 'Quiz Mode' },
+    'fc.tabCreate': { vi: 'Nhập file / Tạo thẻ', en: 'Import / Create' },
+    'fc.tabList': { vi: 'Quản lý thẻ', en: 'Card List' },
+    'fc.flipHint': { vi: 'Nhấn vào thẻ hoặc bấm phím Space để lật', en: 'Click card or press Space to flip' },
+    'fc.again': { vi: 'Chưa thuộc (1)', en: 'Again (1)' },
+    'fc.good': { vi: 'Đang nhớ (2)', en: 'Good (2)' },
+    'fc.mastered': { vi: 'Đã thuộc (3)', en: 'Mastered (3)' },
+    'fc.prev': { vi: 'Trước', en: 'Previous' },
+    'fc.next': { vi: 'Tiếp theo', en: 'Next' },
+    'fc.shuffle': { vi: 'Xáo trộn', en: 'Shuffle' },
+    'fc.reset': { vi: 'Học lại từ đầu', en: 'Restart' },
+    'fc.uploadTitle': { vi: 'Nhập tài liệu học tập', en: 'Upload Study Material' },
+    'fc.uploadDesc': { vi: 'Kéo thả file vào đây hoặc bấm để chọn tệp (.txt, .md, .pdf, .docx, .csv, .json)', en: 'Drag and drop file here or click to select (.txt, .md, .pdf, .docx, .csv, .json)' },
+    'fc.pasteTitle': { vi: 'Hoặc dán văn bản trực tiếp', en: 'Or Paste Text Directly' },
+    'fc.generateAi': { vi: 'Tạo thẻ với AI', en: 'Generate with AI' },
+    'fc.generateFast': { vi: 'Phân tích nhanh (Offline)', en: 'Fast Heuristic (Offline)' },
+    'fc.numCards': { vi: 'Số lượng thẻ:', en: 'Number of cards:' },
+    'fc.style': { vi: 'Kiểu thẻ:', en: 'Card style:' },
+    'fc.styleConcept': { vi: 'Khái niệm & Định nghĩa', en: 'Concepts & Definitions' },
+    'fc.styleQa': { vi: 'Câu hỏi & Trả lời', en: 'Question & Answer' },
+    'fc.styleQuiz': { vi: 'Trắc nghiệm kèm giải thích', en: 'Multiple Choice & Notes' },
+    'fc.addCard': { vi: '+ Thêm thẻ', en: '+ Add Card' },
+    'fc.saveDeck': { vi: 'Lưu bộ thẻ', en: 'Save Deck' },
+    'fc.exportDeck': { vi: 'Xuất JSON', en: 'Export JSON' },
+    'fc.deleteDeck': { vi: 'Xóa bộ thẻ', en: 'Delete Deck' },
+    'fc.renameDeck': { vi: 'Đổi tên bộ thẻ', en: 'Rename Deck' },
+    'fc.statTotal': { vi: 'Tổng thẻ', en: 'Total' },
+    'fc.statMastered': { vi: 'Đã thuộc', en: 'Mastered' },
+    'fc.statLearning': { vi: 'Đang học', en: 'Learning' },
+    'fc.statNew': { vi: 'Chưa học', en: 'New' },
     // Nhắc khách đăng nhập (góc dưới trái)
     'guestNotice.title': { vi: 'Bạn chưa đăng nhập', en: 'You are not signed in' },
     'guestNotice.message': { vi: 'Đăng nhập để lưu dữ liệu theo tài khoản và đồng bộ trên mọi thiết bị.', en: 'Sign in to keep your data with your account and sync across devices.' },
@@ -292,6 +334,7 @@ const SV_I18N = {
     'home.f1.tag': { vi: 'Kế hoạch', en: 'Planning' },
     'home.f2.tag': { vi: 'Giao diện', en: 'Interface' },
     'home.f3.tag': { vi: 'Bảo mật', en: 'Security' },
+    'home.f4.tag': { vi: 'Ghi nhớ', en: 'Retention' },
     'auth.email': { vi: 'Email', en: 'Email' },
     'auth.password': { vi: 'Mật khẩu', en: 'Password' },
     'auth.loginTitle': { vi: 'Đăng nhập', en: 'Log in' },
@@ -380,14 +423,75 @@ const SV_I18N = {
     'account.aiStyleOpt1': { vi: 'Nhiệt tình & truyền cảm hứng 🔥', en: 'Enthusiastic & Inspiring 🔥' },
     'account.aiStyleOpt2': { vi: 'Ngắn gọn, súc tích & thẳng thắn 🎯', en: 'Concise & Direct 🎯' },
     'account.aiStyleOpt3': { vi: 'Tỉ mỉ & hướng dẫn chi tiết 📚', en: 'Detailed & Step-by-step 📚' },
+    'account.aiStyleOpt4': { vi: 'Thách thức & phản biện tư duy 💡', en: 'Challenging & Critical thinking 💡' },
+    'account.aiFocusLabel': { vi: 'Trọng tâm hỗ trợ của AI', en: 'AI Guidance Focus' },
+    'account.aiFocusOpt1': { vi: 'Hướng nghiệp & Lập kế hoạch tương lai', en: 'Career & Future planning' },
+    'account.aiFocusOpt2': { vi: 'Phương pháp học & Xử lý deadline', en: 'Study methods & Deadline crushing' },
+    'account.aiFocusOpt3': { vi: 'Thói quen & Cân bằng cuộc sống', en: 'Habits & Life balance' },
     'account.dailyGoalLabel': { vi: 'Mục tiêu học tập hàng ngày', en: 'Daily Study Goal' },
     'account.dailyGoalPh': { vi: 'Ví dụ: 3 việc / ngày, 45 phút học tập...', en: 'e.g. 3 tasks/day, 45 mins study...' },
+    'account.interestsLabel': { vi: 'Sở thích & Lĩnh vực quan tâm (AI sẽ định hướng theo ngành này)', en: 'Interests & Field of Study (AI will tailor advice to this)' },
+    'account.interestsPh': { vi: 'Ví dụ: Công nghệ thông tin, Kinh tế, Thiết kế, Ngoại ngữ...', en: 'e.g. Computer Science, Business, Design, Languages...' },
+    'account.tabProfile': { vi: 'Hồ sơ & Cài đặt', en: 'Profile & Settings' },
+    'account.tabAuth': { vi: 'Đăng nhập Cloud', en: 'Cloud Sign In' },
+    'account.localBadge': { vi: 'Hồ sơ trên máy này', en: 'Saved on this browser' },
+    'account.cloudBadge': { vi: 'Đã kết nối Supabase Cloud', en: 'Connected to Supabase Cloud' },
+    'account.cloudNudgeTitle': { vi: 'Đồng bộ đa thiết bị?', en: 'Sync across devices?' },
+    'account.cloudNudgeText': { vi: 'Đăng nhập Supabase để lưu trữ dự án, thời khóa biểu và hồ sơ an toàn trên đám mây.', en: 'Sign in to Supabase to keep projects, schedule, and profile synced.' },
+    'account.cloudNudgeAction': { vi: 'Đăng nhập ngay', en: 'Sign in now' },
     'account.saveProfile': { vi: 'Lưu thay đổi', en: 'Save Changes' },
     'account.profileSaved': { vi: 'Đã lưu thông tin hồ sơ và tùy chọn AI!', en: 'Profile and AI settings saved!' },
+    'account.profileSavedLocal': { vi: 'Đã lưu cấu hình và hồ sơ trên máy này! AI sẽ ghi nhớ tên và tùy chọn của bạn.', en: 'Settings and profile saved locally! AI will remember your name and preferences.' },
+    'account.profileSavedCloud': { vi: 'Đã lưu hồ sơ và đồng bộ lên Supabase Cloud thành công!', en: 'Profile saved and synced to Supabase Cloud successfully!' },
     'account.streakTitle': { vi: 'Chuỗi học tập', en: 'Study Streak' },
     'account.streakDays': { vi: 'ngày liên tục', en: 'days streak' },
     'account.streakBest': { vi: 'Kỷ lục cao nhất', en: 'Best streak' },
     'account.streakTip': { vi: 'Hoạt động mỗi ngày để giữ lửa nhé!', en: 'Study daily to keep the flame alive!' },
+    'account.streakLevel': { vi: 'Cấp độ chuỗi', en: 'Streak Level' },
+    'account.weekActivity': { vi: 'Nhịp học 7 ngày gần nhất', en: 'Recent 7-Day Activity' },
+    'account.badgesTitle': { vi: 'Bộ sưu tập Huy hiệu Thành tích', en: 'Achievement Badges' },
+    'account.badge1Title': { vi: 'Khởi Đầu Mới 🌱', en: 'Fresh Start 🌱' },
+    'account.badge1Desc': { vi: 'Bắt đầu ngày học đầu tiên', en: 'Complete your first study day' },
+    'account.badge2Title': { vi: 'Bền Bỉ 3 Ngày ⚡', en: 'Momentum Spark ⚡' },
+    'account.badge2Desc': { vi: 'Duy trì chuỗi 3 ngày liên tục', en: 'Keep a 3-day consecutive streak' },
+    'account.badge3Title': { vi: 'Rực Cháy 7 Ngày 🔥', en: 'On Fire 7 Days 🔥' },
+    'account.badge3Desc': { vi: 'Chinh phục 1 tuần học tập trọn vẹn', en: 'Conquer a full week of study' },
+    'account.badge4Title': { vi: 'Bứt Phá Quán Quân 🏆', en: 'Champion Stride 🏆' },
+    'account.badge4Desc': { vi: 'Duy trì chuỗi 14 ngày vững chắc', en: 'Sustain a solid 14-day streak' },
+    'account.badge5Title': { vi: 'Huyền Thoại 30 Ngày 👑', en: 'Legendary 30 Days 👑' },
+    'account.badge5Desc': { vi: 'Kỷ luật thép suốt 1 tháng', en: 'Unstoppable discipline for a month' },
+    'account.badge6Title': { vi: 'Bất Diệt 50 Ngày 💎', en: 'Immortal 50 Days 💎' },
+    'account.badge6Desc': { vi: 'Nửa trăm ngày kiên trì không lùi bước', en: 'Fifty days of relentless commitment' },
+    'account.badgeUnlocked': { vi: 'Đã mở khóa 🎉', en: 'Unlocked 🎉' },
+    'account.badgeLocked': { vi: 'Chưa mở khóa 🔒', en: 'Locked 🔒' },
+    'account.badgeRemaining': { vi: 'còn {n} ngày', en: '{n} days left' },
+    'nav.streak': { vi: 'Chuỗi học tập', en: 'Study Streak' },
+    'streak.freeze': { vi: 'Bảo lưu chuỗi (Streak Freeze)', en: 'Streak Freeze' },
+    'streak.freezeDesc': { vi: 'Tự động bảo vệ chuỗi khi lỡ 1 ngày bận', en: 'Auto-shields streak when missing a busy day' },
+    'streak.freezesRemaining': { vi: 'lượt bảo vệ', en: 'shields left' },
+    'streak.freezesAvail': { vi: 'lượt đóng băng khả dụng', en: 'freezes available' },
+    'streak.todayCompleted': { vi: 'Hôm nay: Đã giữ chuỗi! 🔥', en: 'Today: Streak active! 🔥' },
+    'streak.todayPending': { vi: 'Hôm nay: Chưa học', en: 'Today: Incomplete' },
+    'streak.todayActionNudge': { vi: 'Làm 1 việc học tập để thắp sáng ngọn lửa!', en: 'Complete 1 learning action to light the flame!' },
+    'streak.viewDetails': { vi: 'Xem hồ sơ & huy hiệu', en: 'View profile & badges' },
+    'streak.monthlyCalendar': { vi: 'Lịch hoạt động & Heatmap tháng', en: 'Monthly Activity & Heatmap' },
+    'streak.legendRest': { vi: 'Nghỉ ngơi', en: 'Rest day' },
+    'streak.legendActive': { vi: 'Đã học tập 🔥', en: 'Studied 🔥' },
+    'streak.legendFrozen': { vi: 'Bảo lưu ❄️', en: 'Frozen ❄️' },
+    'streak.legendToday': { vi: 'Hôm nay', en: 'Today' },
+    'streak.monthDays': { vi: 'ngày học', en: 'days studied' },
+    'streak.frozenUsed': { vi: 'lượt bảo lưu đã dùng', en: 'freezes used' },
+    'streak.attendanceRate': { vi: 'chuyên cần', en: 'consistency' },
+    'streak.milestoneTitle': { vi: 'Chúc mừng cột mốc chuỗi!', en: 'Streak Milestone Reached!' },
+    'streak.milestoneReward': { vi: 'Thưởng: +1 Lượt Streak Freeze ❄️', en: 'Reward: +1 Streak Freeze ❄️' },
+    'streak.continueBtn': { vi: 'Tiếp tục học tập', en: 'Keep Learning' },
+    'account.preferencesTitle': { vi: 'Cấu hình Hệ thống & Giao diện', en: 'System & Interface Preferences' },
+    'account.themeLabel': { vi: 'Chủ đề giao diện (Theme)', en: 'Interface Theme' },
+    'account.langLabel': { vi: 'Ngôn ngữ hiển thị', en: 'Display Language' },
+    'account.notifyStreak': { vi: 'Nhắc nhở chuỗi học tập hàng ngày', en: 'Daily streak reminders' },
+    'account.notifyDeadline': { vi: 'Cảnh báo hạn chót nhiệm vụ', en: 'Task deadline alerts' },
+    'account.soundEffects': { vi: 'Âm thanh khi hoàn thành nhiệm vụ', en: 'Task completion sound effects' },
+    'account.backToLocal': { vi: 'Về hồ sơ máy này', en: 'Back to local profile' },
     'account.statsCompleted': { vi: 'Nhiệm vụ đã hoàn thành', en: 'Completed tasks' },
     'home.f1.title': { vi: 'Lập kế hoạch', en: 'Planning' },
     'home.f1.desc': { vi: 'Tạo danh sách công việc cá nhân hóa, giúp bạn chủ động trong học tập.', en: 'Build a personalized to-do list, helping you stay proactive in your studies.' },
@@ -395,6 +499,8 @@ const SV_I18N = {
     'home.f2.desc': { vi: '"Chế độ tối giảm mỏi mắt và tăng tập trung cho những buổi học dài."', en: '"Dark Mode reduces eye strain and boosts focus for long study sessions."' },
     'home.f3.title': { vi: 'Bảo mật & Tốc độ', en: 'Security & Speed' },
     'home.f3.desc': { vi: 'Dữ liệu được lưu an toàn ngay trên trình duyệt, truy cập tức thì.', en: 'Data is stored securely right on the browser, ensuring instant access.' },
+    'home.f4.title': { vi: 'Flashcards Ghi nhớ', en: 'Flashcard Study' },
+    'home.f4.desc': { vi: 'Nhập tài liệu tự động tạo flashcard 3D và ôn tập theo ngắt quãng hiệu quả.', en: 'Import study materials, auto-generate 3D cards, and boost recall with spaced review.' },
     'todo.pageTitle': { vi: 'Dự án của tôi', en: 'My Project' },
     'todo.sidebar': { vi: 'Dự án của tôi', en: 'My Projects' },
     'todo.newProject': { vi: '+ Dự án mới', en: '+ New Project' },
@@ -692,10 +798,26 @@ function svTheme() {
     return SV_THEMES.includes(t) ? t : SV_DEFAULT_THEME;
 }
 
+function svSetTheme(t) {
+    if (!SV_THEMES.includes(t)) return;
+    localStorage.setItem(SV_THEME_KEY, t);
+    svApplyTheme();
+}
+
 function svApplyTheme() {
     // Luôn set data-theme (mỗi theme đều có block CSS, kể cả midnight)
     document.documentElement.dataset.theme = svTheme();
     document.dispatchEvent(new CustomEvent('sv:themechange'));
+}
+
+function svSetLang(lang) {
+    if (lang !== 'vi' && lang !== 'en') return;
+    localStorage.setItem(SV_LANG_KEY, lang);
+    if (document.documentElement) {
+        document.documentElement.lang = lang;
+    }
+    svApplyI18n();
+    document.dispatchEvent(new CustomEvent('sv:langchange', { detail: { lang } }));
 }
 
 function initSettingsUI() {
@@ -704,6 +826,35 @@ function initSettingsUI() {
     // Chèn nút vào nav-container, sau pill menu
     const container = document.querySelector('.nav-container');
     if (!container) return;
+
+    // Streak Widget
+    const streakContainer = document.createElement('div');
+    streakContainer.className = 'nav-streak-container';
+    streakContainer.id = 'navStreakContainer';
+
+    const streakBtn = document.createElement('button');
+    streakBtn.type = 'button';
+    streakBtn.className = 'nav-streak-btn';
+    streakBtn.id = 'navStreakBtn';
+    streakBtn.setAttribute('data-i18n-title', 'nav.streak');
+    streakBtn.setAttribute('data-i18n-aria', 'nav.streak');
+    streakBtn.setAttribute('aria-haspopup', 'dialog');
+    streakBtn.setAttribute('aria-expanded', 'false');
+    streakBtn.setAttribute('aria-controls', 'svStreakPopover');
+    streakBtn.innerHTML = `
+        <span class="nav-streak-flame" id="navStreakFlame"><i class="fa-solid fa-fire-flame-curved" aria-hidden="true"></i></span>
+        <span class="nav-streak-count" id="navStreakCount">0</span>
+        <span class="nav-streak-freeze-tag" id="navStreakFreezeTag" title="${svT('streak.freeze')}"><i class="fa-solid fa-snowflake" aria-hidden="true"></i></span>
+    `;
+
+    const streakPopover = document.createElement('div');
+    streakPopover.className = 'sv-streak-popover';
+    streakPopover.id = 'svStreakPopover';
+    streakPopover.setAttribute('role', 'dialog');
+    streakPopover.setAttribute('aria-hidden', 'true');
+
+    streakContainer.appendChild(streakBtn);
+    streakContainer.appendChild(streakPopover);
 
     const accountLink = document.createElement('a');
     accountLink.className = 'nav-account';
@@ -728,9 +879,11 @@ function initSettingsUI() {
 
     const nav = container.querySelector('.navigation');
     if (nav) {
-        nav.insertAdjacentElement('afterend', accountLink);
+        nav.insertAdjacentElement('afterend', streakContainer);
+        streakContainer.insertAdjacentElement('afterend', accountLink);
         accountLink.insertAdjacentElement('afterend', settingsBtn);
     } else {
+        container.appendChild(streakContainer);
         container.appendChild(accountLink);
         container.appendChild(settingsBtn);
     }
@@ -778,9 +931,35 @@ function initSettingsUI() {
         if (!open && restoreFocus) settingsBtn.focus();
     };
 
+    streakBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = !streakPopover.classList.contains('open');
+        if (open) {
+            setPanelOpen(false);
+            svUpdateNavStreak();
+            streakPopover.classList.add('open');
+            streakBtn.classList.add('open');
+            streakBtn.setAttribute('aria-expanded', 'true');
+            streakPopover.setAttribute('aria-hidden', 'false');
+        } else {
+            streakPopover.classList.remove('open');
+            streakBtn.classList.remove('open');
+            streakBtn.setAttribute('aria-expanded', 'false');
+            streakPopover.setAttribute('aria-hidden', 'true');
+        }
+    });
+
+    streakPopover.addEventListener('click', (e) => e.stopPropagation());
+
     settingsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const open = !panel.classList.contains('open');
+        if (open) {
+            streakPopover.classList.remove('open');
+            streakBtn.classList.remove('open');
+            streakBtn.setAttribute('aria-expanded', 'false');
+            streakPopover.setAttribute('aria-hidden', 'true');
+        }
         setPanelOpen(open);
         // Mở bằng bàn phím thì đưa focus vào panel, vì panel nằm cuối <body>
         // nên Tab từ nút bánh răng sẽ đi qua hết trang trước khi tới panel.
@@ -799,6 +978,7 @@ function initSettingsUI() {
             localStorage.setItem(SV_LANG_KEY, btn.dataset.lang);
             svApplyI18n();
             syncPanel();
+            svUpdateNavStreak();
         });
     });
 
@@ -815,21 +995,184 @@ function initSettingsUI() {
         if (!panel.contains(e.target) && !settingsBtn.contains(e.target)) {
             setPanelOpen(false);
         }
+        if (!streakPopover.contains(e.target) && !streakBtn.contains(e.target)) {
+            streakPopover.classList.remove('open');
+            streakBtn.classList.remove('open');
+            streakBtn.setAttribute('aria-expanded', 'false');
+            streakPopover.setAttribute('aria-hidden', 'true');
+        }
     });
     document.addEventListener('keydown', (e) => {
         // Modal đang mở thì Esc thuộc về modal, không đóng panel
-        if (e.key === 'Escape' && !svModalState && panel.classList.contains('open')) {
-            setPanelOpen(false, { restoreFocus: true });
+        if (e.key === 'Escape' && !svModalState) {
+            if (panel.classList.contains('open')) {
+                setPanelOpen(false, { restoreFocus: true });
+            }
+            if (streakPopover.classList.contains('open')) {
+                streakPopover.classList.remove('open');
+                streakBtn.classList.remove('open');
+                streakBtn.setAttribute('aria-expanded', 'false');
+                streakPopover.setAttribute('aria-hidden', 'true');
+                streakBtn.focus();
+            }
         }
     });
 
     syncPanel();
     setPanelOpen(false);
+    svUpdateNavAccount();
+    svUpdateNavStreak();
     if (typeof svEnhanceIcons === 'function') {
         svEnhanceIcons(panel);
         svEnhanceIcons(container);
     }
 }
+
+function svUpdateNavAccount() {
+    const accountLink = document.querySelector('.nav-account');
+    if (!accountLink) return;
+    const profile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+    const name = profile && profile.displayName ? profile.displayName.trim() : '';
+    const streakData = typeof svGetStreak === 'function' ? svGetStreak() : null;
+    const streak = streakData ? streakData.currentStreak : 1;
+
+    if (name) {
+        accountLink.title = `${name} (${streak} 🔥)`;
+        accountLink.setAttribute('aria-label', `${name} (${streak} 🔥)`);
+        accountLink.innerHTML = `<span class="nav-account-avatar">${escapeHtml(name.charAt(0).toUpperCase())}</span>`;
+    } else {
+        accountLink.title = svT('nav.account');
+        accountLink.setAttribute('aria-label', svT('nav.account'));
+        accountLink.innerHTML = '<i class="fa-regular fa-user" aria-hidden="true"></i>';
+    }
+}
+document.addEventListener('sv:profilechange', svUpdateNavAccount);
+
+function svUpdateNavStreak(streakData) {
+    if (typeof document === 'undefined') return;
+    const findEl = (id) => (typeof document.getElementById === 'function' ? document.getElementById(id) : (typeof document.querySelector === 'function' ? document.querySelector('#' + id) : null));
+    const data = streakData || (typeof svGetStreak === 'function' ? svGetStreak() : null);
+    if (!data) return;
+
+    const streakCountEl = findEl('navStreakCount');
+    const flameEl = findEl('navStreakFlame');
+    const freezeTagEl = findEl('navStreakFreezeTag');
+    const streakBtn = findEl('navStreakBtn');
+    const popover = findEl('svStreakPopover');
+
+    const streak = Math.max(0, Number(data.currentStreak) || 0);
+    const best = Math.max(streak, Number(data.bestStreak) || 0);
+    const isLit = Boolean(data.todayCompleted);
+    const freezes = Number(data.freezesAvailable) || 0;
+    const maxFreezes = Number(data.maxFreezes) || 2;
+    const levelInfo = typeof svGetStreakLevel === 'function' ? svGetStreakLevel(streak) : { level: 1, name: 'Tập sự 🌱', color: '#ff7824' };
+
+    if (streakCountEl) streakCountEl.textContent = streak;
+    if (flameEl) {
+        flameEl.className = `nav-streak-flame ${isLit ? 'flame-active' : 'flame-idle'}`;
+        flameEl.style.color = isLit ? '#ff7824' : '#94a3b8';
+    }
+    if (freezeTagEl) {
+        freezeTagEl.style.display = freezes > 0 ? 'inline-flex' : 'none';
+        freezeTagEl.title = `${freezes} ${svT('streak.freezesRemaining')}`;
+    }
+    if (streakBtn) {
+        const statusText = isLit ? svT('streak.todayCompleted') : svT('streak.todayPending');
+        const titleStr = `${svT('nav.streak')}: ${streak} 🔥 (${statusText})`;
+        streakBtn.title = titleStr;
+        streakBtn.setAttribute('aria-label', titleStr);
+        if (isLit) {
+            streakBtn.classList.add('is-active');
+        } else {
+            streakBtn.classList.remove('is-active');
+        }
+    }
+
+    if (popover) {
+        const onAccountPage = /\/account\.html$/.test(window.location.pathname);
+        const accountUrl = onAccountPage ? '#streak' : '/account.html#streak';
+
+        let recentActionsHtml = '';
+        if (Array.isArray(data.todayActions) && data.todayActions.length > 0) {
+            recentActionsHtml = `
+                <div class="popover-actions-list">
+                    <span class="popover-actions-label">${svLang() === 'en' ? 'Today\'s actions:' : 'Hoạt động hôm nay:'}</span>
+                    ${data.todayActions.slice(-3).map(a => `
+                        <div class="popover-action-item">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>${escapeHtml(a.title || a.type)}</span>
+                            <small>${escapeHtml(a.time || '')}</small>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        popover.innerHTML = `
+            <div class="popover-header">
+                <div class="popover-flame-big ${isLit ? 'flame-active' : 'flame-idle'}">
+                    <i class="fa-solid fa-fire-flame-curved"></i>
+                </div>
+                <div class="popover-title-box">
+                    <div class="popover-streak-num"><strong>${streak}</strong> ${svT('account.streakDays')}</div>
+                    <div class="popover-level-tag" style="color: ${levelInfo.color}; background: ${levelInfo.color}15; border-color: ${levelInfo.color}40;">
+                        ${svT('account.streakLevel')} ${levelInfo.level}: ${levelInfo.name}
+                    </div>
+                </div>
+            </div>
+
+            <div class="popover-status-card ${isLit ? 'status-done' : 'status-pending'}">
+                <div class="popover-status-icon">
+                    <i class="fa-solid ${isLit ? 'fa-circle-check' : 'fa-hourglass-half'}"></i>
+                </div>
+                <div class="popover-status-text">
+                    <strong>${isLit ? svT('streak.todayCompleted') : svT('streak.todayPending')}</strong>
+                    <p>${isLit
+                        ? (svLang() === 'en' ? 'Awesome! Flame is burning bright. Keep it up tomorrow!' : 'Xuất sắc! Ngọn lửa đang cháy rực rỡ. Tiếp tục giữ lửa ngày mai nhé!')
+                        : (svLang() === 'en' ? 'Complete 1 task in Todo, Flashcards, Schedule or AI Chat to light up today!' : 'Hoàn thành 1 việc (Todo, Flashcard, Lịch hoặc AI) để thắp sáng ngọn lửa hôm nay!')}
+                    </p>
+                </div>
+            </div>
+
+            <div class="popover-info-grid">
+                <div class="popover-info-pill">
+                    <i class="fa-solid fa-snowflake" style="color: #38bdf8;"></i>
+                    <div class="popover-info-text">
+                        <small>${svT('streak.freeze')}</small>
+                        <strong>${freezes} / ${maxFreezes}</strong>
+                    </div>
+                </div>
+                <div class="popover-info-pill">
+                    <i class="fa-solid fa-trophy" style="color: #f5a623;"></i>
+                    <div class="popover-info-text">
+                        <small>${svT('account.streakBest')}</small>
+                        <strong>${best} ${svT('account.streakDays')}</strong>
+                    </div>
+                </div>
+            </div>
+
+            ${recentActionsHtml}
+
+            <a href="${accountUrl}" class="popover-account-link" id="popoverAccountLink">
+                <i class="fa-solid fa-award"></i>
+                <span>${svT('streak.viewDetails')}</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        `;
+
+        const link = popover.querySelector('#popoverAccountLink');
+        if (link) {
+            link.addEventListener('click', () => {
+                popover.classList.remove('open');
+                streakBtn.classList.remove('open');
+                streakBtn.setAttribute('aria-expanded', 'false');
+                popover.setAttribute('aria-hidden', 'true');
+            });
+        }
+    }
+}
+document.addEventListener('sv:streakchange', () => svUpdateNavStreak());
+document.addEventListener('sv:langchange', () => svUpdateNavStreak());
 
 const SV_CFG_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const SV_CFG_HEX_RE = /^#[0-9a-fA-F]{6}$/;
@@ -973,6 +1316,15 @@ let svAuthResolved = false;
 let svSupabaseClient = null;
 let svSupabasePromise = null;
 
+function svSetStorageScope(scope) {
+    SV_STORAGE_SCOPE = String(scope || '').trim();
+    return SV_STORAGE_SCOPE;
+}
+
+function svGetStorageScope() {
+    return SV_STORAGE_SCOPE;
+}
+
 // Khóa localStorage theo user: giữ nguyên key gốc cho khách,
 // còn khi đã đăng nhập thì thành "<key>::<userId>".
 function svScopedKey(baseKey) {
@@ -983,8 +1335,11 @@ function svScopedKey(baseKey) {
 // Chạy trước khi trang app đọc dữ liệu; không ghi đè dữ liệu đã có của tài khoản.
 function svMigrateGuestData(userId) {
     if (!userId) return false;
+    if (userId !== SV_STORAGE_SCOPE) {
+        SV_STORAGE_SCOPE = userId;
+    }
     const storage = SV_CFG.storage || {};
-    const dataKeys = [storage.projects, storage.schedule, storage.lastProject, storage.careerChat, storage.userProfile, storage.streak].filter(Boolean);
+    const dataKeys = [storage.projects, storage.schedule, storage.lastProject, storage.careerChat, storage.userProfile, storage.streak, storage.flashcards, storage.lastFlashcardDeck].filter(Boolean);
     if (!dataKeys.length) return false;
 
     try {
@@ -1488,79 +1843,466 @@ function svGetLocalDateStr(date = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
+function svGetPreviousDateStr(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string') return '';
+    const parts = dateStr.split('-').map(Number);
+    if (parts.length !== 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) return '';
+    const d = new Date(parts[0], parts[1] - 1, parts[2] - 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function svGetDateDiffDays(dateStrA, dateStrB) {
+    if (!dateStrA || !dateStrB) return 0;
+    const pA = String(dateStrA).split('-').map(Number);
+    const pB = String(dateStrB).split('-').map(Number);
+    if (pA.length !== 3 || pB.length !== 3 || isNaN(pA[0]) || isNaN(pB[0])) return 0;
+    const dA = new Date(pA[0], pA[1] - 1, pA[2]);
+    const dB = new Date(pB[0], pB[1] - 1, pB[2]);
+    return Math.round((dB.getTime() - dA.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 function svGetStreak() {
     const storageKey = svScopedKey((SV_CFG.storage && SV_CFG.storage.streak) || 'studyverse_streak_data');
     const today = svGetLocalDateStr();
+    const yesterdayStr = svGetPreviousDateStr(today);
+
+    const defaultState = {
+        currentStreak: 0,
+        bestStreak: 0,
+        lastActiveDate: '',
+        activeDates: [],
+        frozenDates: [],
+        freezesAvailable: 2,
+        maxFreezes: 2,
+        todayCompleted: false,
+        todayActionsCount: 0,
+        todayActions: []
+    };
+
     try {
         const raw = localStorage.getItem(storageKey);
-        if (!raw) return { currentStreak: 1, bestStreak: 1, lastActiveDate: today, activeDates: [today] };
+        if (!raw) return defaultState;
         const data = JSON.parse(raw);
-        return {
-            currentStreak: Math.max(1, Number(data.currentStreak) || 1),
-            bestStreak: Math.max(1, Number(data.bestStreak) || 1),
-            lastActiveDate: data.lastActiveDate || today,
-            activeDates: Array.isArray(data.activeDates) && data.activeDates.length ? data.activeDates : [today]
+        if (!data || typeof data !== 'object') return defaultState;
+
+        let currentStreak = Math.max(0, Number(data.currentStreak) || 0);
+        let bestStreak = Math.max(currentStreak, Number(data.bestStreak) || 0);
+        let lastActive = typeof data.lastActiveDate === 'string' ? data.lastActiveDate : '';
+        let activeDates = Array.isArray(data.activeDates) ? [...data.activeDates] : (lastActive ? [lastActive] : []);
+        let frozenDates = Array.isArray(data.frozenDates) ? [...data.frozenDates] : [];
+        let freezesAvailable = data.freezesAvailable !== undefined ? Math.max(0, Number(data.freezesAvailable) || 0) : 2;
+        const maxFreezes = data.maxFreezes !== undefined ? Math.max(1, Number(data.maxFreezes) || 2) : 2;
+        let todayActions = Array.isArray(data.todayActions) ? data.todayActions : [];
+        let todayActionsCount = Number(data.todayActionsCount) || 0;
+
+        // Reset danh sách hành động nếu ngày đã sang ngày mới
+        if (data.lastActionsDate && data.lastActionsDate !== today) {
+            todayActions = [];
+            todayActionsCount = 0;
+        }
+
+        let dirty = false;
+        let freezeApplied = false;
+
+        // Kiểm tra xem chuỗi có bị gián đoạn hay cần kích hoạt Streak Freeze tự động
+        if (lastActive && lastActive !== today) {
+            const diffDays = svGetDateDiffDays(lastActive, today);
+
+            if (diffDays === 1) {
+                // Hôm qua đã học -> chuỗi được giữ nguyên, hôm nay chưa hoàn thành
+            } else if (diffDays > 1) {
+                // Có ngày bị lỡ (diffDays - 1 ngày)
+                const missedDaysCount = diffDays - 1;
+
+                if (missedDaysCount <= freezesAvailable && currentStreak > 0) {
+                    // Tự động kích hoạt Streak Freeze để bảo vệ chuỗi!
+                    const pA = lastActive.split('-').map(Number);
+                    for (let i = 1; i <= missedDaysCount; i++) {
+                        const d = new Date(pA[0], pA[1] - 1, pA[2] + i);
+                        const fStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        if (!frozenDates.includes(fStr)) {
+                            frozenDates.push(fStr);
+                        }
+                    }
+                    freezesAvailable = Math.max(0, freezesAvailable - missedDaysCount);
+                    lastActive = yesterdayStr; // Cầu nối qua freeze!
+                    freezeApplied = true;
+                    dirty = true;
+
+                    try {
+                        document.dispatchEvent(new CustomEvent('sv:streakfreeze_applied', {
+                            detail: { missedDaysCount, freezesRemaining: freezesAvailable }
+                        }));
+                    } catch (_) {}
+                } else {
+                    // Bị lỡ nhiều hơn số freeze còn lại -> chuỗi bị ngắt về 0
+                    currentStreak = 0;
+                    dirty = true;
+                }
+            }
+        }
+
+        const todayCompleted = (lastActive === today && (todayActionsCount > 0 || activeDates.includes(today)));
+
+        const normalized = {
+            currentStreak,
+            bestStreak: Math.max(bestStreak, currentStreak),
+            lastActiveDate: lastActive,
+            activeDates,
+            frozenDates,
+            freezesAvailable,
+            maxFreezes,
+            todayCompleted,
+            todayActionsCount: todayCompleted ? Math.max(1, todayActionsCount) : 0,
+            todayActions: todayCompleted ? todayActions : [],
+            freezeJustApplied: freezeApplied
         };
+
+        if (dirty) {
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(normalized));
+            } catch (_) {}
+        }
+
+        return normalized;
     } catch (_) {
-        return { currentStreak: 1, bestStreak: 1, lastActiveDate: today, activeDates: [today] };
+        return defaultState;
     }
 }
 
-function svRecordStreakActivity() {
+function svGetStreakLevel(currentStreak = 0) {
+    const count = Math.max(0, Number(currentStreak) || 0);
+    if (count >= 50) {
+        return { level: 6, name: 'Bất diệt 💎', titleKey: 'account.badge6Title', color: '#38bdf8', glow: 'rgba(56, 189, 248, 0.4)', nextDays: 0, nextName: '' };
+    }
+    if (count >= 30) {
+        return { level: 5, name: 'Huyền thoại 👑', titleKey: 'account.badge5Title', color: '#eab308', glow: 'rgba(234, 179, 8, 0.4)', nextDays: 50 - count, nextName: 'Bất diệt' };
+    }
+    if (count >= 14) {
+        return { level: 4, name: 'Quán quân 🏆', titleKey: 'account.badge4Title', color: '#a855f7', glow: 'rgba(168, 85, 247, 0.4)', nextDays: 30 - count, nextName: 'Huyền thoại' };
+    }
+    if (count >= 7) {
+        return { level: 3, name: 'Giữ lửa 🔥', titleKey: 'account.badge3Title', color: '#ff7824', glow: 'rgba(255, 120, 36, 0.4)', nextDays: 14 - count, nextName: 'Quán quân' };
+    }
+    if (count >= 3) {
+        return { level: 2, name: 'Khởi động ⚡', titleKey: 'account.badge2Title', color: '#ffca55', glow: 'rgba(255, 202, 85, 0.4)', nextDays: 7 - count, nextName: 'Giữ lửa' };
+    }
+    if (count >= 1) {
+        return { level: 1, name: 'Tập sự 🌱', titleKey: 'account.badge1Title', color: '#34c759', glow: 'rgba(52, 199, 89, 0.4)', nextDays: 3 - count, nextName: 'Khởi động' };
+    }
+    return { level: 0, name: 'Chưa bắt đầu 🌱', titleKey: 'account.badge1Title', color: '#94a3b8', glow: 'rgba(148, 163, 184, 0.2)', nextDays: 1, nextName: 'Tập sự' };
+}
+
+function svGetStreakBadges(bestStreak = 0) {
+    const best = Math.max(0, Number(bestStreak) || 0);
+    return [
+        {
+            id: 'badge_1',
+            days: 1,
+            icon: 'fa-seedling',
+            color: '#34c759',
+            titleKey: 'account.badge1Title',
+            descKey: 'account.badge1Desc',
+            unlocked: best >= 1,
+            remaining: Math.max(0, 1 - best)
+        },
+        {
+            id: 'badge_3',
+            days: 3,
+            icon: 'fa-bolt',
+            color: '#ffca55',
+            titleKey: 'account.badge2Title',
+            descKey: 'account.badge2Desc',
+            unlocked: best >= 3,
+            remaining: Math.max(0, 3 - best)
+        },
+        {
+            id: 'badge_7',
+            days: 7,
+            icon: 'fa-fire-flame-curved',
+            color: '#ff7824',
+            titleKey: 'account.badge3Title',
+            descKey: 'account.badge3Desc',
+            unlocked: best >= 7,
+            remaining: Math.max(0, 7 - best)
+        },
+        {
+            id: 'badge_14',
+            days: 14,
+            icon: 'fa-trophy',
+            color: '#a855f7',
+            titleKey: 'account.badge4Title',
+            descKey: 'account.badge4Desc',
+            unlocked: best >= 14,
+            remaining: Math.max(0, 14 - best)
+        },
+        {
+            id: 'badge_30',
+            days: 30,
+            icon: 'fa-crown',
+            color: '#eab308',
+            titleKey: 'account.badge5Title',
+            descKey: 'account.badge5Desc',
+            unlocked: best >= 30,
+            remaining: Math.max(0, 30 - best)
+        },
+        {
+            id: 'badge_50',
+            days: 50,
+            icon: 'fa-gem',
+            color: '#38bdf8',
+            titleKey: 'account.badge6Title',
+            descKey: 'account.badge6Desc',
+            unlocked: best >= 50,
+            remaining: Math.max(0, 50 - best)
+        }
+    ];
+}
+
+function svRecordStreakActivity(action = {}) {
     const storageKey = svScopedKey((SV_CFG.storage && SV_CFG.storage.streak) || 'studyverse_streak_data');
     const today = svGetLocalDateStr();
-    const current = svGetStreak();
+    const yesterdayStr = svGetPreviousDateStr(today);
 
-    if (current.lastActiveDate === today) {
-        return current;
-    }
+    const prevData = svGetStreak();
+    let currentStreak = Number(prevData.currentStreak) || 0;
+    let bestStreak = Number(prevData.bestStreak) || 0;
+    let lastActive = prevData.lastActiveDate;
+    let activeDates = Array.isArray(prevData.activeDates) ? [...prevData.activeDates] : [];
+    let frozenDates = Array.isArray(prevData.frozenDates) ? [...prevData.frozenDates] : [];
+    let freezesAvailable = prevData.freezesAvailable !== undefined ? Number(prevData.freezesAvailable) : 2;
+    const maxFreezes = prevData.maxFreezes !== undefined ? Number(prevData.maxFreezes) : 2;
+    let todayActions = Array.isArray(prevData.todayActions) ? [...prevData.todayActions] : [];
+    let todayActionsCount = Number(prevData.todayActionsCount) || 0;
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = svGetLocalDateStr(yesterday);
+    const actionType = (action && action.type) || 'activity';
+    const actionTitle = (action && action.title) || (svLang() === 'en' ? 'Study action' : 'Hoạt động học tập');
+    const actionTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
-    let nextStreak = current.currentStreak;
-    if (current.lastActiveDate === yesterdayStr) {
-        nextStreak += 1;
+    let isMilestoneAchieved = false;
+
+    if (lastActive !== today) {
+        // Lần đầu tiên ghi nhận hoạt động học trong ngày hôm nay!
+        if (lastActive === yesterdayStr || frozenDates.includes(yesterdayStr)) {
+            currentStreak = currentStreak + 1;
+        } else {
+            currentStreak = 1;
+        }
+
+        bestStreak = Math.max(bestStreak, currentStreak);
+        lastActive = today;
+        if (!activeDates.includes(today)) {
+            activeDates.push(today);
+        }
+        if (activeDates.length > 90) activeDates.shift();
+
+        todayActions = [{ type: actionType, title: actionTitle, time: actionTime }];
+        todayActionsCount = 1;
+
+        // Thưởng thêm Streak Freeze khi đạt mốc quan trọng
+        const milestones = [3, 7, 14, 30, 50];
+        if (milestones.includes(currentStreak)) {
+            isMilestoneAchieved = true;
+            if (freezesAvailable < maxFreezes) {
+                freezesAvailable++;
+            }
+        }
+
+        // Âm thanh ăn mừng
+        if (typeof svPlayStreakCelebrationSound === 'function') {
+            svPlayStreakCelebrationSound();
+        }
     } else {
-        nextStreak = 1;
+        // Hôm nay đã thắp lửa, ghi nhận thêm hành động học tập
+        todayActionsCount++;
+        if (!Array.isArray(todayActions)) todayActions = [];
+        todayActions.push({ type: actionType, title: actionTitle, time: actionTime });
+        if (!activeDates.includes(today)) {
+            activeDates.push(today);
+        }
     }
-
-    const bestStreak = Math.max(current.bestStreak || 1, nextStreak);
-    const activeDates = Array.isArray(current.activeDates) ? current.activeDates.filter(d => d !== today) : [];
-    activeDates.push(today);
-    if (activeDates.length > 30) activeDates.shift();
 
     const updated = {
-        currentStreak: nextStreak,
-        bestStreak: bestStreak,
+        currentStreak,
+        bestStreak,
         lastActiveDate: today,
-        activeDates: activeDates
+        activeDates,
+        frozenDates,
+        freezesAvailable,
+        maxFreezes,
+        todayCompleted: true,
+        todayActionsCount,
+        todayActions,
+        lastActionsDate: today
     };
 
     try {
         localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch (_) {}
 
+    // Phát sự kiện cập nhật streak
+    try {
+        document.dispatchEvent(new CustomEvent('sv:streakchange', { detail: updated }));
+    } catch (_) {}
+
+    if (typeof svUpdateNavStreak === 'function') {
+        svUpdateNavStreak(updated);
+    }
+
+    // Hiển thị chúc mừng
+    if (isMilestoneAchieved && typeof svShowStreakCelebrationModal === 'function') {
+        svShowStreakCelebrationModal(updated);
+    } else if (lastActive === today && todayActionsCount === 1 && typeof svShowStreakToast === 'function') {
+        svShowStreakToast(updated);
+    }
+
     return updated;
 }
 
-// ===== Quản lý Hồ sơ người dùng & Tùy biến AI =====
+const svRecordStreakAction = svRecordStreakActivity;
+
+// Web Audio API Celebrations
+function svPlayStreakCelebrationSound() {
+    try {
+        const profile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+        if (profile && profile.soundEnabled === false) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            const start = ctx.currentTime + idx * 0.08;
+            osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(0.14, start);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(start);
+            osc.stop(start + 0.35);
+        });
+    } catch (_) {}
+}
+
+function svPlayFreezeSound() {
+    try {
+        const profile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+        if (profile && profile.soundEnabled === false) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const notes = [880, 1174.66, 1760]; // A5, D6, A6
+        notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            const start = ctx.currentTime + idx * 0.05;
+            osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(0.08, start);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(start);
+            osc.stop(start + 0.25);
+        });
+    } catch (_) {}
+}
+
+function svShowStreakCelebrationModal(streakData) {
+    if (typeof document === 'undefined' || !document.body) return;
+    const existing = typeof document.getElementById === 'function' ? document.getElementById('svStreakModal') : (typeof document.querySelector === 'function' ? document.querySelector('#svStreakModal') : null);
+    if (existing) existing.remove();
+
+    const streak = streakData.currentStreak;
+    const level = typeof svGetStreakLevel === 'function' ? svGetStreakLevel(streak) : { name: '', color: '#ff7824' };
+    const modal = document.createElement('div');
+    modal.className = 'sv-modal-overlay sv-streak-celebration-overlay';
+    modal.id = 'svStreakModal';
+    modal.innerHTML = `
+        <div class="sv-modal sv-streak-modal-box" role="dialog" aria-modal="true">
+            <div class="sv-streak-modal-icon-wrap" style="color: ${level.color}; background: ${level.color}20;">
+                <i class="fa-solid fa-fire-flame-curved sv-streak-flame-anim"></i>
+            </div>
+            <h3 class="sv-streak-modal-title">${svT('streak.milestoneTitle')}</h3>
+            <p class="sv-streak-modal-count"><strong>${streak}</strong> ${svT('account.streakDays')} 🔥</p>
+            <p class="sv-streak-modal-desc">${level.name}</p>
+            <div class="sv-streak-modal-reward">
+                <i class="fa-solid fa-snowflake"></i>
+                <span>${svT('streak.milestoneReward')}</span>
+            </div>
+            <button type="button" class="sv-streak-modal-close-btn" id="svStreakModalClose">${svT('streak.continueBtn')}</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const close = () => {
+        modal.classList.add('sv-modal-closing');
+        setTimeout(() => modal.remove(), 250);
+    };
+
+    const closeBtn = modal.querySelector('#svStreakModalClose');
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) close();
+    });
+}
+
+function svShowStreakToast(streakData) {
+    if (typeof document === 'undefined' || !document.body) return;
+    const existing = typeof document.getElementById === 'function' ? document.getElementById('svStreakToast') : (typeof document.querySelector === 'function' ? document.querySelector('#svStreakToast') : null);
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'sv-streak-toast';
+    toast.id = 'svStreakToast';
+    toast.innerHTML = `
+        <div class="sv-streak-toast-icon"><i class="fa-solid fa-fire-flame-curved"></i></div>
+        <div class="sv-streak-toast-content">
+            <strong>${svT('account.streakTitle')}: ${streakData.currentStreak} ${svT('account.streakDays')} 🔥</strong>
+            <small>${svT('streak.todayCompleted')}</small>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 350);
+    }, 3500);
+}
+
+// ===== Quản lý Hồ sơ người dùng & Cấu hình Hệ thống =====
 function svGetUserProfile() {
     const storageKey = svScopedKey((SV_CFG.storage && SV_CFG.storage.userProfile) || 'studyverse_user_profile');
+    const defaults = {
+        displayName: '',
+        aiCalling: 'Bạn - Mình',
+        aiStyle: 'Nhiệt tình & truyền cảm hứng',
+        aiFocus: 'Hướng nghiệp & Lập kế hoạch tương lai',
+        dailyGoal: '',
+        interests: '',
+        notifyStreak: true,
+        notifyDeadline: true,
+        soundEnabled: true,
+        theme: svTheme(),
+        lang: svLang()
+    };
     try {
         const raw = localStorage.getItem(storageKey);
         if (raw) {
             const data = JSON.parse(raw);
-            if (data && typeof data === 'object') return data;
+            if (data && typeof data === 'object') {
+                return { ...defaults, ...data };
+            }
         }
     } catch (_) {}
-    return {
-        displayName: '',
-        aiCalling: 'Bạn - Mình',
-        aiStyle: 'Nhiệt tình & truyền cảm hứng',
-        dailyGoal: ''
-    };
+    return defaults;
 }
 
 function svSaveUserProfile(profileUpdates) {
@@ -1570,7 +2312,50 @@ function svSaveUserProfile(profileUpdates) {
     try {
         localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch (_) {}
+
+    if (profileUpdates && profileUpdates.theme && profileUpdates.theme !== svTheme()) {
+        try {
+            svSetTheme(profileUpdates.theme);
+        } catch (_) {}
+    }
+
+    if (profileUpdates && profileUpdates.lang && profileUpdates.lang !== svLang()) {
+        try {
+            svSetLang(profileUpdates.lang);
+        } catch (_) {}
+    }
+
+    try {
+        document.dispatchEvent(new CustomEvent('sv:profilechange', { detail: updated }));
+    } catch (_) {}
+
+    if (typeof svUpdateNavAccount === 'function') {
+        svUpdateNavAccount();
+    }
+
     return updated;
+}
+
+// Âm thanh khi tích hoàn thành nhiệm vụ (chạy nhẹ qua Web Audio API không phụ thuộc file ngoài)
+function svPlayCompletionSound() {
+    try {
+        const profile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+        if (profile && profile.soundEnabled === false) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.28);
+    } catch (_) {}
 }
 
 // khởi tạo theme + ngôn ngữ trước khi trang render để tránh nhấp nháy
@@ -1588,8 +2373,8 @@ function svSaveUserProfile(profileUpdates) {
             document.documentElement.lang = svLang();
         }
 
-        // Tự động duy trì streak học tập
-        svRecordStreakActivity();
+        // Đánh giá trạng thái streak & tự động bảo lưu qua Streak Freeze nếu có ngày lỡ
+        svGetStreak();
 
         // Áp i18n sớm nếu DOM đã sẵn sàng (script cuối body), else chờ DOMContentLoaded.
         // Thứ tự quan trọng: dựng UI settings TRƯỚC rồi mới svApplyI18n(), để title/aria-label
