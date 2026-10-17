@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="vi" class="sv-theme-loading">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title data-i18n="fc.pageTitle">Flashcards - Studyverse</title>
+    <script src="/config.js"></script>
+    <script src="/theme-init.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="/shared.css">
+    <link rel="stylesheet" href="flashcard.css">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">Study<span>verse</span></a>
+            
+            <nav class="navigation">
+                <ul>
+                    <li class="list" id="li-home" data-index="0">
+                        <a href="/index.html">
+                            <span class="icon"><i class="fa-solid fa-house"></i></span>
+                            <span class="text" data-i18n="nav.home">Home</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-project" data-index="1">
+                        <a href="/todo/mylist.html"> 
+                            <span class="icon"><i class="fa-solid fa-list-check"></i></span>
+                            <span class="text" data-i18n="nav.project">My Project</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-schedule" data-index="2">
+                        <a href="/schedule/create.html">
+                            <span class="icon"><i class="fa-regular fa-calendar"></i></span>
+                            <span class="text" data-i18n="nav.schedule">Schedule</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-career" data-index="3">
+                        <a href="/career/chat.html">
+                            <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
+                            <span class="text" data-i18n="nav.career">AI Career</span>
+                        </a>
+                    </li>
+                    <li class="list active" id="li-flashcard" data-index="4">
+                        <a href="/flashcard/flashcard.html">
+                            <span class="icon"><i class="fa-solid fa-layer-group"></i></span>
+                            <span class="text" data-i18n="nav.flashcard">Flashcard</span>
+                        </a>
+                    </li>
+                    <div class="indicator"></div>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="fc-main">
+        <div class="fc-container">
+
+            <!-- Banner giới thiệu -->
+            <section class="fc-banner">
+                <div class="fc-banner-text">
+                    <div class="fc-badge">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span data-i18n="fc.badge">Ôn tập & Ghi nhớ thông minh</span>
+                    </div>
+                    <h1 data-i18n="fc.title">Học bằng Flashcard</h1>
+                    <p data-i18n="fc.subtitle">Nhập tài liệu, tự động phân tích và ôn tập thẻ ghi nhớ trực quan với hiệu ứng 3D</p>
+                </div>
+
+                <!-- Deck Selector Bar -->
+                <div class="fc-deck-toolbar">
+                    <div class="fc-deck-select-group">
+                        <label for="fcDeckSelect" class="fc-label" data-i18n="fc.deck">Bộ thẻ:</label>
+                        <select id="fcDeckSelect" class="fc-select" aria-label="Chọn bộ thẻ"></select>
+                    </div>
+
+                    <div class="fc-deck-actions">
+                        <button type="button" id="fcBtnNewDeck" class="fc-btn fc-btn-primary" data-i18n="fc.newDeck">
+                            <i class="fa-solid fa-plus"></i> Bộ thẻ mới
+                        </button>
+                        <button type="button" id="fcBtnRenameDeck" class="fc-btn fc-btn-secondary" title="Đổi tên bộ thẻ" data-i18n-title="fc.renameDeck">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button type="button" id="fcBtnExportDeck" class="fc-btn fc-btn-secondary" title="Xuất JSON" data-i18n-title="fc.exportDeck">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                        <button type="button" id="fcBtnDeleteDeck" class="fc-btn fc-btn-danger" title="Xóa bộ thẻ" data-i18n-title="fc.deleteDeck">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Thống kê bộ thẻ -->
+            <section class="fc-stats-grid">
+                <div class="fc-stat-card">
+                    <div class="fc-stat-icon is-blue"><i class="fa-solid fa-layer-group"></i></div>
+                    <div class="fc-stat-data">
+                        <span class="fc-stat-num" id="fcStatTotal">0</span>
+                        <span class="fc-stat-label" data-i18n="fc.statTotal">Tổng thẻ</span>
+                    </div>
+                </div>
+                <div class="fc-stat-card">
+                    <div class="fc-stat-icon is-green"><i class="fa-solid fa-circle-check"></i></div>
+                    <div class="fc-stat-data">
+                        <span class="fc-stat-num" id="fcStatMastered">0</span>
+                        <span class="fc-stat-label" data-i18n="fc.statMastered">Đã thuộc</span>
+                    </div>
+                </div>
+                <div class="fc-stat-card">
+                    <div class="fc-stat-icon is-orange"><i class="fa-solid fa-fire-flame-curved"></i></div>
+                    <div class="fc-stat-data">
+                        <span class="fc-stat-num" id="fcStatLearning">0</span>
+                        <span class="fc-stat-label" data-i18n="fc.statLearning">Đang học</span>
+                    </div>
+                </div>
+                <div class="fc-stat-card">
+                    <div class="fc-stat-icon is-purple"><i class="fa-regular fa-calendar"></i></div>
+                    <div class="fc-stat-data">
+                        <span class="fc-stat-num" id="fcStatNew">0</span>
+                        <span class="fc-stat-label" data-i18n="fc.statNew">Chưa học</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Navigation Tabs cho không gian Flashcard -->
+            <nav class="fc-tabs" role="tablist">
+                <button type="button" id="fcTabStudyBtn" class="fc-tab-btn active" role="tab" aria-selected="true" data-i18n="fc.tabStudy">
+                    <i class="fa-solid fa-rotate"></i> Lật thẻ ghi nhớ
+                </button>
+                <button type="button" id="fcTabQuizBtn" class="fc-tab-btn" role="tab" aria-selected="false" data-i18n="fc.tabQuiz">
+                    <i class="fa-solid fa-circle-question"></i> Trắc nghiệm
+                </button>
+                <button type="button" id="fcTabCreateBtn" class="fc-tab-btn" role="tab" aria-selected="false" data-i18n="fc.tabCreate">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Nhập file / Tạo thẻ
+                </button>
+                <button type="button" id="fcTabListBtn" class="fc-tab-btn" role="tab" aria-selected="false" data-i18n="fc.tabList">
+                    <i class="fa-solid fa-list-check"></i> Quản lý thẻ
+                </button>
+            </nav>
+
+            <!-- ==================== TAB 1: ÔN TẬP LẬT THẺ ==================== -->
+            <section id="fcPanelStudy" class="fc-tab-panel active" role="tabpanel">
+                <!-- Nút thoát Zen Mode khi kích hoạt toàn màn hình -->
+                <button type="button" id="fcBtnExitZen" class="fc-zen-exit-btn" title="Thoát chế độ tập trung (Esc)" hidden>
+                    <i class="fa-solid fa-compress"></i> <span>Thoát Focus (Esc)</span>
+                </button>
+
+                <div class="fc-study-topbar">
+                    <div class="fc-study-progress-info">
+                        <div class="fc-study-progress-header">
+                            <span id="fcStudyCounter" class="fc-study-counter">Thẻ 1 / 1</span>
+                            <div class="fc-study-mini-pills" id="fcStudyMiniPills">
+                                <span class="fc-mini-pill is-mastered" title="Đã thuộc"><i class="fa-solid fa-trophy"></i> <b id="fcMiniMastered">0</b></span>
+                                <span class="fc-mini-pill is-learning" title="Đang nhớ"><i class="fa-solid fa-fire-flame-curved"></i> <b id="fcMiniLearning">0</b></span>
+                                <span class="fc-mini-pill is-new" title="Chưa học"><i class="fa-regular fa-circle"></i> <b id="fcMiniNew">0</b></span>
+                            </div>
+                        </div>
+                        <div class="fc-progress-bar-wrap" title="Tiến độ học">
+                            <div id="fcStudyProgressBar" class="fc-progress-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="fc-study-tools">
+                        <button type="button" id="fcBtnAutoPlay" class="fc-btn-icon" title="Tự động lật và chuyển thẻ (Auto-play)">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                        <button type="button" id="fcBtnFontSize" class="fc-btn-icon" title="Đổi cỡ chữ thẻ">
+                            <span class="fc-font-size-glyph">A<sup>+</sup></span>
+                        </button>
+                        <button type="button" id="fcBtnThemeAccent" class="fc-btn-icon" title="Đổi màu sắc chủ đề thẻ">
+                            <i class="fa-solid fa-palette"></i>
+                        </button>
+                        <button type="button" id="fcBtnZenMode" class="fc-btn-icon" title="Chế độ tập trung (Zen Mode)">
+                            <i class="fa-solid fa-expand"></i>
+                        </button>
+                        <button type="button" id="fcBtnShuffle" class="fc-btn-icon" title="Xáo trộn thứ tự thẻ" data-i18n-title="fc.shuffle">
+                            <i class="fa-solid fa-shuffle"></i>
+                        </button>
+                        <button type="button" id="fcBtnToggleSound" class="fc-btn-icon active" title="Bật/Tắt âm thanh hiệu ứng">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                        <button type="button" id="fcBtnSpeakCard" class="fc-btn-icon" title="Đọc phát âm (Text-to-Speech)">
+                            <i class="fa-solid fa-bullhorn"></i>
+                        </button>
+                        <button type="button" id="fcBtnResetStudy" class="fc-btn-icon" title="Bắt đầu lại bộ thẻ" data-i18n-title="fc.reset">
+                            <i class="fa-solid fa-arrow-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3D Card Scene -->
+                <div class="fc-scene" id="fcScene">
+                    <!-- Hiệu ứng chiều sâu xếp chồng 3D của xấp thẻ -->
+                    <div class="fc-card-stack-bg fc-stack-layer-2" aria-hidden="true"></div>
+                    <div class="fc-card-stack-bg fc-stack-layer-1" aria-hidden="true"></div>
+
+                    <!-- Thanh đếm ngược khi chạy Auto-play -->
+                    <div class="fc-autoplay-timer-bar" id="fcAutoPlayTimer" hidden></div>
+
+                    <div id="fcFlipCard" class="fc-card" tabindex="0" role="button" aria-label="Flashcard - Nhấn để lật thẻ">
+                        <div class="fc-card-inner" id="fcCardInner">
+                            <!-- Mặt trước -->
+                            <div class="fc-card-face fc-card-front">
+                                <div class="fc-card-head">
+                                    <div class="fc-card-head-left">
+                                        <span id="fcCardNumberFront" class="fc-card-number">#01</span>
+                                        <span class="fc-card-side-tag is-front"><i class="fa-solid fa-circle-dot"></i> Mặt trước</span>
+                                    </div>
+                                    <div class="fc-card-head-right">
+                                        <span id="fcCardStatusBadge" class="fc-card-status is-new">Chưa học</span>
+                                    </div>
+                                </div>
+                                <div class="fc-card-body">
+                                    <div id="fcCardFrontText" class="fc-card-text">Nội dung câu hỏi / khái niệm</div>
+                                    <div id="fcCardHintBox" class="fc-card-hint" hidden>
+                                        <i class="fa-solid fa-lightbulb"></i> <span id="fcCardHintText"></span>
+                                    </div>
+                                </div>
+                                <div class="fc-card-foot">
+                                    <button type="button" id="fcBtnShowHint" class="fc-btn-subtle" style="display: none;">
+                                        <i class="fa-solid fa-lightbulb"></i> Gợi ý
+                                    </button>
+                                    <span class="fc-flip-prompt" data-i18n="fc.flipHint">Nhấn vào thẻ hoặc bấm phím Space để lật</span>
+                                </div>
+                            </div>
+
+                            <!-- Mặt sau -->
+                            <div class="fc-card-face fc-card-back">
+                                <div class="fc-card-head">
+                                    <div class="fc-card-head-left">
+                                        <span id="fcCardNumberBack" class="fc-card-number">#01</span>
+                                        <span class="fc-card-side-tag is-back"><i class="fa-solid fa-circle-check"></i> Mặt sau</span>
+                                    </div>
+                                    <div class="fc-card-head-right">
+                                        <span class="fc-card-flip-back-hint"><i class="fa-solid fa-repeat"></i> Lật lại</span>
+                                    </div>
+                                </div>
+                                <div class="fc-card-body">
+                                    <div id="fcCardBackText" class="fc-card-text">Nội dung câu trả lời / định nghĩa</div>
+                                </div>
+                                <div class="fc-card-foot">
+                                    <span class="fc-flip-prompt">Đánh giá mức độ ghi nhớ ở bên dưới:</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Phản quang bóng gương khi nghiêng chuột -->
+                        <div class="fc-card-glare" id="fcCardGlare" aria-hidden="true"></div>
+                    </div>
+                </div>
+
+                <!-- Đánh giá mức độ ghi nhớ -->
+                <div class="fc-review-actions">
+                    <button type="button" id="fcBtnAgain" class="fc-btn-rate is-again" title="Phím tắt: 1">
+                        <span class="rate-icon"><i class="fa-solid fa-xmark"></i></span>
+                        <span class="rate-label" data-i18n="fc.again">Chưa thuộc (1)</span>
+                    </button>
+                    <button type="button" id="fcBtnGood" class="fc-btn-rate is-good" title="Phím tắt: 2">
+                        <span class="rate-icon"><i class="fa-solid fa-check"></i></span>
+                        <span class="rate-label" data-i18n="fc.good">Đang nhớ (2)</span>
+                    </button>
+                    <button type="button" id="fcBtnMastered" class="fc-btn-rate is-mastered" title="Phím tắt: 3">
+                        <span class="rate-icon"><i class="fa-solid fa-trophy"></i></span>
+                        <span class="rate-label" data-i18n="fc.mastered">Đã thuộc (3)</span>
+                    </button>
+                </div>
+
+                <!-- Điều hướng tiến/lùi -->
+                <div class="fc-nav-controls">
+                    <button type="button" id="fcBtnPrevCard" class="fc-btn fc-btn-secondary" data-i18n="fc.prev">
+                        <i class="fa-solid fa-chevron-left"></i> Trước
+                    </button>
+                    <button type="button" id="fcBtnFlip" class="fc-btn fc-btn-primary">
+                        <i class="fa-solid fa-repeat"></i> Lật thẻ
+                    </button>
+                    <button type="button" id="fcBtnNextCard" class="fc-btn fc-btn-secondary" data-i18n="fc.next">
+                        Tiếp theo <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Phím tắt gợi ý -->
+                <div class="fc-hotkeys-hint">
+                    <span><kbd>Space</kbd> Lật thẻ</span>
+                    <span><kbd>←</kbd> Thẻ trước</span>
+                    <span><kbd>→</kbd> Thẻ sau</span>
+                    <span><kbd>1</kbd> Chưa thuộc</span>
+                    <span><kbd>2</kbd> Đang nhớ</span>
+                    <span><kbd>3</kbd> Đã thuộc</span>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 2: TRẮC NGHIỆM ==================== -->
+            <section id="fcPanelQuiz" class="fc-tab-panel" role="tabpanel" hidden>
+                <div class="fc-quiz-card">
+                    <div class="fc-quiz-header">
+                        <div class="fc-quiz-progress-text">
+                            <span id="fcQuizQuestionIndex">Câu hỏi 1 / 1</span>
+                            <span id="fcQuizScore" class="fc-quiz-score-badge">Điểm: 0</span>
+                        </div>
+                        <div class="fc-progress-bar-wrap">
+                            <div id="fcQuizProgressBar" class="fc-progress-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="fc-quiz-question-box">
+                        <span class="fc-quiz-prompt-label">Khái niệm / Câu hỏi:</span>
+                        <h2 id="fcQuizQuestionText" class="fc-quiz-question-title">Đang tải câu hỏi...</h2>
+                    </div>
+
+                    <div id="fcQuizOptionsContainer" class="fc-quiz-options">
+                        <!-- Các nút đáp án A, B, C, D sinh bằng JS -->
+                    </div>
+
+                    <div id="fcQuizFeedback" class="fc-quiz-feedback" hidden>
+                        <div id="fcQuizFeedbackContent"></div>
+                        <button type="button" id="fcBtnQuizNext" class="fc-btn fc-btn-primary">
+                            Câu hỏi tiếp theo <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 3: NHẬP FILE / TẠO THẺ ==================== -->
+            <section id="fcPanelCreate" class="fc-tab-panel" role="tabpanel" hidden>
+                <div class="fc-create-grid">
+                    <!-- Khung nhập dữ liệu (Trái) -->
+                    <div class="fc-create-box">
+                        <h3 class="fc-box-title" data-i18n="fc.uploadTitle">
+                            <i class="fa-solid fa-file-arrow-up"></i> Nhập tài liệu học tập
+                        </h3>
+
+                        <!-- File Dropzone -->
+                        <div id="fcDropzone" class="fc-dropzone">
+                            <input type="file" id="fcFileInput" accept=".txt,.md,.pdf,.docx,.csv,.tsv,.json" class="fc-file-hidden">
+                            <div class="fc-dropzone-inner">
+                                <div class="fc-drop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                                <h4 data-i18n="fc.uploadDesc">Kéo thả tệp tin vào đây hoặc bấm để tải lên</h4>
+                                <p class="fc-drop-sub" data-i18n="fc.supportedFiles">Hỗ trợ .txt, .pdf, .docx, .csv, .json, .md (tối đa 16MB)</p>
+                                <button type="button" id="fcBtnChooseFile" class="fc-btn fc-btn-secondary" data-i18n="fc.chooseFile">
+                                    <i class="fa-solid fa-folder-open"></i> Chọn tệp tin
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Thông tin tệp đã chọn -->
+                        <div id="fcSelectedFileInfo" class="fc-file-info" hidden>
+                            <div class="fc-file-meta">
+                                <i class="fa-solid fa-file-lines fc-file-type-icon"></i>
+                                <div>
+                                    <strong id="fcFileName">document.txt</strong>
+                                    <span id="fcFileSize" class="fc-file-size">0 KB</span>
+                                </div>
+                            </div>
+                            <button type="button" id="fcBtnClearFile" class="fc-btn-icon" title="Gỡ file">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <!-- Hoặc dán trực tiếp -->
+                        <div class="fc-divider-text">
+                            <span data-i18n="fc.pasteTitle">Hoặc dán văn bản trực tiếp</span>
+                        </div>
+
+                        <div class="fc-text-input-wrap">
+                            <textarea id="fcTextInput" class="fc-textarea" rows="8" placeholder="Dán bài giảng, từ vựng, tài liệu tóm tắt hoặc nội dung ghi chú vào đây..."></textarea>
+                            
+                            <div class="fc-quick-templates">
+                                <span class="fc-quick-label">Mẫu gợi ý:</span>
+                                <button type="button" class="fc-btn-chip" data-template="vocab">Từ vựng Tiếng Anh</button>
+                                <button type="button" class="fc-btn-chip" data-template="prog">Lập trình Web</button>
+                                <button type="button" class="fc-btn-chip" data-template="science">Khoa học / Sinh học</button>
+                            </div>
+                        </div>
+
+                        <!-- Tùy chọn sinh thẻ -->
+                        <div class="fc-options-card">
+                            <div class="fc-option-row">
+                                <div class="fc-option-col">
+                                    <label for="fcTargetDeckName" class="fc-label">Lưu vào bộ thẻ:</label>
+                                    <input type="text" id="fcTargetDeckName" class="fc-input" placeholder="Tên bộ thẻ mới hoặc chọn sẵn...">
+                                </div>
+                                <div class="fc-option-col">
+                                    <label for="fcNumCardsSelect" class="fc-label" data-i18n="fc.numCards">Số lượng thẻ:</label>
+                                    <select id="fcNumCardsSelect" class="fc-select">
+                                        <option value="5">5 thẻ (Rút gọn)</option>
+                                        <option value="10" selected>10 thẻ (Chuẩn)</option>
+                                        <option value="15">15 thẻ (Chuyên sâu)</option>
+                                        <option value="20">20 thẻ (Toàn diện)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="fc-option-row">
+                                <div class="fc-option-col">
+                                    <label for="fcStyleSelect" class="fc-label" data-i18n="fc.style">Kiểu thẻ:</label>
+                                    <select id="fcStyleSelect" class="fc-select">
+                                        <option value="concept" selected data-i18n="fc.styleConcept">Khái niệm & Định nghĩa</option>
+                                        <option value="qa" data-i18n="fc.styleQa">Câu hỏi & Trả lời</option>
+                                        <option value="quiz" data-i18n="fc.styleQuiz">Trắc nghiệm kèm giải thích</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Nút phân tích và tạo -->
+                            <div class="fc-create-actions">
+                                <button type="button" id="fcBtnGenerateAi" class="fc-btn fc-btn-primary fc-btn-hero">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="fc.generateAi">Tạo thẻ với AI</span>
+                                </button>
+                                <button type="button" id="fcBtnGenerateFast" class="fc-btn fc-btn-secondary">
+                                    <i class="fa-solid fa-bolt-lightning"></i> <span data-i18n="fc.generateFast">Phân tích nhanh (Offline)</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danh sách xem trước và chỉnh sửa thẻ trước khi lưu (Phải) -->
+                    <div class="fc-preview-box">
+                        <div class="fc-preview-head">
+                            <h3 class="fc-box-title">
+                                <i class="fa-solid fa-table-list"></i> Xem trước thẻ tạo ra (<span id="fcPreviewCount">0</span>)
+                            </h3>
+                            <button type="button" id="fcBtnAddPreviewCard" class="fc-btn fc-btn-secondary fc-btn-sm">
+                                <i class="fa-solid fa-plus"></i> Thêm thẻ
+                            </button>
+                        </div>
+
+                        <div id="fcPreviewList" class="fc-preview-list">
+                            <div class="fc-empty-state">
+                                <div class="fc-empty-icon"><i class="fa-solid fa-layer-group"></i></div>
+                                <h4>Chưa có thẻ nào được tạo</h4>
+                                <p>Hãy chọn file hoặc dán văn bản bên trái rồi bấm <b>"Tạo thẻ với AI"</b> hoặc <b>"Phân tích nhanh"</b>.</p>
+                            </div>
+                        </div>
+
+                        <div class="fc-preview-foot" id="fcPreviewFoot" hidden>
+                            <button type="button" id="fcBtnSavePreviewCards" class="fc-btn fc-btn-primary fc-btn-block">
+                                <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="fc.saveDeck">Lưu vào bộ thẻ</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 4: QUẢN LÝ DANH SÁCH THẺ ==================== -->
+            <section id="fcPanelList" class="fc-tab-panel" role="tabpanel" hidden>
+                <div class="fc-list-head">
+                    <div class="fc-search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="fcSearchInput" class="fc-input" placeholder="Tìm kiếm thẻ theo nội dung mặt trước, mặt sau...">
+                    </div>
+
+                    <div class="fc-list-actions">
+                        <select id="fcFilterStatus" class="fc-select">
+                            <option value="all">Tất cả trạng thái</option>
+                            <option value="mastered">Đã thuộc</option>
+                            <option value="learning">Đang học</option>
+                            <option value="new">Chưa học</option>
+                        </select>
+                        <button type="button" id="fcBtnAddManualCard" class="fc-btn fc-btn-primary" data-i18n="fc.addCard">
+                            <i class="fa-solid fa-plus"></i> Thêm thẻ
+                        </button>
+                    </div>
+                </div>
+
+                <div id="fcCardGrid" class="fc-card-grid">
+                    <!-- Danh sách các thẻ dạng lưới sinh bởi JS -->
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Modal Thêm / Chỉnh sửa Thẻ -->
+    <div id="fcCardModal" class="fc-modal" aria-hidden="true" role="dialog">
+        <div class="fc-modal-content">
+            <div class="fc-modal-header">
+                <h3 id="fcCardModalTitle">Thêm thẻ mới</h3>
+                <button type="button" id="fcBtnCloseCardModal" class="fc-modal-close" aria-label="Đóng">&times;</button>
+            </div>
+            <div class="fc-modal-body">
+                <input type="hidden" id="fcEditCardId">
+                <div class="fc-field">
+                    <label for="fcEditFront" class="fc-label">Mặt trước (Câu hỏi / Thuật ngữ):</label>
+                    <textarea id="fcEditFront" class="fc-textarea" rows="3" required placeholder="Ví dụ: RAM là gì?"></textarea>
+                </div>
+                <div class="fc-field">
+                    <label for="fcEditBack" class="fc-label">Mặt sau (Câu trả lời / Định nghĩa):</label>
+                    <textarea id="fcEditBack" class="fc-textarea" rows="4" required placeholder="Ví dụ: Bộ nhớ truy xuất ngẫu nhiên (Random Access Memory)..."></textarea>
+                </div>
+                <div class="fc-field">
+                    <label for="fcEditHint" class="fc-label">Gợi ý (tùy chọn):</label>
+                    <input type="text" id="fcEditHint" class="fc-input" placeholder="Gợi ý nhỏ khi người học gặp khó khăn...">
+                </div>
+            </div>
+            <div class="fc-modal-footer">
+                <button type="button" id="fcBtnCancelCardModal" class="fc-btn fc-btn-secondary" data-i18n="common.cancel">Hủy</button>
+                <button type="button" id="fcBtnSaveCardModal" class="fc-btn fc-btn-primary" data-i18n="common.save">Lưu thẻ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tạo / Đổi tên Bộ thẻ -->
+    <div id="fcDeckModal" class="fc-modal" aria-hidden="true" role="dialog">
+        <div class="fc-modal-content fc-modal-sm">
+            <div class="fc-modal-header">
+                <h3 id="fcDeckModalTitle">Tạo bộ thẻ mới</h3>
+                <button type="button" id="fcBtnCloseDeckModal" class="fc-modal-close" aria-label="Đóng">&times;</button>
+            </div>
+            <div class="fc-modal-body">
+                <div class="fc-field">
+                    <label for="fcDeckNameInput" class="fc-label">Tên bộ thẻ:</label>
+                    <input type="text" id="fcDeckNameInput" class="fc-input" placeholder="Ví dụ: Lịch sử Việt Nam, Từ vựng TOEIC...">
+                </div>
+            </div>
+            <div class="fc-modal-footer">
+                <button type="button" id="fcBtnCancelDeckModal" class="fc-btn fc-btn-secondary" data-i18n="common.cancel">Hủy</button>
+                <button type="button" id="fcBtnSaveDeckModal" class="fc-btn fc-btn-primary" data-i18n="common.save">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hiệu ứng Confetti Canvas khi hoàn thành ôn tập -->
+    <canvas id="fcConfettiCanvas" class="fc-confetti-canvas"></canvas>
+
+    <script src="/icons.js"></script>
+    <script src="/shared.js"></script>
+    <script src="flashcard.js"></script>
+</body>
+</html>
+y�=���      j�"j�#Jtj��   U    O^partitionKey=%28http%2C127.0.0.1%29,:http://127.0.0.1:5888/flashcard/flashcard.html peer-ip-address 127.0.0.1 peer-port 5888 strongly-framed 1 request-method GET response-head HTTP/1.0 200 OK
+Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:42:42 GMT
+Content-type: text/html
+Content-Length: 32631
+Last-Modified: Tue, 13 Oct 2026 05:50:12 GMT
+ original-response-headers Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:42:42 GMT
+Content-type: text/html
+Content-Length: 32631
+Last-Modified: Tue, 13 Oct 2026 05:50:12 GMT
+ ctid 1 net-response-time-onstart 105 net-response-time-onstop 204      w

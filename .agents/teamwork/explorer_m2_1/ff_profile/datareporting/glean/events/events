@@ -1,0 +1,4 @@
+{"timestamp":87119189,"category":"session_restore","name":"backup_can_be_loaded_session_file","extra":{"can_load":"false","path_key":"clean","loadfail_reason":"File doesn't exist.","glean_timestamp":"1791886382411"}}
+{"timestamp":87119292,"category":"session_restore","name":"backup_can_be_loaded_session_file","extra":{"loadfail_reason":"N/A","can_load":"true","path_key":"recovery","glean_timestamp":"1791886382514"}}
+{"timestamp":87119296,"category":"session_restore","name":"shutdown_success_session_startup","extra":{"shutdown_reason":"final-state-write-incomplete","glean_timestamp":"1791886382518","shutdown_ok":"true"}}
+{"timestamp":87122309,"category":"glean","name":"session_start","extra":{"session_id":"0c5c764a-b4af-449e-8395-50dac3317a7b","session_seq":"3","glean_timestamp":"87122309","sampled_in":"true","session_start_time":"2026-10-13T17:13:05.522+07:00"}}

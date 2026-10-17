@@ -1,0 +1,1043 @@
+/* Studyverse - trang dự án / công việc */
+
+main {
+    animation: fadeIn 0.5s ease;
+}
+
+body {
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+}
+
+html {
+    background-color: var(--bg-color);
+}
+
+/* PROJECT LAYOUT */
+.project-wrapper {
+    display: flex;
+    align-items: stretch;
+    gap: 25px;
+    max-width: 1200px;
+    margin: calc(140px + env(safe-area-inset-top, 0px)) auto calc(40px + env(safe-area-inset-bottom, 0px));
+    padding: 0 20px;
+    font-family: 'Inter', sans-serif;
+    min-height: calc(100vh - 180px);
+    min-height: calc(100dvh - 180px);
+    height: auto;
+}
+
+/* SIDEBAR */
+.project-sidebar {
+    width: 280px;
+    background: rgba(26, 32, 44, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 25px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-family: sans-serif;
+    padding: 8px;
+}
+
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.sidebar-item i {
+    font-size: 1rem;
+    color: #fff;
+    opacity: 0.9;
+}
+
+.sidebar-item span {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.sidebar-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--primary-blue);
+    font-weight: 600;
+    transform: scale(0.98);
+    transition: 0.1s;
+}
+
+.sidebar-item.active-item {
+    background: rgba(var(--primary-rgb), 0.2);
+    border-left: 4px solid #ffffff;
+    border-radius: 10px;
+}
+
+.sidebar-item.active i {
+    color: var(--primary-blue);
+}
+
+/* PROJECT DETAIL (RIGHT) */
+.project-detail {
+    flex: 1;
+    display: flex;
+}
+
+.detail-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 35px;
+    min-height: 100%;
+    height: auto;
+    width: 100%;
+    color: white;
+}
+
+.detail-header h2 {
+    color: white;
+    font-size: 1.8rem;
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+}
+
+/* NEW PROJECT BUTTON */
+.btn-new-project {
+    width: 100%;
+    background: linear-gradient(135deg, var(--primary-blue), var(--accent-secondary));
+    color: white;
+    border: none;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.3);
+    transition: 0.4s;
+}
+
+.btn-new-project:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.5);
+}
+
+/* MODAL */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: var(--panel-bg);
+    width: 22%;
+    min-width: 320px;
+    padding: 30px;
+    border-radius: 24px;
+    border: 1px solid var(--border-highlight);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    color: var(--text-white);
+    animation: modalShow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalShow {
+    from { transform: translateY(20px) scale(0.9); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.modal-header h3 {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+    color: var(--text-white);
+}
+
+.modal-header p {
+    font-size: 0.9rem;
+    color: var(--text-gray);
+    margin-bottom: 25px;
+}
+
+.input-group {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    margin-bottom: 8px;
+    margin-left: 5px;
+}
+
+#projectNameInput {
+    width: 100%;
+    padding: 12px 15px;
+    background: var(--card-hover-bg);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    color: var(--text-white);
+    font-size: 1rem;
+    outline: none;
+    transition: 0.3s;
+}
+
+#projectNameInput:focus {
+    border-color: var(--primary-blue);
+    background: var(--card-bg);
+    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
+}
+
+.color-picker {
+    display: flex;
+    gap: 12px;
+    margin-top: 5px;
+}
+
+.color-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+}
+
+.color-dot.active {
+    border-color: #fff;
+    transform: scale(1.2);
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.btn-modal {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    border: none;
+}
+
+.btn-cancel {
+    background: var(--card-hover-bg);
+    color: var(--text-gray);
+}
+
+.btn-cancel:hover {
+    background: rgba(var(--primary-rgb), 0.1);
+    color: var(--text-white);
+}
+
+.btn-confirm {
+    background: linear-gradient(135deg, var(--primary-blue), var(--accent-secondary));
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+}
+
+.btn-confirm:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+}
+
+.btn-delete:hover {
+    color: #ef4444 !important;
+    transform: scale(1.2);
+}
+
+.project-info {
+    display: flex;
+    align-items: center;
+}
+
+/* FLATPICKR INPUT */
+.flatpickr-input[readonly] {
+    background-color: #1a1d23 !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 12px 15px !important;
+    cursor: pointer;
+}
+
+/* ô chọn hạn chót, đồng bộ style với #projectNameInput */
+#projectDeadlineInput {
+    width: 100%;
+    padding: 12px 15px;
+    background: var(--card-hover-bg);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    color: var(--text-white);
+    font-family: inherit;
+    font-size: 1rem;
+    outline: none;
+    color-scheme: dark;
+    transition: 0.3s;
+}
+
+#projectDeadlineInput:focus {
+    border-color: var(--primary-blue);
+    background: var(--card-bg);
+    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
+}
+
+/* Trước đây icon lịch bị ẩn (display: none) nên không có cách nào mở date picker.
+   Để hiển thị mặc định + color-scheme: dark ở trên là đủ tương phản. */
+
+/* TASK COMPLETED STATE */
+.task-check.completed {
+    background-color: var(--primary-blue) !important;
+    border-color: var(--primary-blue) !important;
+    transition: all 0.3s ease;
+}
+
+.task-check.completed i {
+    color: white !important;
+    display: block !important;
+}
+
+.task-name.completed {
+    text-decoration: line-through;
+    opacity: 0.5;
+    color: var(--text-gray) !important;
+}
+
+/* PROJECT LIST ROWS */
+.project-list-row span {
+    max-width: 66%;
+    display: inline-block;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
+}
+
+.project-name-text {
+    display: block;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.delete-project-btn:hover {
+    color: #ef4444 !important;
+    transform: scale(1.1);
+}
+
+/* PROGRESS BAR */
+.progress-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-blue), var(--accent-secondary));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+/* TODO TOOLBAR / TASK METADATA */
+.todo-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.todo-views,
+.todo-filter-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.todo-view-btn,
+.todo-data-btn,
+.todo-filter-row select,
+.todo-search-wrap {
+    border: 1px solid var(--border-soft);
+    background: var(--card-hover-bg);
+    color: var(--text-white);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 12px;
+}
+
+.todo-view-btn,
+.todo-data-btn {
+    padding: 7px 11px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.todo-view-btn:hover,
+.todo-data-btn:hover {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+}
+
+.todo-view-btn.active {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: #fff;
+}
+
+.todo-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 10px;
+    flex: 1 1 180px;
+    min-width: 150px;
+}
+
+.todo-search-wrap i {
+    color: var(--text-muted);
+}
+
+.todo-search-wrap input {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-white);
+    font: inherit;
+    font-size: 12px;
+}
+
+.todo-filter-row select {
+    padding: 8px 9px;
+    outline: 0;
+}
+
+.todo-filter-row select:focus,
+.todo-search-wrap:focus-within {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.12);
+}
+
+.todo-shortcut-hint {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.task-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.task-meta-grid label,
+.task-schedule-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: var(--text-gray);
+    font-size: 11px;
+}
+
+.task-meta-grid select,
+.task-meta-grid input,
+.task-schedule-field select {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 8px;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    background: var(--card-hover-bg);
+    color: var(--text-white);
+    font: inherit;
+    font-size: 12px;
+    outline: 0;
+}
+
+.task-schedule-field {
+    margin-bottom: 12px;
+}
+
+.task-subtasks-input {
+    width: 100%;
+    min-height: 62px;
+    resize: vertical;
+    padding: 8px;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    background: var(--card-hover-bg);
+    color: var(--text-white);
+    font: inherit;
+    font-size: 12px;
+    outline: 0;
+}
+
+.task-priority-badge,
+.task-status-badge,
+.task-schedule-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 3px 7px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.task-priority-badge.priority-high { color: #b42318; background: rgba(239, 68, 68, 0.14); }
+.task-priority-badge.priority-medium { color: #9a6700; background: rgba(245, 158, 11, 0.16); }
+.task-priority-badge.priority-low { color: #087443; background: rgba(34, 197, 94, 0.14); }
+.task-status-badge { color: var(--primary-blue); background: rgba(var(--primary-rgb), 0.12); }
+.task-schedule-badge { color: var(--text-gray); background: rgba(var(--primary-rgb), 0.08); }
+
+.task-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+.task-deadline-text {
+    color: var(--text-gray);
+    font-size: 12px;
+}
+
+.global-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 0 18px;
+}
+
+.global-task-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    background: var(--card-hover-bg);
+    color: var(--text-white);
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+
+.global-task-row:hover {
+    border-color: var(--primary-blue);
+    transform: translateY(-1px);
+}
+
+.global-task-row .task-check {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border: 1px solid var(--border-highlight);
+    border-radius: 50%;
+    color: transparent;
+    font-size: 9px;
+}
+
+.global-task-row .task-check.completed {
+    color: #fff;
+    background: var(--primary-blue);
+}
+
+.global-task-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+.global-task-content strong,
+.global-task-content small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.global-task-content small {
+    color: var(--text-gray);
+    font-size: 11px;
+}
+
+.task-item.task-is-overdue .task-name {
+    color: #b42318 !important;
+}
+
+.task-item.task-is-done {
+    opacity: 0.72;
+}
+
+.task-item.task-is-done .task-name {
+    text-decoration: line-through;
+}
+
+.empty-task-state {
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+@media (max-width: 600px) {
+    .task-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .todo-filter-row select,
+    .todo-data-btn {
+        flex: 1 1 calc(50% - 8px);
+    }
+}
+
+/* ADD TASK BUTTON */
+.add-task-btn {
+    transition: all 0.2s ease;
+}
+
+.add-task-btn:hover {
+    background: rgba(219, 76, 63, 0.08);
+}
+
+.add-task-btn:hover i,
+.add-task-btn:hover span {
+    color: #db4c3f !important;
+}
+
+/* DRAG AND DROP (TASKS) */
+.task-item.dragging {
+    opacity: 0.4;
+    transform: scale(0.98);
+    background: rgba(var(--primary-rgb), 0.05);
+}
+
+.task-item.drag-over {
+    border-top: 2px solid var(--primary-blue);
+    margin-top: -1px;
+}
+
+.task-drag-handle:hover {
+    color: rgba(255, 255, 255, 0.5) !important;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.task-drag-handle:active {
+    cursor: grabbing;
+}
+
+.task-item.dragging .task-drag-handle {
+    color: var(--primary-blue);
+}
+
+/* RESPONSIVE (TODO PAGE) */
+@media (max-width: 768px) {
+    .project-wrapper {
+        flex-direction: column;
+        margin-top: calc(76px + env(safe-area-inset-top, 0px)); /* navbar mobile cao 56px + padding */
+        padding: 0 15px;
+        gap: 15px;
+    }
+
+    .project-sidebar {
+        width: 100%;
+        padding: 15px;
+        border-radius: 14px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-new-project {
+        width: auto;
+        margin-top: 0;
+        margin-bottom: 0;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+
+    .detail-card {
+        padding: 20px 16px;
+        border-radius: 14px;
+    }
+
+    .detail-header {
+        /* cho tên dự án và deadline xuống dòng riêng thay vì đè lên nhau */
+        flex-wrap: wrap !important;
+        row-gap: 8px;
+    }
+
+    .detail-header h2 {
+        font-size: 1.3rem;
+    }
+
+    /* 16px để iOS Safari không tự zoom khi focus vào ô nhập task */
+    #taskNameInput,
+    #taskDeadlineInput,
+    #editTaskName,
+    #editTaskDate {
+        font-size: 16px;
+    }
+
+    .project-list-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .modal-content {
+        width: 90%;
+        min-width: 0;
+        padding: 20px;
+    }
+
+    main {
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* Todo trên nền sáng (light / pink): các style cũ thiết kế cho nền tối, nhiều màu
+   trắng inline, đổi riêng bề mặt/chữ tại đây để nội dung không bị chìm */
+[data-theme="light"] .project-sidebar,
+[data-theme="pink"] .project-sidebar,
+[data-theme="light"] .detail-card,
+[data-theme="pink"] .detail-card {
+    background: rgba(255, 255, 255, 0.78);
+    border-color: rgba(17, 24, 39, 0.12);
+    color: var(--text-white);
+    box-shadow: 0 14px 35px rgba(157, 23, 77, 0.09);
+}
+
+[data-theme="light"] .project-sidebar h2,
+[data-theme="pink"] .project-sidebar h2,
+[data-theme="light"] .detail-header h2,
+[data-theme="pink"] .detail-header h2,
+[data-theme="light"] .sidebar-item,
+[data-theme="pink"] .sidebar-item,
+[data-theme="light"] .sidebar-item span,
+[data-theme="pink"] .sidebar-item span,
+[data-theme="light"] .project-name-text,
+[data-theme="pink"] .project-name-text,
+[data-theme="light"] .task-name,
+[data-theme="pink"] .task-name {
+    color: var(--text-white) !important;
+}
+
+[data-theme="light"] .sidebar-item:hover,
+[data-theme="pink"] .sidebar-item:hover {
+    background: rgba(var(--primary-rgb), 0.10);
+}
+
+[data-theme="light"] .sidebar-item.active-item,
+[data-theme="pink"] .sidebar-item.active-item {
+    background: rgba(var(--primary-rgb), 0.14);
+    border-left-color: var(--primary-blue);
+}
+
+[data-theme="light"] .sidebar-item i,
+[data-theme="pink"] .sidebar-item i {
+    color: var(--primary-blue) !important;
+}
+
+[data-theme="light"] .detail-header,
+[data-theme="pink"] .detail-header {
+    border-bottom-color: rgba(17, 24, 39, 0.12) !important;
+}
+
+[data-theme="light"] .task-item,
+[data-theme="pink"] .task-item {
+    border-bottom-color: rgba(17, 24, 39, 0.10) !important;
+}
+
+[data-theme="light"] .task-drag-handle,
+[data-theme="pink"] .task-drag-handle {
+    color: rgba(17, 24, 39, 0.30) !important;
+}
+
+[data-theme="light"] .task-drag-handle:hover,
+[data-theme="pink"] .task-drag-handle:hover {
+    color: var(--primary-blue) !important;
+    background: rgba(var(--primary-rgb), 0.10);
+}
+
+[data-theme="light"] .task-check,
+[data-theme="pink"] .task-check {
+    border-color: rgba(17, 24, 39, 0.35) !important;
+}
+
+[data-theme="light"] .btn-edit-task,
+[data-theme="pink"] .btn-edit-task,
+[data-theme="light"] .btn-edit-name,
+[data-theme="pink"] .btn-edit-name,
+[data-theme="light"] .btn-edit-deadline,
+[data-theme="pink"] .btn-edit-deadline {
+    color: rgba(17, 24, 39, 0.48) !important;
+}
+
+[data-theme="light"] .add-task-btn span,
+[data-theme="pink"] .add-task-btn span {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="light"] .add-task-btn i,
+[data-theme="pink"] .add-task-btn i {
+    color: var(--primary-blue) !important;
+}
+
+[data-theme="light"] .add-task-btn:hover,
+[data-theme="pink"] .add-task-btn:hover {
+    background: rgba(var(--primary-rgb), 0.10);
+}
+
+[data-theme="light"] #taskInputCard,
+[data-theme="pink"] #taskInputCard {
+    background: rgba(255, 255, 255, 0.72) !important;
+    border-color: rgba(17, 24, 39, 0.14) !important;
+}
+
+[data-theme="light"] #taskNameInput,
+[data-theme="pink"] #taskNameInput,
+[data-theme="light"] #taskDeadlineInput,
+[data-theme="pink"] #taskDeadlineInput {
+    color: var(--text-white) !important;
+}
+
+[data-theme="light"] #taskNameInput::placeholder,
+[data-theme="pink"] #taskNameInput::placeholder,
+[data-theme="light"] #taskDeadlineInput::placeholder,
+[data-theme="pink"] #taskDeadlineInput::placeholder {
+    color: var(--text-muted) !important;
+}
+
+[data-theme="light"] #taskInputCard .fa-clock,
+[data-theme="pink"] #taskInputCard .fa-clock {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="light"] #btnCancelTask,
+[data-theme="pink"] #btnCancelTask {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="light"] #btnSaveTask,
+[data-theme="pink"] #btnSaveTask {
+    background: var(--primary-blue) !important;
+}
+
+[data-theme="light"] .progress-track,
+[data-theme="pink"] .progress-track {
+    background: rgba(17, 24, 39, 0.10);
+}
+
+[data-theme="light"] #progressBarContainer span:first-child,
+[data-theme="pink"] #progressBarContainer span:first-child,
+[data-theme="light"] .detail-header > div:last-child,
+[data-theme="pink"] .detail-header > div:last-child {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="light"] .modal-content,
+[data-theme="pink"] .modal-content {
+    background: #ffffff;
+    border-color: rgba(17, 24, 39, 0.14);
+    color: var(--text-white);
+}
+
+[data-theme="light"] .modal-header h3,
+[data-theme="pink"] .modal-header h3,
+[data-theme="light"] .input-group label,
+[data-theme="pink"] .input-group label {
+    color: var(--text-white);
+}
+
+[data-theme="light"] .modal-header p,
+[data-theme="pink"] .modal-header p {
+    color: var(--text-gray);
+}
+
+[data-theme="light"] #projectNameInput,
+[data-theme="pink"] #projectNameInput {
+    background: rgba(17, 24, 39, 0.04);
+    border-color: rgba(17, 24, 39, 0.14);
+    color: var(--text-white);
+}
+
+[data-theme="light"] .color-picker,
+[data-theme="pink"] .color-picker,
+[data-theme="light"] #projectDeadlineInput,
+[data-theme="pink"] #projectDeadlineInput,
+[data-theme="cyan"] #projectDeadlineInput {
+    color-scheme: light;
+}
+
+/* SV MODAL POPUP: đã gom vào shared.css (dùng chung cả 4 trang) */
+
+/* Cyan là theme sáng: Todo cần đổi các màu trắng inline sang chữ tối để dễ đọc. */
+[data-theme="cyan"] .project-sidebar,
+[data-theme="cyan"] .detail-card {
+    background: rgba(181, 237, 244, 0.88);
+    border-color: rgba(18, 52, 59, 0.12);
+    color: var(--text-white);
+    box-shadow: 0 14px 35px rgba(8, 84, 102, 0.10);
+}
+
+[data-theme="cyan"] .project-sidebar h2,
+[data-theme="cyan"] .detail-header h2,
+[data-theme="cyan"] .sidebar-item,
+[data-theme="cyan"] .sidebar-item span,
+[data-theme="cyan"] .project-name-text,
+[data-theme="cyan"] .task-name {
+    color: var(--text-white) !important;
+}
+
+[data-theme="cyan"] .sidebar-item:hover,
+[data-theme="cyan"] .add-task-btn:hover {
+    background: rgba(var(--primary-rgb), 0.10);
+}
+
+[data-theme="cyan"] .sidebar-item.active-item {
+    background: rgba(var(--primary-rgb), 0.14);
+    border-left-color: var(--primary-blue);
+}
+
+[data-theme="cyan"] .sidebar-item i,
+[data-theme="cyan"] .add-task-btn i {
+    color: var(--primary-blue) !important;
+}
+
+[data-theme="cyan"] .detail-header {
+    border-bottom-color: rgba(18, 52, 59, 0.12) !important;
+}
+
+[data-theme="cyan"] .task-item {
+    border-bottom-color: rgba(18, 52, 59, 0.10) !important;
+}
+
+[data-theme="cyan"] .task-drag-handle {
+    color: rgba(18, 52, 59, 0.30) !important;
+}
+
+[data-theme="cyan"] .task-check {
+    border-color: rgba(18, 52, 59, 0.35) !important;
+}
+
+[data-theme="cyan"] .btn-edit-task,
+[data-theme="cyan"] .btn-edit-name,
+[data-theme="cyan"] .btn-edit-deadline {
+    color: rgba(18, 52, 59, 0.48) !important;
+}
+
+[data-theme="cyan"] .add-task-btn span,
+[data-theme="cyan"] #btnCancelTask,
+[data-theme="cyan"] .detail-header > div:last-child {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="cyan"] #taskInputCard {
+    background: rgba(255, 255, 255, 0.72) !important;
+    border-color: rgba(18, 52, 59, 0.14) !important;
+}
+
+[data-theme="cyan"] #taskNameInput,
+[data-theme="cyan"] #taskDeadlineInput {
+    color: var(--text-white) !important;
+}
+
+[data-theme="cyan"] #taskNameInput::placeholder,
+[data-theme="cyan"] #taskDeadlineInput::placeholder {
+    color: var(--text-muted) !important;
+}
+
+[data-theme="cyan"] #taskInputCard .fa-clock {
+    color: var(--text-gray) !important;
+}
+
+[data-theme="cyan"] #btnSaveTask {
+    background: var(--primary-blue) !important;
+}
+
+[data-theme="cyan"] .progress-track {
+    background: rgba(18, 52, 59, 0.10);
+}
+
+[data-theme="cyan"] .modal-content {
+    background: #ffffff;
+    border-color: rgba(18, 52, 59, 0.14);
+    color: var(--text-white);
+}
+
+[data-theme="cyan"] .modal-header h3,
+[data-theme="cyan"] .input-group label {
+    color: var(--text-white);
+}
+
+[data-theme="cyan"] .modal-header p {
+    color: var(--text-gray);
+}
+
+[data-theme="cyan"] #projectNameInput {
+    background: rgba(18, 52, 59, 0.04);
+    border-color: rgba(18, 52, 59, 0.14);
+    color: var(--text-white);
+}
+
+[data-theme="cyan"] .color-picker {
+    color-scheme: light;
+}
+}&7䘐      j�;j�;J	�j�g   L    O^partitionKey=%28http%2C127.0.0.1%29,:http://127.0.0.1:5566/todo/mylist.css strongly-framed 1 request-method GET response-head HTTP/1.0 200 OK
+Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:08:59 GMT
+Content-type: text/css
+Content-Length: 23142
+Last-Modified: Tue, 13 Oct 2026 06:28:16 GMT
+ original-response-headers Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:08:59 GMT
+Content-type: text/css
+Content-Length: 23142
+Last-Modified: Tue, 13 Oct 2026 06:28:16 GMT
+ ctid 5 net-response-time-onstart 246 net-response-time-onstop 248      Zf

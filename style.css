@@ -6,7 +6,8 @@ main {
 
 /* MAIN CONTENT */
 .main-content {
-    padding-top: 180px;
+    padding-top: calc(180px + env(safe-area-inset-top, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     width: 100%;
     position: relative;
     overflow: hidden;
@@ -711,7 +712,8 @@ main {
 /* RESPONSIVE (HOMEPAGE) */
 @media (max-width: 768px) {
     .main-content {
-        padding-top: 100px; /* navbar mobile cao 64px */
+        padding-top: calc(76px + env(safe-area-inset-top, 0px)); /* navbar mobile cao 56px + padding */
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     }
 
     .desktop-only {
@@ -775,6 +777,10 @@ main {
 }
 
 @media (max-width: 480px) {
+    .main-content {
+        padding-top: calc(106px + env(safe-area-inset-top, 0px));
+    }
+
     h1 {
         font-size: 28px;
     }

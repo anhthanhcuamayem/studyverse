@@ -1,6 +1,7 @@
 .account-page {
     min-height: 100vh;
     min-height: 100svh;
+    min-height: 100dvh;
     overflow-x: hidden;
     background:
         radial-gradient(ellipse at 14% 30%, rgba(var(--primary-rgb), 0.13), transparent 42%),
@@ -12,13 +13,15 @@
     width: min(1160px, calc(100% - 56px));
     min-height: 100vh;
     min-height: 100svh;
+    min-height: 100dvh;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
 }
 
 .account-topbar {
-    min-height: 82px;
+    min-height: calc(82px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -50,6 +53,10 @@
 .account-brand-accent { color: var(--primary-blue); }
 
 .account-back-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 12px;
     color: var(--text-gray);
     text-decoration: none;
     font-size: 13px;
@@ -852,7 +859,17 @@
 .account-toggle-item input:checked + .toggle-slider { background: var(--primary-blue); }
 .account-toggle-item input:checked + .toggle-slider::after { transform: translateX(16px); }
 
-.account-footer { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-top: 1px solid var(--border-soft); color: var(--text-muted); font-size: 10px; }
+.account-footer {
+    min-height: calc(54px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border-top: 1px solid var(--border-soft);
+    color: var(--text-muted);
+    font-size: 10px;
+}
 .account-footer > span:last-child { display: flex; align-items: center; gap: 7px; }
 .account-footer i { color: var(--primary-blue); font-size: 10px; }
 
@@ -867,7 +884,10 @@
 
 @media (max-width: 720px) {
     .account-shell { width: min(100% - 36px, 480px); }
-    .account-topbar { min-height: 72px; }
+    .account-topbar {
+        min-height: calc(72px + env(safe-area-inset-top, 0px));
+        padding-top: env(safe-area-inset-top, 0px);
+    }
     .account-layout { display: flex; flex-direction: column; align-items: stretch; gap: 23px; padding: 25px 0 34px; }
     .account-story { text-align: center; }
     .account-eyebrow { justify-content: center; font-size: 9px; }
@@ -876,7 +896,11 @@
     .account-preview, .account-benefits { display: none; }
     .account-card { padding: 27px 25px 22px; }
     .account-field-grid { grid-template-columns: 1fr; }
-    .account-footer { min-height: 48px; font-size: 9px; }
+    .account-footer {
+        min-height: calc(48px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        font-size: 9px;
+    }
 }
 
 @media (max-width: 420px) {

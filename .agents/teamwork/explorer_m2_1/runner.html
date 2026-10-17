@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Measure 375px</title>
+<style>
+body { margin: 0; padding: 0; overflow-x: hidden; }
+iframe { width: 375px; height: 812px; border: none; }
+</style>
+</head>
+<body>
+<iframe id="testFrame"></iframe>
+<script>
+const pages = [
+  'index.html',
+  'account.html',
+  'career/chat.html',
+  'flashcard/flashcard.html',
+  'schedule/create.html',
+  'todo/mylist.html'
+];
+const allResults = {};
+
+async function measurePage(page) {
+  return new Promise((resolve) => {
+    const frame = document.getElementById('testFrame');
+    frame.src = '/' + page;
+    frame.onload = () => {
+      setTimeout(() => {
+        try {
+          const doc = frame.contentDocument;
+          const win = frame.contentWindow;
+          const res = {
+            viewport: { innerWidth: win.innerWidth, innerHeight: win.innerHeight },
+            body: {
+              scrollWidth: doc.body.scrollWidth,
+              clientWidth: doc.body.clientWidth,
+              hasHorizontalOverflow: doc.body.scrollWidth > doc.body.clientWidth
+            }
+          };
+
+          const navbar = doc.querySelector('.navbar, .account-topbar');
+          if (navbar) {
+            const nbRect = navbar.getBoundingClientRect();
+            res.navbar = {
+              tag: navbar.tagName,
+              className: navbar.className,
+              rect: { width: nbRect.width, height: nbRect.height, top: nbRect.top, left: nbRect.left },
+              scrollWidth: navbar.scrollWidth,
+              clientWidth: navbar.clientWidth,
+              overflow: navbar.scrollWidth > navbar.clientWidth
+            };
+          }
+
+          const container = doc.querySelector('.nav-container');
+          if (container) {
+            const cRect = container.getBoundingClientRect();
+            const cs = win.getComputedStyle(container);
+            res.navContainer = {
+              rect: { width: cRect.width, height: cRect.height },
+              scrollWidth: container.scrollWidth,
+              clientWidth: container.clientWidth,
+              overflow: container.scrollWidth > container.clientWidth,
+              flexWrap: cs.flexWrap,
+              justifyContent: cs.justifyContent,
+              padding: cs.padding
+            };
+          }
+
+          const logo = doc.querySelector('.logo, .account-brand');
+          if (logo) {
+            const lRect = logo.getBoundingClientRect();
+            const ls = win.getComputedStyle(logo);
+            res.logo = {
+              text: logo.innerText.trim(),
+              rect: { width: lRect.width, height: lRect.height },
+              fontSize: ls.fontSize,
+              whiteSpace: ls.whiteSpace,
+              isMultiLine: lRect.height > 30
+            };
+          }
+
+          const nav = doc.querySelector('.navigation');
+          if (nav) {
+            const nRect = nav.getBoundingClientRect();
+            res.navigation = {
+              rect: { width: nRect.width, height: nRect.height },
+              scrollWidth: nav.scrollWidth,
+              clientWidth: nav.clientWidth,
+              items: []
+            };
+            const items = nav.querySelectorAll('li');
+            items.forEach((li, idx) => {
+              const r = li.getBoundingClientRect();
+              const a = li.querySelector('a');
+              const aRect = a ? a.getBoundingClientRect() : null;
+              res.navigation.items.push({
+                index: idx,
+                id: li.id,
+                className: li.className,
+                rect: { width: r.width, height: r.height },
+                aRect: aRect ? { width: aRect.width, height: aRect.height } : null,
+                tapTargetValid44: (aRect ? (aRect.width >= 44 && aRect.height >= 44) : (r.width >= 44 && r.height >= 44))
+              });
+            });
+          }
+
+          const streak = doc.querySelector('.nav-streak-container, .nav-streak-btn');
+          if (streak) {
+            const sBtn = doc.querySelector('.nav-streak-btn');
+            const sRect = (sBtn || streak).getBoundingClientRect();
+            res.streakBtn = {
+              rect: { width: sRect.width, height: sRect.height },
+              tapTargetValid44: (sRect.width >= 44 && sRect.height >= 44)
+            };
+          }
+
+          const account = doc.querySelector('.nav-account, .account-back-link');
+          if (account) {
+            const aRect = account.getBoundingClientRect();
+            res.accountBtn = {
+              text: account.innerText.trim(),
+              rect: { width: aRect.width, height: aRect.height },
+              tapTargetValid44: (aRect.width >= 44 && aRect.height >= 44)
+            };
+          }
+
+          const settings = doc.querySelector('.nav-settings');
+          if (settings) {
+            const sRect = settings.getBoundingClientRect();
+            res.settingsBtn = {
+              rect: { width: sRect.width, height: sRect.height },
+              tapTargetValid44: (sRect.width >= 44 && sRect.height >= 44)
+            };
+          }
+
+          allResults[page] = res;
+          resolve();
+        } catch (e) {
+          allResults[page] = { error: e.message };
+          resolve();
+        }
+      }, 500);
+    };
+  });
+}
+
+async function runAll() {
+  for (const page of pages) {
+    await measurePage(page);
+  }
+  await fetch('/api/report_layout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(allResults)
+  });
+}
+window.onload = runAll;
+</script>
+</body>
+</html>

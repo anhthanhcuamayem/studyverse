@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="vi" class="sv-theme-loading">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#080d18">
+    <title data-i18n="account.pageTitle">Tài khoản - Studyverse</title>
+    <script src="/config.js"></script>
+    <script src="/theme-init.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="/shared.css">
+    <link rel="stylesheet" href="/account.css">
+</head>
+<body class="account-page">
+    <div class="account-shell">
+        <header class="account-topbar">
+            <a class="account-brand" href="/" aria-label="Studyverse">
+                <span class="account-brand-mark"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></span>
+                <span>Study<span class="account-brand-accent">verse</span></span>
+            </a>
+            <a class="account-back-link" href="/" data-i18n="account.backHome">Về trang chủ</a>
+        </header>
+
+        <main class="account-layout">
+            <section class="account-story" aria-labelledby="accountStoryTitle">
+                <div class="account-eyebrow"><span class="account-eyebrow-dot"></span><span data-i18n="account.eyebrow">KHÔNG GIAN HỌC TẬP CỦA BẠN</span></div>
+                <h1 id="accountStoryTitle" data-i18n="account.storyTitle">Một nơi gọn gàng<br>cho mọi mục tiêu.</h1>
+                <p class="account-story-copy" data-i18n="account.storyCopy">Lên kế hoạch, theo dõi tiến độ và dành sự tập trung cho điều quan trọng tiếp theo.</p>
+
+                <div class="account-preview" aria-hidden="true">
+                    <div class="preview-topline"><span></span><span></span><span></span><i class="fa-solid fa-ellipsis"></i></div>
+                    <div class="preview-content">
+                        <div class="preview-sidebar"><span class="preview-side-logo"></span><span class="preview-side-line active"></span><span class="preview-side-line"></span><span class="preview-side-line short"></span><span class="preview-side-line"></span></div>
+                        <div class="preview-main">
+                            <div class="preview-greeting"></div>
+                            <div class="preview-subtitle"></div>
+                            <div class="preview-progress"><span></span><span></span><span></span></div>
+                            <div class="preview-task"><i class="fa-solid fa-check"></i><span></span><b></b></div>
+                            <div class="preview-task"><i></i><span></span><b></b></div>
+                            <div class="preview-task"><i></i><span></span><b class="muted"></b></div>
+                        </div>
+                    </div>
+                    <div class="preview-glow"></div>
+                </div>
+
+                <div class="account-benefits">
+                    <div><span class="benefit-icon"><i class="fa-solid fa-list-check"></i></span><span><b data-i18n="account.benefitPlan">Kế hoạch rõ ràng</b><small data-i18n="account.benefitPlanCopy">Gom dự án và công việc vào một nơi.</small></span></div>
+                    <div><span class="benefit-icon"><i class="fa-regular fa-calendar-check"></i></span><span><b data-i18n="account.benefitFocus">Tập trung mỗi ngày</b><small data-i18n="account.benefitFocusCopy">Theo dõi tiến độ theo nhịp của bạn.</small></span></div>
+                </div>
+            </section>
+
+            <section class="account-card" aria-labelledby="authTitle">
+                <div class="account-tabs" id="accountTabs" role="tablist">
+                    <button type="button" class="account-tab active" id="tabProfileBtn" role="tab" aria-selected="true" data-tab="profile">
+                        <i class="fa-solid fa-id-badge" aria-hidden="true"></i>
+                        <span data-i18n="account.tabProfile">Hồ sơ & Cài đặt</span>
+                    </button>
+                    <button type="button" class="account-tab" id="tabAuthBtn" role="tab" aria-selected="false" data-tab="auth">
+                        <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+                        <span id="tabAuthLabel" data-i18n="account.tabAuth">Đăng nhập Cloud</span>
+                    </button>
+                </div>
+
+                <div class="account-card-heading">
+                    <div class="account-card-icon" id="accountCardIcon"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></div>
+                    <div class="account-card-kicker" data-i18n="account.cardEyebrow">TÀI KHOẢN STUDYVERSE</div>
+                    <h2 id="authTitle" data-i18n="account.profileTitle">Hồ sơ & Tùy biến AI</h2>
+                    <p id="authSubtitle" data-i18n="account.guestProfileSubtitle">Tùy chỉnh thông tin để AI hỗ trợ bạn tốt nhất.</p>
+                </div>
+
+                <div class="account-notice" id="authNotice" role="status" aria-live="polite" hidden></div>
+
+                <div class="account-session" id="signedInPanel">
+                    <div class="account-profile-header">
+                        <div class="account-avatar" id="accountAvatar">S</div>
+                        <div class="account-session-copy">
+                            <div class="account-user-title-row">
+                                <h3 class="account-user-name" id="accountDisplayName">Học viên Studyverse</h3>
+                                <span class="account-mode-pill" id="accountModePill">
+                                    <i class="fa-solid fa-laptop" aria-hidden="true"></i>
+                                    <span id="accountModePillLabel" data-i18n="account.localBadge">Hồ sơ máy này</span>
+                                </span>
+                            </div>
+                            <span class="account-user-email" id="accountEmail"></span>
+                        </div>
+                    </div>
+
+                    <!-- Cloud Nudge Banner (Chỉ hiện khi chưa đăng nhập Supabase) -->
+                    <div class="account-cloud-nudge" id="cloudNudgeBanner">
+                        <div class="nudge-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></div>
+                        <div class="nudge-text">
+                            <strong data-i18n="account.cloudNudgeTitle">Đồng bộ đa thiết bị?</strong>
+                            <p data-i18n="account.cloudNudgeText">Đăng nhập Supabase để lưu trữ dự án, thời khóa biểu và hồ sơ an toàn trên đám mây.</p>
+                        </div>
+                        <button type="button" class="nudge-btn" id="nudgeLoginBtn" data-i18n="account.cloudNudgeAction">Đăng nhập ngay</button>
+                    </div>
+
+                    <!-- Streak & Stats Widget -->
+                    <div class="account-stats-grid">
+                        <div class="account-stat-card streak-card">
+                            <div class="stat-icon-wrap" id="streakFlameWrap"><i class="fa-solid fa-fire-flame-curved" aria-hidden="true"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-header-row">
+                                    <span class="stat-label" data-i18n="account.streakTitle">Chuỗi học tập</span>
+                                    <span class="streak-level-pill" id="streakLevelPill">Cấp 1: Tập sự 🌱</span>
+                                </div>
+                                <div class="stat-value"><strong id="streakCount">1</strong> <small data-i18n="account.streakDays">ngày liên tục</small></div>
+                                <span class="stat-sub"><i class="fa-solid fa-trophy" aria-hidden="true"></i> <span data-i18n="account.streakBest">Kỷ lục</span>: <b id="streakBestCount">1</b></span>
+                            </div>
+                        </div>
+                        <div class="account-stat-card tasks-card">
+                            <div class="stat-icon-wrap"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="account.statsCompleted">Nhiệm vụ xong</span>
+                                <div class="stat-value"><strong id="tasksDoneCount">0</strong> <small id="tasksTotalCount">/ 0</small></div>
+                                <span class="stat-sub" data-i18n="account.streakTip">Giữ lửa mỗi ngày!</span>
+                            </div>
+                        </div>
+                        <div class="account-stat-card freeze-card">
+                            <div class="stat-icon-wrap freeze-icon-wrap" id="freezeSnowWrap"><i class="fa-solid fa-snowflake" aria-hidden="true"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-header-row">
+                                    <span class="stat-label" data-i18n="streak.freeze">Bảo lưu chuỗi</span>
+                                    <span class="streak-freeze-pill" id="streakFreezePill">Sẵn sàng ❄️</span>
+                                </div>
+                                <div class="stat-value"><strong id="freezeCount">2</strong> <small data-i18n="streak.freezesRemaining">lượt bảo vệ</small></div>
+                                <span class="stat-sub" data-i18n="streak.freezeDesc">Tự động bảo vệ chuỗi khi lỡ 1 ngày bận</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nhịp học 7 ngày trong tuần -->
+                    <div class="account-week-strip" id="weekActivityStrip">
+                        <div class="strip-header">
+                            <i class="fa-regular fa-calendar-check" aria-hidden="true"></i>
+                            <span data-i18n="account.weekActivity">Nhịp học 7 ngày gần nhất</span>
+                        </div>
+                        <div class="strip-days" id="weekDaysContainer"></div>
+                    </div>
+
+                    <!-- Lịch hoạt động & Heatmap tháng -->
+                    <div class="account-calendar-section" id="accountCalendarSection">
+                        <div class="calendar-header-row">
+                            <div class="calendar-title">
+                                <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
+                                <span data-i18n="streak.monthlyCalendar">Lịch hoạt động & Heatmap tháng</span>
+                            </div>
+                            <div class="calendar-nav-controls">
+                                <button type="button" class="calendar-nav-btn" id="calPrevMonthBtn" aria-label="Tháng trước"><i class="fa-solid fa-chevron-left"></i></button>
+                                <span class="calendar-current-month" id="calCurrentMonthLabel">Tháng 10/2026</span>
+                                <button type="button" class="calendar-nav-btn" id="calNextMonthBtn" aria-label="Tháng sau"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <div class="calendar-grid-wrap">
+                            <div class="calendar-weekdays" id="calendarWeekdaysHeader">
+                                <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
+                            </div>
+                            <div class="calendar-days-grid" id="calendarDaysGrid"></div>
+                        </div>
+                        <div class="calendar-legend-bar">
+                            <div class="legend-item"><span class="legend-dot is-empty"></span> <span data-i18n="streak.legendRest">Nghỉ ngơi</span></div>
+                            <div class="legend-item"><span class="legend-dot is-active"></span> <span data-i18n="streak.legendActive">Đã học tập 🔥</span></div>
+                            <div class="legend-item"><span class="legend-dot is-frozen"></span> <span data-i18n="streak.legendFrozen">Bảo lưu ❄️</span></div>
+                            <div class="legend-item"><span class="legend-dot is-today"></span> <span data-i18n="streak.legendToday">Hôm nay</span></div>
+                        </div>
+                        <div class="calendar-summary-row">
+                            <div class="summary-pill"><i class="fa-solid fa-fire-flame-curved"></i> <strong id="calMonthStudyDays">0</strong> <span data-i18n="streak.monthDays">ngày học</span></div>
+                            <div class="summary-pill"><i class="fa-solid fa-snowflake"></i> <strong id="calMonthFrozenDays">0</strong> <span data-i18n="streak.frozenUsed">lượt freeze dùng</span></div>
+                            <div class="summary-pill"><i class="fa-solid fa-chart-line"></i> <strong id="calMonthRate">0%</strong> <span data-i18n="streak.attendanceRate">chuyên cần</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Bộ sưu tập Huy hiệu Thành tích -->
+                    <div class="account-badges-section">
+                        <div class="badges-header">
+                            <i class="fa-solid fa-award" aria-hidden="true"></i>
+                            <span data-i18n="account.badgesTitle">Bộ sưu tập Huy hiệu Thành tích</span>
+                        </div>
+                        <div class="badges-grid" id="badgesGrid"></div>
+                    </div>
+
+                    <!-- Profile & Settings Form -->
+                    <form class="account-profile-form" id="profileSettingsForm">
+                        <div class="profile-section-title">
+                            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                            <span data-i18n="account.profileTitle">Hồ sơ & Tùy biến AI</span>
+                        </div>
+
+                        <div class="account-field">
+                            <label for="profileDisplayName" data-i18n="account.displayNameLabel">Tên hiển thị (AI sẽ gọi bạn bằng tên này)</label>
+                            <div class="account-input-wrap">
+                                <i class="fa-regular fa-user" aria-hidden="true"></i>
+                                <input id="profileDisplayName" name="displayName" type="text" maxlength="40" placeholder="Nhập tên của bạn..." data-i18n-placeholder="account.displayNamePh">
+                            </div>
+                        </div>
+
+                        <div class="account-field">
+                            <label for="profileDailyGoal" data-i18n="account.dailyGoalLabel">Mục tiêu học tập hàng ngày</label>
+                            <div class="account-input-wrap">
+                                <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
+                                <input id="profileDailyGoal" name="dailyGoal" type="text" maxlength="60" placeholder="Ví dụ: 3 việc / ngày, 45 phút học tập..." data-i18n-placeholder="account.dailyGoalPh">
+                            </div>
+                            <div class="account-quick-chips" id="goalChips">
+                                <button type="button" class="quick-chip" data-goal="Hoàn thành 3 nhiệm vụ mỗi ngày">3 việc / ngày</button>
+                                <button type="button" class="quick-chip" data-goal="Hoàn thành 5 nhiệm vụ mỗi ngày">5 việc / ngày</button>
+                                <button type="button" class="quick-chip" data-goal="45 phút học tập tập trung">45 phút học tập</button>
+                                <button type="button" class="quick-chip" data-goal="Duy trì streak liên tục">Giữ chuỗi streak</button>
+                            </div>
+                        </div>
+
+                        <div class="account-field">
+                            <label for="profileInterests" data-i18n="account.interestsLabel">Sở thích & Lĩnh vực quan tâm (AI sẽ định hướng theo ngành này)</label>
+                            <div class="account-input-wrap">
+                                <i class="fa-solid fa-compass" aria-hidden="true"></i>
+                                <input id="profileInterests" name="interests" type="text" maxlength="80" placeholder="Ví dụ: Công nghệ thông tin, Kinh tế, Thiết kế..." data-i18n-placeholder="account.interestsPh">
+                            </div>
+                            <div class="account-quick-chips" id="interestChips">
+                                <button type="button" class="quick-chip" data-interest="Công nghệ thông tin & Lập trình">💻 CNTT & Code</button>
+                                <button type="button" class="quick-chip" data-interest="Kinh tế & Marketing">📊 Kinh tế</button>
+                                <button type="button" class="quick-chip" data-interest="Thiết kế đồ họa & Sáng tạo">🎨 Thiết kế</button>
+                                <button type="button" class="quick-chip" data-interest="Ngoại ngữ & Du học">🌐 Ngoại ngữ</button>
+                                <button type="button" class="quick-chip" data-interest="Y dược & Sức khỏe">🔬 Y dược</button>
+                            </div>
+                        </div>
+
+                        <div class="account-field-grid">
+                            <div class="account-field">
+                                <label for="profileAiCalling" data-i18n="account.aiCallingLabel">Cách xưng hô với AI</label>
+                                <div class="account-select-wrap">
+                                    <i class="fa-regular fa-comments" aria-hidden="true"></i>
+                                    <select id="profileAiCalling" name="aiCalling">
+                                        <option value="Bạn - Mình" data-i18n="account.aiCallingOpt1">Bạn - Mình (Thân thiện, lịch thiệp)</option>
+                                        <option value="Cậu - Tớ" data-i18n="account.aiCallingOpt2">Cậu - Tớ (Gần gũi, bạn bè)</option>
+                                        <option value="Em - Anh/Chị" data-i18n="account.aiCallingOpt3">Em - Anh/Chị (Lễ phép, học hỏi)</option>
+                                        <option value="Tôi - Bạn" data-i18n="account.aiCallingOpt4">Tôi - Bạn (Trang trọng, chuyên nghiệp)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="account-field">
+                                <label for="profileAiStyle" data-i18n="account.aiStyleLabel">Phong cách trả lời của AI</label>
+                                <div class="account-select-wrap">
+                                    <i class="fa-solid fa-brain" aria-hidden="true"></i>
+                                    <select id="profileAiStyle" name="aiStyle">
+                                        <option value="Nhiệt tình & truyền cảm hứng" data-i18n="account.aiStyleOpt1">Nhiệt tình & truyền cảm hứng 🔥</option>
+                                        <option value="Ngắn gọn, súc tích & thẳng thắn" data-i18n="account.aiStyleOpt2">Ngắn gọn, súc tích & thẳng thắn 🎯</option>
+                                        <option value="Tỉ mỉ & hướng dẫn chi tiết" data-i18n="account.aiStyleOpt3">Tỉ mỉ & hướng dẫn chi tiết 📚</option>
+                                        <option value="Thách thức & phản biện tư duy" data-i18n="account.aiStyleOpt4">Thách thức & phản biện tư duy 💡</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="account-field">
+                            <label for="profileAiFocus" data-i18n="account.aiFocusLabel">Trọng tâm hỗ trợ của AI</label>
+                            <div class="account-select-wrap">
+                                <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
+                                <select id="profileAiFocus" name="aiFocus">
+                                    <option value="Hướng nghiệp & Lập kế hoạch tương lai" data-i18n="account.aiFocusOpt1">Hướng nghiệp & Lập kế hoạch tương lai</option>
+                                    <option value="Phương pháp học & Xử lý deadline" data-i18n="account.aiFocusOpt2">Phương pháp học & Xử lý deadline</option>
+                                    <option value="Thói quen & Cân bằng cuộc sống" data-i18n="account.aiFocusOpt3">Thói quen & Cân bằng cuộc sống</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Cấu hình Hệ thống & Giao diện -->
+                        <div class="profile-section-divider"></div>
+                        <div class="profile-section-title">
+                            <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                            <span data-i18n="account.preferencesTitle">Cấu hình Hệ thống & Giao diện</span>
+                        </div>
+
+                        <div class="account-field">
+                            <label data-i18n="account.themeLabel">Chủ đề giao diện (Theme)</label>
+                            <div class="account-theme-swatches" id="accountThemeSwatches"></div>
+                        </div>
+
+                        <div class="account-field">
+                            <label data-i18n="account.langLabel">Ngôn ngữ hiển thị</label>
+                            <div class="account-lang-toggle" id="accountLangToggle">
+                                <button type="button" class="lang-pill" data-lang="vi">🇻🇳 Tiếng Việt</button>
+                                <button type="button" class="lang-pill" data-lang="en">🇬🇧 English</button>
+                            </div>
+                        </div>
+
+                        <div class="account-toggles-list">
+                            <label class="account-toggle-item">
+                                <span class="toggle-info">
+                                    <strong data-i18n="account.notifyStreak">Nhắc nhở chuỗi học tập hàng ngày</strong>
+                                    <small>Gợi ý vào học đều đặn để duy trì ngọn lửa streak</small>
+                                </span>
+                                <input type="checkbox" id="profileNotifyStreak" name="notifyStreak" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+
+                            <label class="account-toggle-item">
+                                <span class="toggle-info">
+                                    <strong data-i18n="account.notifyDeadline">Cảnh báo hạn chót nhiệm vụ</strong>
+                                    <small>Thông báo khi có task đến gần deadline</small>
+                                </span>
+                                <input type="checkbox" id="profileNotifyDeadline" name="notifyDeadline" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+
+                            <label class="account-toggle-item">
+                                <span class="toggle-info">
+                                    <strong data-i18n="account.soundEffects">Âm thanh khi hoàn thành nhiệm vụ</strong>
+                                    <small>Hiệu ứng âm thanh vui tai khi tích xong một việc</small>
+                                </span>
+                                <input type="checkbox" id="profileSoundEnabled" name="soundEnabled" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <button class="account-primary profile-save-btn" id="saveProfileBtn" type="submit">
+                            <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i>
+                            <span id="saveProfileBtnLabel" data-i18n="account.saveProfile">Lưu thay đổi</span>
+                        </button>
+                    </form>
+
+                    <div class="account-actions-row">
+                        <a class="account-primary account-continue" href="/todo/mylist.html">
+                            <span data-i18n="account.openApp">Mở Studyverse</span>
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                        <button class="account-quiet-button" id="signOutButton" type="button" data-i18n="account.signOut" hidden>Đăng xuất</button>
+                    </div>
+                </div>
+
+                <form class="account-form" id="authForm" novalidate hidden>
+                    <div class="account-field" id="emailField">
+                        <label for="authEmail" data-i18n="account.emailLabel">Địa chỉ email</label>
+                        <div class="account-input-wrap">
+                            <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                            <input id="authEmail" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="ten@email.com" aria-describedby="emailHint">
+                        </div>
+                        <small class="account-field-hint" id="emailHint" data-i18n="account.emailHint">Email chỉ dùng để đăng nhập và khôi phục tài khoản.</small>
+                    </div>
+
+                    <div class="account-field" id="passwordField">
+                        <div class="account-label-row">
+                            <label for="authPassword" data-i18n="account.passwordLabel">Mật khẩu</label>
+                            <button id="forgotPasswordButton" class="account-text-button" type="button" data-i18n="account.forgotPassword">Quên mật khẩu?</button>
+                        </div>
+                        <div class="account-input-wrap">
+                            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                            <input id="authPassword" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Tối thiểu 8 ký tự" aria-describedby="passwordHint">
+                            <button class="account-password-toggle" type="button" data-toggle-password="authPassword" data-i18n-aria="account.showPassword" data-i18n-title="account.showPassword" aria-label="Hiện mật khẩu" title="Hiện mật khẩu"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                        </div>
+                        <small class="account-field-hint" id="passwordHint" data-i18n="account.passwordHint">Dùng ít nhất 8 ký tự.</small>
+                    </div>
+
+                    <div class="account-field" id="confirmPasswordField" hidden>
+                        <label for="authPasswordConfirm" data-i18n="account.confirmPasswordLabel">Nhập lại mật khẩu</label>
+                        <div class="account-input-wrap">
+                            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                            <input id="authPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="8" placeholder="Nhập lại mật khẩu">
+                            <button class="account-password-toggle" type="button" data-toggle-password="authPasswordConfirm" data-i18n-aria="account.showPassword" data-i18n-title="account.showPassword" aria-label="Hiện mật khẩu" title="Hiện mật khẩu"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+
+                    <button class="account-primary" id="authSubmit" type="submit">
+                        <span id="authSubmitLabel">Đăng nhập</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </button>
+
+                    <p class="account-terms" data-i18n="account.localDataNotice">Dự án và thời khóa biểu hiện được lưu trên trình duyệt này.</p>
+                </form>
+
+                <div class="account-divider" id="accountDivider" hidden><span data-i18n="account.or">hoặc</span></div>
+                <div class="account-mode-switch" id="modeSwitchRow" hidden><span id="modeSwitchPrompt">Chưa có tài khoản?</span><button id="modeSwitchButton" type="button">Đăng ký</button></div>
+                <a class="account-guest-link" id="guestLink" href="/todo/mylist.html" hidden><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span data-i18n="account.continueGuest">Tiếp tục với Guest</span></a>
+            </section>
+        </main>
+
+        <footer class="account-footer"><span>© <span id="currentYear"></span> Studyverse</span><span><i class="fa-solid fa-lock" aria-hidden="true"></i> <span data-i18n="account.footerSecure">Kết nối bảo mật bằng Supabase Auth</span></span></footer>
+    </div>
+
+    <script src="/icons.js"></script>
+    <script src="/shared.js?v=20261003-2"></script>
+    <script src="/auth.js?v=20261003-2"></script>
+</body>
+</html>
+��%Kd      j�j�J	�j�	   I    O^partitionKey=%28http%2C127.0.0.1%29,:http://127.0.0.1:5566/account.html peer-ip-address 127.0.0.1 peer-port 5566 strongly-framed 1 request-method GET response-head HTTP/1.0 200 OK
+Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:08:07 GMT
+Content-type: text/html
+Content-Length: 30037
+Last-Modified: Tue, 13 Oct 2026 05:50:03 GMT
+ original-response-headers Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:08:07 GMT
+Content-type: text/html
+Content-Length: 30037
+Last-Modified: Tue, 13 Oct 2026 05:50:03 GMT
+ ctid 1 net-response-time-onstart 272 net-response-time-onstop 300      uU

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi" class="sv-theme-loading">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title data-i18n="todo.pageTitle">My Project</title>
+    <script src="/config.js"></script>
+    <script src="/theme-init.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="/shared.css">
+    <link rel="stylesheet" href="mylist.css">
+    <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+<body style="visibility: hidden;">
+
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">Study<span>verse</span></a>
+            
+            <nav class="navigation">
+                <ul>
+                    <li class="list" id="li-home" data-index="0">
+                        <a href="/index.html">
+                            <span class="icon"><i class="fa-solid fa-house"></i></span>
+                            <span class="text" data-i18n="nav.home">Home</span>
+                        </a>
+                    </li>
+                    <li class="list active" id="li-myproject" data-index="1">
+                        <a href="/todo/mylist.html"> 
+                            <span class="icon"><i class="fa-solid fa-list-check"></i></span>
+                            <span class="text" data-i18n="nav.project">My Project</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-schedule" data-index="2">
+                        <a href="/schedule/create.html">
+                            <span class="icon"><i class="fa-regular fa-calendar"></i></span>
+                            <span class="text" data-i18n="nav.schedule">Schedule</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-career" data-index="3">
+                        <a href="/career/chat.html">
+                            <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
+                            <span class="text" data-i18n="nav.career">AI Career</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-flashcard" data-index="4">
+                        <a href="/flashcard/flashcard.html">
+                            <span class="icon"><i class="fa-solid fa-layer-group"></i></span>
+                            <span class="text" data-i18n="nav.flashcard">Flashcard</span>
+                        </a>
+                    </li>
+                    <div class="indicator"></div>
+                </ul>
+            </nav>
+        </div>
+    </header>  
+
+    <main>
+    <div class="project-wrapper">
+        <aside class="project-sidebar">
+            <div class="sidebar-header">
+                <h2 data-i18n="todo.sidebar">My Projects</h2>
+                <button class="btn-new-project" data-i18n="todo.newProject">+ New Project</button>
+            </div>
+            <div class="sidebar-list">
+                </div>
+        </aside>
+
+        <section class="project-detail">
+            <div class="detail-card">
+                <div class="detail-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h2 id="mainProjectName" style="margin: 0;">My Projects</h2>
+                        <i class="fa-solid fa-pen btn-edit-name" style="cursor: pointer; font-size: 14px; color: rgba(255,255,255,0.3); display: none;" data-i18n-title="todo.editName" data-i18n-aria="todo.editName"></i>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: rgba(255,255,255,0.5); font-weight: 500;">
+                        <span id="mainProjectDeadline"></span>
+                        <i class="fa-solid fa-pen btn-edit-deadline" style="cursor: pointer; font-size: 13px; color: rgba(255,255,255,0.3); display: none;" data-i18n-title="todo.editDeadline" data-i18n-aria="todo.editDeadline"></i>
+                    </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div id="progressBarContainer" style="display: none; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 13px; color: rgba(255,255,255,0.5);" data-i18n="todo.progress">Progress</span>
+                        <span id="progressText" style="font-size: 13px; color: var(--primary-blue); font-weight: 600;">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div class="todo-toolbar" id="todoToolbar">
+                    <div class="todo-views" role="tablist" aria-label="Task views">
+                        <button type="button" class="todo-view-btn active" data-view="all" data-i18n="todo.allTasks">All</button>
+                        <button type="button" class="todo-view-btn" data-view="today" data-i18n="todo.today">Today</button>
+                        <button type="button" class="todo-view-btn" data-view="upcoming" data-i18n="todo.upcoming">Upcoming</button>
+                        <button type="button" class="todo-view-btn" data-view="overdue" data-i18n="todo.overdue">Overdue</button>
+                    </div>
+                    <div class="todo-filter-row">
+                        <label class="todo-search-wrap">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input id="taskSearchInput" type="search" data-i18n-ph="todo.search" placeholder="Tìm việc..." autocomplete="off">
+                        </label>
+                        <select id="taskStatusFilter" aria-label="Task status">
+                            <option value="all" data-i18n="todo.allStatuses">Mọi trạng thái</option>
+                            <option value="todo" data-i18n="todo.todoStatus">Chưa làm</option>
+                            <option value="doing" data-i18n="todo.doingStatus">Đang làm</option>
+                            <option value="done" data-i18n="todo.doneStatus">Hoàn thành</option>
+                        </select>
+                        <select id="taskPriorityFilter" aria-label="Task priority">
+                            <option value="all" data-i18n="todo.allPriorities">Mọi mức ưu tiên</option>
+                            <option value="high" data-i18n="todo.highPriority">Cao</option>
+                            <option value="medium" data-i18n="todo.mediumPriority">Trung bình</option>
+                            <option value="low" data-i18n="todo.lowPriority">Thấp</option>
+                        </select>
+                        <button type="button" class="todo-data-btn" id="btnExportTodo" data-i18n="todo.export">Export data</button>
+                        <button type="button" class="todo-data-btn" id="btnImportTodo" data-i18n="todo.import">Import data</button>
+                        <input id="todoImportInput" type="file" accept="application/json,.json" hidden>
+                    </div>
+                    <small class="todo-shortcut-hint" data-i18n="todo.shortcutSearch">Ctrl/⌘ K để tìm nhanh</small>
+                </div>
+                
+                <div id="taskAreaContainer" style="display: none;">
+                    
+                    <div id="displayTaskList" style="margin-bottom: 10px;"></div>
+
+                    <div class="add-task-btn" id="btnShowInput" style="display: flex; align-items: center; gap: 10px; cursor: pointer; width: fit-content; padding: 8px 12px; border-radius: 8px; transition: background 0.2s;">
+                        <i class="fa-solid fa-plus" style="color: #db4c3f; font-size: 16px;"></i>
+                        <span style="color: rgba(255,255,255,0.6); font-size: 15px; font-weight: 500;" data-i18n="todo.addTask">Add task</span>
+                    </div>
+
+                    <div id="taskInputCard" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; margin-top: 5px;">
+    
+                        <input type="text" id="taskNameInput" data-i18n-ph="todo.taskNamePh" placeholder="Task name..." style="width: 100%; background: transparent; border: none; color: white; font-size: 15px; outline: none; margin-bottom: 8px;">
+                        
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <i class="fa-regular fa-clock" style="color: #ffffff; font-size: 17px;"></i>
+                            <input type="text" id="taskDeadlineInput" data-i18n-ph="todo.taskDeadlinePh" placeholder="Deadline (EX: 20/10 or Monday)..." style="background: transparent; border: none; color: #ffffff; font-size: 13px; outline: none; width: 100%;">
+                        </div>
+
+                        <div class="task-meta-grid">
+                            <label><span data-i18n="todo.priority">Priority</span>
+                                <select id="taskPriorityInput">
+                                    <option value="low" data-i18n="todo.lowPriority">Low</option>
+                                    <option value="medium" selected data-i18n="todo.mediumPriority">Medium</option>
+                                    <option value="high" data-i18n="todo.highPriority">High</option>
+                                </select>
+                            </label>
+                            <label><span data-i18n="todo.estimate">Estimated minutes</span>
+                                <input id="taskEstimateInput" type="number" min="5" max="600" step="5" value="25">
+                            </label>
+                            <label><span data-i18n="todo.repeat">Repeat</span>
+                                <select id="taskRepeatInput">
+                                    <option value="none" data-i18n="todo.noRepeat">Does not repeat</option>
+                                    <option value="daily" data-i18n="todo.daily">Daily</option>
+                                    <option value="weekly" data-i18n="todo.weekly">Weekly</option>
+                                </select>
+                            </label>
+                        </div>
+                        <label class="task-schedule-field"><span data-i18n="todo.studySlot">Study slot</span>
+                            <select id="taskScheduleInput"></select>
+                        </label>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                            <button id="btnCancelTask" style="background: transparent; color: #808080; border: none; padding: 5px 10px; cursor: pointer; font-size: 13px;" data-i18n="common.cancel">Cancel</button>
+                            <button id="btnSaveTask" style="background: #db4c3f; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: 600;" data-i18n="todo.addTask">Add task</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+    
+        </section>
+    </div>
+    
+    </main>
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="todo.newProjectTitle">New Project</h3>
+                
+            </div>
+            <div class="input-group">
+                <label for="projectNameInput" data-i18n="todo.projectName">Project name</label>
+                <input type="text" id="projectNameInput" data-i18n-ph="todo.projectNamePh" placeholder="EX: learn English,...">
+            </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <label for="projectDeadlineInput" data-i18n="todo.deadline">Deadline</label>
+                <input type="date" id="projectDeadlineInput">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" id="btnCancel" data-i18n="common.cancel">Cancel</button>
+                <button class="btn-modal btn-confirm" id="btnConfirm" data-i18n="todo.create">Create</button>
+            </div>
+            
+        </div>
+    </div>
+    
+    <script src="/icons.js"></script>
+    <script src="/shared.js"></script>
+    <script src="mylist.js?v=20260927-1"></script>
+</body>
+</html>
+ڈ��z�      j�;j�;J	�j��   M    O^partitionKey=%28http%2C127.0.0.1%29,:http://127.0.0.1:5566/todo/mylist.html peer-ip-address 127.0.0.1 peer-port 5566 strongly-framed 1 request-method GET response-head HTTP/1.0 200 OK
+Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:08:59 GMT
+Content-type: text/html
+Content-Length: 13127
+Last-Modified: Tue, 13 Oct 2026 06:23:58 GMT
+ original-response-headers Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:08:59 GMT
+Content-type: text/html
+Content-Length: 13127
+Last-Modified: Tue, 13 Oct 2026 06:23:58 GMT
+ ctid 1 net-response-time-onstart 1549 net-response-time-onstop 1625      3G

@@ -1,0 +1,1415 @@
+// chat hÆ°á»›ng nghiá»‡p: gá»­i kÃ¨m dá»¯ liá»‡u todo/tkb cá»§a ngÆ°á»i dÃ¹ng, tráº£ lá»i dáº¡ng streaming
+
+// KhÃ³a localStorage láº¥y tá»« /config.js (SV_CONFIG.storage)
+const SV_STORAGE = (window.SV_CONFIG && window.SV_CONFIG.storage) || {};
+const BASE_PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
+const BASE_SCHEDULE_KEY = SV_STORAGE.schedule || 'studyverse_schedule_dashboard_data';
+const BASE_CHAT_KEY = SV_STORAGE.careerChat || 'studyverse_career_chat';
+// ÄÆ°á»£c gÃ¡n láº¡i sau khi biáº¿t session Ä‘á»ƒ tÃ¡ch dá»¯ liá»‡u theo tÃ i khoáº£n.
+let PROJECTS_KEY = BASE_PROJECTS_KEY;
+let SCHEDULE_KEY = BASE_SCHEDULE_KEY;
+let CHAT_KEY = BASE_CHAT_KEY;
+
+function applyStorageScope() {
+    const scope = typeof svScopedKey === 'function' ? svScopedKey : (key => key);
+    PROJECTS_KEY = scope(BASE_PROJECTS_KEY);
+    SCHEDULE_KEY = scope(BASE_SCHEDULE_KEY);
+    CHAT_KEY = scope(BASE_CHAT_KEY);
+}
+
+// escapeHtml() Ä‘áº¿n tá»« shared.js â€” luÃ´n escape trÆ°á»›c khi dá»±ng HTML tá»« vÄƒn báº£n AI.
+// Markdown tá»‘i giáº£n, an toÃ n: **Ä‘áº­m**, *nghiÃªng*, `code`, ```khá»‘i code```,
+// # tiÃªu Ä‘á», - / 1. danh sÃ¡ch, [nhÃ£n](https://link).
+function svInlineMarkdown(text) {
+    return text
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+        .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,
+            '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+}
+
+function svRenderMarkdown(raw) {
+    const escaped = escapeHtml(raw ?? '');
+    const codeBlocks = [];
+    const withPlaceholders = escaped.replace(/```[^\n]*\n?([\s\S]*?)```/g, (m, code) => {
+        codeBlocks.push(code.replace(/\n$/, ''));
+        return `\u0000CODE${codeBlocks.length - 1}\u0000`;
+    });
+
+    let html = '';
+    let listType = null;
+    const closeList = () => {
+        if (listType) { html += listType === 'ul' ? '</ul>' : '</ol>'; listType = null; }
+    };
+
+    for (const line of withPlaceholders.split('\n')) {
+        const codeMatch = line.match(/^\u0000CODE(\d+)\u0000$/);
+        if (codeMatch) {
+            closeList();
+            html += `<pre class="sv-code"><code>${codeBlocks[Number(codeMatch[1])] || ''}</code></pre>`;
+            continue;
+        }
+        const heading = line.match(/^(#{1,4})\s+(.*)$/);
+        if (heading) {
+            closeList();
+            const level = Math.min(heading[1].length + 2, 6);
+            html += `<h${level}>${svInlineMarkdown(heading[2])}</h${level}>`;
+            continue;
+        }
+        const bullet = line.match(/^\s*[-*+]\s+(.*)$/);
+        if (bullet) {
+            if (listType !== 'ul') { closeList(); html += '<ul>'; listType = 'ul'; }
+            html += `<li>${svInlineMarkdown(bullet[1])}</li>`;
+            continue;
+        }
+        const numbered = line.match(/^\s*\d+[.)]\s+(.*)$/);
+        if (numbered) {
+            if (listType !== 'ol') { closeList(); html += '<ol>'; listType = 'ol'; }
+            html += `<li>${svInlineMarkdown(numbered[1])}</li>`;
+            continue;
+        }
+        if (!line.trim()) { closeList(); continue; }
+        closeList();
+        html += `<p>${svInlineMarkdown(line)}</p>`;
+    }
+    closeList();
+    return html;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Chá» biáº¿t user Ä‘ang Ä‘Äƒng nháº­p rá»“i má»›i Ä‘á»c/lÆ°u localStorage Ä‘Ã£ tÃ¡ch theo tÃ i khoáº£n.
+    if (typeof svAuthReady !== 'undefined') await svAuthReady;
+    applyStorageScope();
+
+    const sendBtn = document.getElementById('sendBtn');
+    const userInput = document.getElementById('userInput');
+    const chatMessages = document.getElementById('chatMessages');
+    const resetBtn = document.getElementById('resetChatBtn');
+
+    let conversationHistory = []; // LÆ°u lá»‹ch sá»­ chat
+    let isSending = false;
+
+    // Äá»c lá»i chÃ o má»—i láº§n dÃ¹ng (khÃ´ng cache) Ä‘á»ƒ Ä‘á»•i ngÃ´n ngá»¯ vÃ  thÃ´ng tin ngÆ°á»i dÃ¹ng lÃ  Ä‘á»•i ngay
+    const greetingText = () => {
+        const prof = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+        const name = (prof && prof.displayName) ? prof.displayName.trim() : '';
+        const streakData = typeof svGetStreak === 'function' ? svGetStreak() : null;
+        const streak = streakData ? streakData.currentStreak : 1;
+        const isEn = typeof svLang === 'function' && svLang() === 'en';
+        if (name) {
+            return isEn
+                ? `Hi ${name}! I'm kumalala, your AI Study & Career Advisor. I'm connected to your Studyverse space (streak: ${streak} days ğŸ”¥). Tell me what you'd like to explore, study, or plan today!`
+                : `ChÃ o ${name}! MÃ¬nh lÃ  kumalala cá»§a Studyverse, trá»£ lÃ½ há»c táº­p & hÆ°á»›ng nghiá»‡p cá»§a báº¡n. MÃ¬nh Ä‘Ã£ káº¿t ná»‘i vá»›i dá»¯ liá»‡u há»c táº­p cá»§a báº¡n (chuá»—i: ${streak} ngÃ y ğŸ”¥). HÃ´m nay báº¡n muá»‘n tÃ¬m hiá»ƒu sá»Ÿ thÃ­ch, ngÃ nh há»c hay giáº£i quyáº¿t cÃ´ng viá»‡c nÃ o?`;
+        }
+        return svT('career.greeting');
+    };
+
+    // ngá»¯ cáº£nh ngÆ°á»i dÃ¹ng Ä‘á»c tá»« LocalStorage do Todo & Schedule lÆ°u
+    function collectContext() {
+        let projects = [];
+        let schedule = null;
+        try {
+            let savedProjects = JSON.parse(localStorage.getItem(PROJECTS_KEY));
+            if ((!Array.isArray(savedProjects) || savedProjects.length === 0) && PROJECTS_KEY !== BASE_PROJECTS_KEY) {
+                const guestProjects = JSON.parse(localStorage.getItem(BASE_PROJECTS_KEY));
+                if (Array.isArray(guestProjects) && guestProjects.length > 0) {
+                    savedProjects = guestProjects;
+                }
+            }
+            if (Array.isArray(savedProjects)) projects = savedProjects;
+        } catch (e) { /* bá» qua dá»¯ liá»‡u há»ng */ }
+
+        try {
+            let savedSchedule = JSON.parse(localStorage.getItem(SCHEDULE_KEY));
+            const hasRealData = s => s && typeof s === 'object' && (
+                (Array.isArray(s.subjects) && s.subjects.length > 0) ||
+                (Array.isArray(s.timetableData) && s.timetableData.some(row => Array.isArray(row) && row.some(cell => cell && cell.name)))
+            );
+            if (!hasRealData(savedSchedule) && SCHEDULE_KEY !== BASE_SCHEDULE_KEY) {
+                const guestSchedule = JSON.parse(localStorage.getItem(BASE_SCHEDULE_KEY));
+                if (hasRealData(guestSchedule)) {
+                    savedSchedule = guestSchedule;
+                }
+            }
+            if (savedSchedule && typeof savedSchedule === 'object') schedule = savedSchedule;
+        } catch (e) { /* bá» qua dá»¯ liá»‡u há»ng */ }
+
+        if (!schedule && typeof svReadScheduleData === 'function') {
+            // ChÆ°a tá»«ng má»Ÿ trang Thá»i khÃ³a biá»ƒu â†’ gá»­i khung giá» máº·c Ä‘á»‹nh tá»« config.js Ä‘á»ƒ AI
+            // váº«n Ä‘á» xuáº¥t xáº¿p tiáº¿t Ä‘Æ°á»£c (chá»‰ sá»‘ khung pháº£i khá»›p vá»›i báº£n Ã¡p dá»¥ng).
+            schedule = svReadScheduleData().data;
+        }
+
+        const profile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+        const streakData = typeof svGetStreak === 'function' ? svGetStreak() : null;
+        const userProfile = profile ? {
+            ...profile,
+            streak: streakData ? streakData.currentStreak : 1
+        } : null;
+
+        // LuÃ´n gá»­i projects vÃ  schedule Ä‘á»ƒ server biáº¿t rÃµ tráº¡ng thÃ¡i hiá»‡n táº¡i cá»§a dá»¯ liá»‡u
+        const body = {
+            projects: projects
+        };
+        if (schedule) body.schedule = schedule;
+        if (userProfile) body.user_profile = userProfile;
+        return body;
+    }
+
+    // ===== LÆ°u / Ä‘á»c lá»‹ch sá»­ chat vÃ o LocalStorage =====
+    function loadHistory() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(CHAT_KEY));
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter(m => m && (m.role === 'user' || m.role === 'assistant')
+                && typeof m.content === 'string' && m.content.trim());
+        } catch (e) { return []; }
+    }
+
+    function persistHistory() {
+        try {
+            if (conversationHistory.length === 0) {
+                localStorage.removeItem(CHAT_KEY);
+            } else {
+                // Giá»¯ tá»‘i Ä‘a 100 tin nháº¯n gáº§n nháº¥t Ä‘á»ƒ khÃ´ng phÃ¬nh LocalStorage
+                localStorage.setItem(CHAT_KEY, JSON.stringify(conversationHistory.slice(-100)));
+            }
+        } catch (e) { /* bá» qua khi háº¿t dung lÆ°á»£ng */ }
+    }
+
+    function pushHistory(role, content) {
+        if (!content) return;
+        conversationHistory.push({ role, content });
+        persistHistory();
+    }
+
+    // nÃºt sao chÃ©p cho cÃ¢u tráº£ lá»i cá»§a AI
+    function addCopyButton(messageDiv, getText) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'msg-copy';
+        btn.setAttribute('data-i18n-title', 'career.copy');
+        btn.setAttribute('data-i18n-aria', 'career.copy');
+        btn.setAttribute('aria-label', svT('career.copy'));
+        btn.title = svT('career.copy');
+        btn.innerHTML = '<i class="fa-regular fa-copy" aria-hidden="true"></i>';
+        btn.addEventListener('click', async () => {
+            const text = getText();
+            let ok = false;
+            try {
+                await navigator.clipboard.writeText(text);
+                ok = true;
+            } catch (e) {
+                // Fallback cho trÃ¬nh duyá»‡t cÅ© / khÃ´ng cÃ³ quyá»n clipboard
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+                ta.remove();
+            }
+            if (ok) {
+                btn.classList.add('copied');
+                btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<i class="fa-regular fa-copy" aria-hidden="true"></i>';
+                }, 1200);
+            }
+        });
+        messageDiv.appendChild(btn);
+    }
+
+    // hiá»ƒn thá»‹ tin nháº¯n (thuáº§n DOM â€” lá»‹ch sá»­ Ä‘Æ°á»£c quáº£n lÃ½ riÃªng Ä‘á»ƒ trÃ¡nh trÃ¹ng)
+    function addMessage(text, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.innerHTML = isUser ? '<i class="fa-regular fa-user"></i>' : '<i class="fa-solid fa-brain"></i>';
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'content';
+        const p = document.createElement('p');
+        p.textContent = text;
+        contentDiv.appendChild(p);
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(contentDiv);
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return { messageDiv, contentP: p, contentDiv };
+    }
+
+    // dá»±ng láº¡i má»™t tin nháº¯n Ä‘Ã£ lÆ°u (cÃ¢u tráº£ lá»i AI render markdown + nÃºt sao chÃ©p)
+    function addStoredMessage(msg) {
+        const { messageDiv, contentDiv } = addMessage('', msg.role === 'user');
+        if (msg.role === 'assistant') {
+            contentDiv.innerHTML = svRenderMarkdown(msg.content);
+            addCopyButton(messageDiv, () => msg.content);
+        } else {
+            contentDiv.textContent = '';
+            const p = document.createElement('p');
+            p.textContent = msg.content;
+            contentDiv.appendChild(p);
+        }
+    }
+
+    function addTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot';
+        typingDiv.id = 'typingIndicator';
+        typingDiv.innerHTML = `<div class="avatar"><i class="fa-solid fa-brain"></i></div><div class="content"><p><i class="fa-regular fa-spinner fa-pulse"></i> ${svT('career.thinking')}</p></div>`;
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return typingDiv;
+    }
+
+    // gá»i API streaming, lá»—i thÃ¬ fallback vá» endpoint thÆ°á»ng
+    async function streamAI(message, onDelta) {
+        const context = collectContext();
+        const body = {
+            message: message,
+            history: conversationHistory.slice(0, -1), // gá»­i lá»‹ch sá»­ (trá»« tin nháº¯n vá»«a thÃªm)
+            ...context
+        };
+
+        const response = await fetch('/api/career-ai-stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok || !response.body) {
+            // Lá»—i HTTP (400/503...) â€” Ä‘á»c JSON lá»—i Ä‘á»ƒ hiá»ƒn thá»‹
+            let errText = svT('career.unknown');
+            try {
+                const data = await response.json();
+                errText = data.error || errText;
+            } catch (e) { /* khÃ´ng parse Ä‘Æ°á»£c */ }
+            throw new Error(errText);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let finalError = null;
+        let finished = false;  // Ä‘Ã£ nháº­n event káº¿t thÃºc ({"success": ...} / {"error": ...}) chÆ°a?
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            let sepIdx;
+            while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+                const rawEvent = buffer.slice(0, sepIdx);
+                buffer = buffer.slice(sepIdx + 2);
+                for (const line of rawEvent.split('\n')) {
+                    if (!line.startsWith('data: ')) continue;
+                    const payload = line.slice(6);
+                    if (payload === '[DONE]') continue;
+                    try {
+                        const evt = JSON.parse(payload);
+                        if (evt.delta) {
+                            onDelta(evt.delta);
+                        } else if (evt.error) {
+                            finalError = evt.error;
+                            finished = true;
+                        } else if (evt.success) {
+                            finished = true;
+                        }
+                    } catch (e) { /* bá» qua event lá»—i Ä‘á»‹nh dáº¡ng */ }
+                }
+            }
+        }
+
+        if (finalError) throw new Error(finalError);
+        // Server luÃ´n gá»­i event káº¿t thÃºc ({"success": true} hoáº·c {"error": ...}) trÆ°á»›c [DONE].
+        // KhÃ´ng tháº¥y event Ä‘Ã³ nghÄ©a lÃ  káº¿t ná»‘i bá»‹ Ä‘á»©t giá»¯a chá»«ng (proxy/máº¡ng) â€” náº¿u bá» qua,
+        // pháº§n tráº£ lá»i dá»Ÿ (Ä‘Ã´i khi chá»‰ má»™t chá»¯) sáº½ bá»‹ coi lÃ  cÃ¢u tráº£ lá»i hoÃ n chá»‰nh vÃ  lÆ°u vÃ o
+        // lá»‹ch sá»­. NÃ©m lá»—i Ä‘á»ƒ sendToAI() thá»­ láº¡i qua endpoint khÃ´ng streaming.
+        if (!finished) throw new Error(svT('career.unknown'));
+    }
+
+    // Fallback: gá»i endpoint thÆ°á»ng khi streaming lá»—i giá»¯a chá»«ng
+    async function sendToAIFallback(message) {
+        const context = collectContext();
+        const response = await fetch('/api/career-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: message,
+                history: conversationHistory.slice(0, -1),
+                ...context
+            })
+        });
+        const data = await response.json();
+        if (data.success) return data.reply;
+        throw new Error(data.error || svT('career.unknown'));
+    }
+
+    // ===== AI Ä‘á» xuáº¥t chá»‰nh sá»­a Todo / Thá»i khÃ³a biá»ƒu =====
+    // CÃ¢u tráº£ lá»i cÃ³ thá»ƒ kÃ¨m khá»‘i ```studyverse-actions```; server Ä‘á»c/kiá»ƒm tra khá»‘i Ä‘Ã³
+    // rá»“i tráº£ vá» danh sÃ¡ch thay Ä‘á»•i. NgÆ°á»i dÃ¹ng duyá»‡t trong tháº» xem trÆ°á»›c trÆ°á»›c khi ghi.
+    async function fetchActionPlan(replyText) {
+        try {
+            const response = await fetch('/api/ai-actions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reply: replyText, ...collectContext() })
+            });
+            if (!response.ok) return null;
+            const plan = await response.json();
+            return plan && typeof plan === 'object' ? plan : null;
+        } catch (error) {
+            console.warn('KhÃ´ng Ä‘á»c Ä‘Æ°á»£c Ä‘á» xuáº¥t thay Ä‘á»•i cá»§a AI:', error);
+            return null;
+        }
+    }
+
+    function actionGroup(container, labelKey, entries) {
+        if (!entries.length) return;
+        const heading = document.createElement('div');
+        heading.className = 'ai-action-group';
+        heading.textContent = svT(labelKey);
+        container.appendChild(heading);
+
+        const list = document.createElement('ul');
+        list.className = 'ai-action-list';
+        entries.forEach(entry => {
+            const item = document.createElement('li');
+            item.textContent = typeof entry === 'string' ? entry : svActionSummary(entry);
+            list.appendChild(item);
+        });
+        container.appendChild(list);
+    }
+
+    function renderActionCard(contentDiv, plan) {
+        const summary = Array.isArray(plan.summary) ? plan.summary : [];
+        const problems = Array.isArray(plan.problems) ? plan.problems.map(svActionProblem) : [];
+        const actions = Array.isArray(plan.actions) ? plan.actions : [];
+        if (!summary.length && !problems.length) return;
+
+        const card = document.createElement('div');
+        card.className = 'ai-action-card';
+
+        const head = document.createElement('div');
+        head.className = 'ai-action-head';
+        const headIcon = document.createElement('i');
+        headIcon.className = 'fa-solid fa-wand-magic-sparkles';
+        headIcon.setAttribute('aria-hidden', 'true');
+        head.appendChild(headIcon);
+        head.appendChild(document.createTextNode(' ' + svT('aiAct.title')));
+        card.appendChild(head);
+
+        actionGroup(card, 'aiAct.todoGroup', summary.filter(e => e && e.target === 'todo'));
+        actionGroup(card, 'aiAct.scheduleGroup', summary.filter(e => e && e.target === 'schedule'));
+
+        if (problems.length) {
+            const warn = document.createElement('div');
+            warn.className = 'ai-action-warn';
+            const warnIcon = document.createElement('i');
+            warnIcon.className = 'fa-solid fa-triangle-exclamation';
+            warnIcon.setAttribute('aria-hidden', 'true');
+            warn.appendChild(warnIcon);
+            warn.appendChild(document.createTextNode(' ' + svT('aiAct.skipped', { count: problems.length })));
+            const warnList = document.createElement('ul');
+            warnList.className = 'ai-action-list';
+            problems.forEach(text => {
+                const item = document.createElement('li');
+                item.textContent = text;
+                warnList.appendChild(item);
+            });
+            warn.appendChild(warnList);
+            card.appendChild(warn);
+        }
+
+        const controls = document.createElement('div');
+        controls.className = 'ai-action-controls';
+
+        if (actions.length) {
+            const applyBtn = document.createElement('button');
+            applyBtn.type = 'button';
+            applyBtn.className = 'ai-action-apply';
+            applyBtn.textContent = svT('aiAct.apply');
+            applyBtn.addEventListener('click', () => {
+                const result = svApplyAIActions(actions);
+                const applied = (result.todo || 0) + (result.schedule || 0);
+                controls.remove();
+                const status = document.createElement('div');
+                status.className = 'ai-action-status ' + (applied ? 'is-ok' : 'is-warn');
+                status.textContent = applied ? svT('aiAct.applied', { count: applied }) : svT('aiAct.applyFailed');
+                card.appendChild(status);
+                if (applied) {
+                    svNotice(svT('aiAct.applied', { count: applied }), { title: svT('aiAct.appliedTitle'), icon: 'fa-circle-check', tone: 'success' });
+                } else {
+                    svNotice(svT('aiAct.applyFailed'), { title: svT('aiAct.applyFailedTitle'), icon: 'fa-triangle-exclamation', tone: 'warn' });
+                }
+            });
+            controls.appendChild(applyBtn);
+        }
+
+        const dismissBtn = document.createElement('button');
+        dismissBtn.type = 'button';
+        dismissBtn.className = 'ai-action-dismiss';
+        dismissBtn.textContent = svT('aiAct.dismiss');
+        dismissBtn.addEventListener('click', () => card.remove());
+        controls.appendChild(dismissBtn);
+        card.appendChild(controls);
+
+        contentDiv.appendChild(card);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Hiá»ƒn thá»‹ cÃ¢u tráº£ lá»i hoÃ n chá»‰nh: bá» khá»‘i hÃ nh Ä‘á»™ng khá»i pháº§n chá»¯, render markdown,
+    // lÆ°u lá»‹ch sá»­ (báº£n Ä‘Ã£ bá» khá»‘i) rá»“i xin server báº£n xem trÆ°á»›c cÃ¡c thay Ä‘á»•i Ä‘á» xuáº¥t.
+    async function finalizeAnswer(messageDiv, contentDiv, full) {
+        const visible = svStripActionBlock(full);
+        contentDiv.innerHTML = svRenderMarkdown(visible);
+        addCopyButton(messageDiv, () => visible);
+        pushHistory('assistant', visible);
+
+        const plan = await fetchActionPlan(full);
+        if (plan) renderActionCard(contentDiv, plan);
+    }
+
+    async function sendToAI(message) {
+        const typingDiv = addTypingIndicator();
+        let streamed = false;
+
+        const { messageDiv, contentP, contentDiv } = addMessage('', false);
+        messageDiv.style.display = 'none'; // áº©n tin nháº¯n trá»‘ng cho tá»›i khi cÃ³ chá»¯ Ä‘áº§u tiÃªn
+
+        const onDelta = (piece) => {
+            if (!streamed) {
+                streamed = true;
+                typingDiv.remove();
+                messageDiv.style.display = '';
+            }
+            contentP.textContent += piece;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        };
+
+        try {
+            await streamAI(message, onDelta);
+            // Render markdown sau khi stream xong Ä‘á»ƒ khÃ´ng phÃ¡ vá»¡ tá»«ng máº£nh Ä‘ang gÃµ.
+            await finalizeAnswer(messageDiv, contentDiv, contentP.textContent);
+        } catch (error) {
+            console.error(error);
+            // Streaming fail (máº¡ng/provider cÅ© khÃ´ng há»— trá»£) â†’ thá»­ báº£n thÆ°á»ng
+            try {
+                const reply = await sendToAIFallback(message);
+                typingDiv.remove();
+                messageDiv.remove();
+                const { messageDiv: botDiv, contentDiv: botContent } = addMessage('', false);
+                await finalizeAnswer(botDiv, botContent, reply);
+            } catch (fallbackError) {
+                console.error(fallbackError);
+                typingDiv.remove();
+                messageDiv.remove();
+                addMessage(svT('career.error') + (fallbackError.message || svT('career.unknown')), false);
+            }
+        }
+    }
+
+    async function handleSend() {
+        if (isSending) return;
+        const text = userInput.value.trim();
+        if (!text) return;
+        isSending = true;
+        sendBtn.disabled = true;
+        addMessage(text, true);
+        pushHistory('user', text);
+        userInput.value = '';
+        userInput.style.height = 'auto';
+        try {
+            await sendToAI(text);
+        } finally {
+            isSending = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    // quick actions: gá»£i Ã½ cÃ¢u há»i táº­n dá»¥ng dá»¯ liá»‡u tháº­t
+    // Giá»¯ key i18n (khÃ´ng giá»¯ chuá»—i Ä‘Ã£ dá»‹ch) Ä‘á»ƒ Ä‘á»•i ngÃ´n ngá»¯ lÃ  nhÃ£n Ä‘á»•i theo
+    const QUICK_ACTIONS = [
+        { icon: 'fa-wand-magic-sparkles', labelKey: 'career.qa1', promptKey: 'career.q1' },
+        { icon: 'fa-chart-simple', labelKey: 'career.qa2', promptKey: 'career.q2' },
+        { icon: 'fa-graduation-cap', labelKey: 'career.qa3', promptKey: 'career.q3' }
+    ];
+
+    function renderQuickActions() {
+        const existing = document.getElementById('quickActions');
+        if (existing) existing.remove();
+        const wrap = document.createElement('div');
+        wrap.className = 'quick-actions';
+        wrap.id = 'quickActions';
+        QUICK_ACTIONS.forEach(action => {
+            const prompt = svT(action.promptKey);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'quick-action-btn';
+            btn.innerHTML = `<i class="fa-solid ${action.icon}"></i> ${escapeHtml(svT(action.labelKey))}`;
+            btn.addEventListener('click', () => {
+                if (isSending) return;
+                addMessage(prompt, true);
+                pushHistory('user', prompt);
+                sendToAI(prompt);
+            });
+            wrap.appendChild(btn);
+        });
+        chatMessages.parentElement.insertBefore(wrap, chatMessages.nextSibling);
+    }
+
+    // sá»± kiá»‡n
+    sendBtn.addEventListener('click', handleSend);
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    });
+    userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    resetBtn.addEventListener('click', async () => {
+        if (await svConfirm(svT('career.clearChat'), { title: svT('career.clearTitle'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
+            chatMessages.innerHTML = '';
+            conversationHistory = [];
+            persistHistory();
+            addMessage(greetingText(), false);
+            renderQuickActions();
+        }
+    });
+
+    // Äá»•i ngÃ´n ngá»¯ (panel CÃ i Ä‘áº·t) â†’ cáº­p nháº­t gá»£i Ã½ nhanh, vÃ  lá»i chÃ o náº¿u chÆ°a chat gÃ¬
+    document.addEventListener('sv:langchange', () => {
+        renderQuickActions();
+        chatMessages.querySelectorAll('.msg-copy').forEach(btn => {
+            btn.setAttribute('aria-label', svT('career.copy'));
+            btn.title = svT('career.copy');
+        });
+        if (!isSending && conversationHistory.length === 0) {
+            chatMessages.innerHTML = '';
+            addMessage(greetingText(), false);
+        }
+    });
+
+    // Thay Ä‘á»•i há»“ sÆ¡ / tÃªn hiá»ƒn thá»‹ â†’ cáº­p nháº­t lá»i chÃ o náº¿u chÆ°a báº¯t Ä‘áº§u trÃ² chuyá»‡n
+    document.addEventListener('sv:profilechange', () => {
+        if (!isSending && conversationHistory.length === 0) {
+            chatMessages.innerHTML = '';
+            addMessage(greetingText(), false);
+        }
+    });
+
+    // Khá»Ÿi táº¡o: khÃ´i phá»¥c lá»‹ch sá»­ Ä‘Ã£ lÆ°u, náº¿u chÆ°a cÃ³ thÃ¬ hiá»‡n lá»i chÃ o
+    conversationHistory = loadHistory();
+    if (conversationHistory.length === 0) {
+        addMessage(greetingText(), false);
+    } else {
+        conversationHistory.forEach(addStoredMessage);
+    }
+    renderQuickActions();
+});
+        4 x ÿÿ     20261005135250-8l ¥†İ©$   http://127.0.0.1:5888/career/chat.js      Ík  // chat hÆ°á»›ng nghiá»‡p: gá»­i kÃ¨m dá»¯ liá»‡u todo/tkb cá»§a ngÆ°á»i dÃ¹ng, tráº£ lá»i dáº¡ng streaming
+
+// KhÃ³a localStorage láº¥y tá»« /config.js (SV_CONFIG.storage)
+const SV_STORAGE = (window.SV_CONFIG && window.SV_CONFIG.storage) || {};
+const BASE_PROJECTS_KEY = SV_STORAGE.projects || 'studyverse_projects';
+const BASE_SCHEDULE_KEY = SV_STORAGE.schedule || 'studyverse_schedule_dashboard_data';
+const BASE_CHAT_KEY = SV_STORAGE.careerChat || 'studyverse_career_chat';
+// ÄÆ°á»£c gÃ¡n láº¡i sau khi biáº¿t session Ä‘á»ƒ tÃ¡ch dá»¯ liá»‡u theo tÃ i khoáº£n.
+let PROJECTS_KEY = BASE_PROJECTS_KEY;
+let SCHEDULE_KEY = BASE_SCHEDULE_KEY;
+let CHAT_KEY = BASE_CHAT_KEY;
+
+function applyStorageScope() {
+    const scope = typeof svScopedKey === 'function' ? svScopedKey : (key => key);
+    PROJECTS_KEY = scope(BASE_PROJECTS_KEY);
+    SCHEDULE_KEY = scope(BASE_SCHEDULE_KEY);
+    CHAT_KEY = scope(BASE_CHAT_KEY);
+}
+
+// escapeHtml() Ä‘áº¿n tá»« shared.js â€” luÃ´n escape trÆ°á»›c khi dá»±ng HTML tá»« vÄƒn báº£n AI.
+// Markdown tá»‘i giáº£n, an toÃ n: **Ä‘áº­m**, *nghiÃªng*, `code`, ```khá»‘i code```,
+// # tiÃªu Ä‘á», - / 1. danh sÃ¡ch, [nhÃ£n](https://link).
+function svInlineMarkdown(text) {
+    return text
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+        .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,
+            '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+}
+
+function svRenderMarkdown(raw) {
+    const escaped = escapeHtml(raw ?? '');
+    const codeBlocks = [];
+    const withPlaceholders = escaped.replace(/```[^\n]*\n?([\s\S]*?)```/g, (m, code) => {
+        codeBlocks.push(code.replace(/\n$/, ''));
+        return `\u0000CODE${codeBlocks.length - 1}\u0000`;
+    });
+
+    let html = '';
+    let listType = null;
+    const closeList = () => {
+        if (listType) { html += listType === 'ul' ? '</ul>' : '</ol>'; listType = null; }
+    };
+
+    for (const line of withPlaceholders.split('\n')) {
+        const codeMatch = line.match(/^\u0000CODE(\d+)\u0000$/);
+        if (codeMatch) {
+            closeList();
+            html += `<pre class="sv-code"><code>${codeBlocks[Number(codeMatch[1])] || ''}</code></pre>`;
+            continue;
+        }
+        const heading = line.match(/^(#{1,4})\s+(.*)$/);
+        if (heading) {
+            closeList();
+            const level = Math.min(heading[1].length + 2, 6);
+            html += `<h${level}>${svInlineMarkdown(heading[2])}</h${level}>`;
+            continue;
+        }
+        const bullet = line.match(/^\s*[-*+]\s+(.*)$/);
+        if (bullet) {
+            if (listType !== 'ul') { closeList(); html += '<ul>'; listType = 'ul'; }
+            html += `<li>${svInlineMarkdown(bullet[1])}</li>`;
+            continue;
+        }
+        const numbered = line.match(/^\s*\d+[.)]\s+(.*)$/);
+        if (numbered) {
+            if (listType !== 'ol') { closeList(); html += '<ol>'; listType = 'ol'; }
+            html += `<li>${svInlineMarkdown(numbered[1])}</li>`;
+            continue;
+        }
+        if (!line.trim()) { closeList(); continue; }
+        closeList();
+        html += `<p>${svInlineMarkdown(line)}</p>`;
+    }
+    closeList();
+    return html;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Chá» biáº¿t user Ä‘ang Ä‘Äƒng nháº­p rá»“i má»›i Ä‘á»c/lÆ°u localStorage Ä‘Ã£ tÃ¡ch theo tÃ i khoáº£n.
+    if (typeof svAuthReady !== 'undefined') await svAuthReady;
+    applyStorageScope();
+
+    const sendBtn = document.getElementById('sendBtn');
+    const userInput = document.getElementById('userInput');
+    const chatMessages = document.getElementById('chatMessages');
+    const resetBtn = document.getElementById('resetChatBtn');
+
+    let conversationHistory = []; // LÆ°u lá»‹ch sá»­ chat
+    let isSending = false;
+
+    // Äá»c lá»i chÃ o má»—i láº§n dÃ¹ng (khÃ´ng cache) Ä‘á»ƒ Ä‘á»•i ngÃ´n ngá»¯ vÃ  thÃ´ng tin ngÆ°á»i dÃ¹ng lÃ  Ä‘á»•i ngay
+    const greetingText = () => {
+        const prof = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+        const name = (prof && prof.displayName) ? prof.displayName.trim() : '';
+        const streakData = typeof svGetStreak === 'function' ? svGetStreak() : null;
+        const streak = streakData ? streakData.currentStreak : 1;
+        const isEn = typeof svLang === 'function' && svLang() === 'en';
+        if (name) {
+            return isEn
+                ? `Hi ${name}! I'm kumalala, your AI Study & Career Advisor. I'm connected to your Studyverse space (streak: ${streak} days ğŸ”¥). Tell me what you'd like to explore, study, or plan today!`
+                : `ChÃ o ${name}! MÃ¬nh lÃ  kumalala cá»§a Studyverse, trá»£ lÃ½ há»c táº­p & hÆ°á»›ng nghiá»‡p cá»§a báº¡n. MÃ¬nh Ä‘Ã£ káº¿t ná»‘i vá»›i dá»¯ liá»‡u há»c táº­p cá»§a báº¡n (chuá»—i: ${streak} ngÃ y ğŸ”¥). HÃ´m nay báº¡n muá»‘n tÃ¬m hiá»ƒu sá»Ÿ thÃ­ch, ngÃ nh há»c hay giáº£i quyáº¿t cÃ´ng viá»‡c nÃ o?`;
+        }
+        return svT('career.greeting');
+    };
+
+    // ngá»¯ cáº£nh ngÆ°á»i dÃ¹ng Ä‘á»c tá»« LocalStorage do Todo & Schedule lÆ°u
+    function collectContext() {
+        let projects = [];
+        let schedule = null;
+        try {
+            let savedProjects = JSON.parse(localStorage.getItem(PROJECTS_KEY));
+            if ((!Array.isArray(savedProjects) || savedProjects.length === 0) && PROJECTS_KEY !== BASE_PROJECTS_KEY) {
+                const guestProjects = JSON.parse(localStorage.getItem(BASE_PROJECTS_KEY));
+                if (Array.isArray(guestProjects) && guestProjects.length > 0) {
+                    savedProjects = guestProjects;
+                }
+            }
+            if (Array.isArray(savedProjects)) projects = savedProjects;
+        } catch (e) { /* bá» qua dá»¯ liá»‡u há»ng */ }
+
+        try {
+            let savedSchedule = JSON.parse(localStorage.getItem(SCHEDULE_KEY));
+            const hasRealData = s => s && typeof s === 'object' && (
+                (Array.isArray(s.subjects) && s.subjects.length > 0) ||
+                (Array.isArray(s.timetableData) && s.timetableData.some(row => Array.isArray(row) && row.some(cell => cell && cell.name)))
+            );
+            if (!hasRealData(savedSchedule) && SCHEDULE_KEY !== BASE_SCHEDULE_KEY) {
+                const guestSchedule = JSON.parse(localStorage.getItem(BASE_SCHEDULE_KEY));
+                if (hasRealData(guestSchedule)) {
+                    savedSchedule = guestSchedule;
+                }
+            }
+            if (savedSchedule && typeof savedSchedule === 'object') schedule = savedSchedule;
+        } catch (e) { /* bá» qua dá»¯ liá»‡u há»ng */ }
+
+        if (!schedule && typeof svReadScheduleData === 'function') {
+            // ChÆ°a tá»«ng má»Ÿ trang Thá»i khÃ³a biá»ƒu â†’ gá»­i khung giá» máº·c Ä‘á»‹nh tá»« config.js Ä‘á»ƒ AI
+            // váº«n Ä‘á» xuáº¥t xáº¿p tiáº¿t Ä‘Æ°á»£c (chá»‰ sá»‘ khung pháº£i khá»›p vá»›i báº£n Ã¡p dá»¥ng).
+            schedule = svReadScheduleData().data;
+        }
+
+        const profile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : null;
+        const streakData = typeof svGetStreak === 'function' ? svGetStreak() : null;
+        const userProfile = profile ? {
+            ...profile,
+            streak: streakData ? streakData.currentStreak : 1
+        } : null;
+
+        // LuÃ´n gá»­i projects vÃ  schedule Ä‘á»ƒ server biáº¿t rÃµ tráº¡ng thÃ¡i hiá»‡n táº¡i cá»§a dá»¯ liá»‡u
+        const body = {
+            projects: projects
+        };
+        if (schedule) body.schedule = schedule;
+        if (userProfile) body.user_profile = userProfile;
+        return body;
+    }
+
+    // ===== LÆ°u / Ä‘á»c lá»‹ch sá»­ chat vÃ o LocalStorage =====
+    function loadHistory() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(CHAT_KEY));
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter(m => m && (m.role === 'user' || m.role === 'assistant')
+                && typeof m.content === 'string' && m.content.trim());
+        } catch (e) { return []; }
+    }
+
+    function persistHistory() {
+        try {
+            if (conversationHistory.length === 0) {
+                localStorage.removeItem(CHAT_KEY);
+            } else {
+                // Giá»¯ tá»‘i Ä‘a 100 tin nháº¯n gáº§n nháº¥t Ä‘á»ƒ khÃ´ng phÃ¬nh LocalStorage
+                localStorage.setItem(CHAT_KEY, JSON.stringify(conversationHistory.slice(-100)));
+            }
+        } catch (e) { /* bá» qua khi háº¿t dung lÆ°á»£ng */ }
+    }
+
+    function pushHistory(role, content) {
+        if (!content) return;
+        conversationHistory.push({ role, content });
+        persistHistory();
+    }
+
+    // nÃºt sao chÃ©p cho cÃ¢u tráº£ lá»i cá»§a AI
+    function addCopyButton(messageDiv, getText) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'msg-copy';
+        btn.setAttribute('data-i18n-title', 'career.copy');
+        btn.setAttribute('data-i18n-aria', 'career.copy');
+        btn.setAttribute('aria-label', svT('career.copy'));
+        btn.title = svT('career.copy');
+        btn.innerHTML = '<i class="fa-regular fa-copy" aria-hidden="true"></i>';
+        btn.addEventListener('click', async () => {
+            const text = getText();
+            let ok = false;
+            try {
+                await navigator.clipboard.writeText(text);
+                ok = true;
+            } catch (e) {
+                // Fallback cho trÃ¬nh duyá»‡t cÅ© / khÃ´ng cÃ³ quyá»n clipboard
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+                ta.remove();
+            }
+            if (ok) {
+                btn.classList.add('copied');
+                btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<i class="fa-regular fa-copy" aria-hidden="true"></i>';
+                }, 1200);
+            }
+        });
+        messageDiv.appendChild(btn);
+    }
+
+    // hiá»ƒn thá»‹ tin nháº¯n (thuáº§n DOM â€” lá»‹ch sá»­ Ä‘Æ°á»£c quáº£n lÃ½ riÃªng Ä‘á»ƒ trÃ¡nh trÃ¹ng)
+    function addMessage(text, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.innerHTML = isUser ? '<i class="fa-regular fa-user"></i>' : '<i class="fa-solid fa-brain"></i>';
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'content';
+        const p = document.createElement('p');
+        p.textContent = text;
+        contentDiv.appendChild(p);
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(contentDiv);
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return { messageDiv, contentP: p, contentDiv };
+    }
+
+    // dá»±ng láº¡i má»™t tin nháº¯n Ä‘Ã£ lÆ°u (cÃ¢u tráº£ lá»i AI render markdown + nÃºt sao chÃ©p)
+    function addStoredMessage(msg) {
+        const { messageDiv, contentDiv } = addMessage('', msg.role === 'user');
+        if (msg.role === 'assistant') {
+            contentDiv.innerHTML = svRenderMarkdown(msg.content);
+            addCopyButton(messageDiv, () => msg.content);
+        } else {
+            contentDiv.textContent = '';
+            const p = document.createElement('p');
+            p.textContent = msg.content;
+            contentDiv.appendChild(p);
+        }
+    }
+
+    function addTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot';
+        typingDiv.id = 'typingIndicator';
+        typingDiv.innerHTML = `<div class="avatar"><i class="fa-solid fa-brain"></i></div><div class="content"><p><i class="fa-regular fa-spinner fa-pulse"></i> ${svT('career.thinking')}</p></div>`;
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return typingDiv;
+    }
+
+    // gá»i API streaming, lá»—i thÃ¬ fallback vá» endpoint thÆ°á»ng
+    async function streamAI(message, onDelta) {
+        const context = collectContext();
+        const body = {
+            message: message,
+            history: conversationHistory.slice(0, -1), // gá»­i lá»‹ch sá»­ (trá»« tin nháº¯n vá»«a thÃªm)
+            ...context
+        };
+
+        const response = await fetch('/api/career-ai-stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok || !response.body) {
+            // Lá»—i HTTP (400/503...) â€” Ä‘á»c JSON lá»—i Ä‘á»ƒ hiá»ƒn thá»‹
+            let errText = svT('career.unknown');
+            try {
+                const data = await response.json();
+                errText = data.error || errText;
+            } catch (e) { /* khÃ´ng parse Ä‘Æ°á»£c */ }
+            throw new Error(errText);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let finalError = null;
+        let finished = false;  // Ä‘Ã£ nháº­n event káº¿t thÃºc ({"success": ...} / {"error": ...}) chÆ°a?
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            let sepIdx;
+            while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+                const rawEvent = buffer.slice(0, sepIdx);
+                buffer = buffer.slice(sepIdx + 2);
+                for (const line of rawEvent.split('\n')) {
+                    if (!line.startsWith('data: ')) continue;
+                    const payload = line.slice(6);
+                    if (payload === '[DONE]') continue;
+                    try {
+                        const evt = JSON.parse(payload);
+                        if (evt.delta) {
+                            onDelta(evt.delta);
+                        } else if (evt.error) {
+                            finalError = evt.error;
+                            finished = true;
+                        } else if (evt.success) {
+                            finished = true;
+                        }
+                    } catch (e) { /* bá» qua event lá»—i Ä‘á»‹nh dáº¡ng */ }
+                }
+            }
+        }
+
+        if (finalError) throw new Error(finalError);
+        // Server luÃ´n gá»­i event káº¿t thÃºc ({"success": true} hoáº·c {"error": ...}) trÆ°á»›c [DONE].
+        // KhÃ´ng tháº¥y event Ä‘Ã³ nghÄ©a lÃ  káº¿t ná»‘i bá»‹ Ä‘á»©t giá»¯a chá»«ng (proxy/máº¡ng) â€” náº¿u bá» qua,
+        // pháº§n tráº£ lá»i dá»Ÿ (Ä‘Ã´i khi chá»‰ má»™t chá»¯) sáº½ bá»‹ coi lÃ  cÃ¢u tráº£ lá»i hoÃ n chá»‰nh vÃ  lÆ°u vÃ o
+        // lá»‹ch sá»­. NÃ©m lá»—i Ä‘á»ƒ sendToAI() thá»­ láº¡i qua endpoint khÃ´ng streaming.
+        if (!finished) throw new Error(svT('career.unknown'));
+    }
+
+    // Fallback: gá»i endpoint thÆ°á»ng khi streaming lá»—i giá»¯a chá»«ng
+    async function sendToAIFallback(message) {
+        const context = collectContext();
+        const response = await fetch('/api/career-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: message,
+                history: conversationHistory.slice(0, -1),
+                ...context
+            })
+        });
+        const data = await response.json();
+        if (data.success) return data.reply;
+        throw new Error(data.error || svT('career.unknown'));
+    }
+
+    // ===== AI Ä‘á» xuáº¥t chá»‰nh sá»­a Todo / Thá»i khÃ³a biá»ƒu =====
+    // CÃ¢u tráº£ lá»i cÃ³ thá»ƒ kÃ¨m khá»‘i ```studyverse-actions```; server Ä‘á»c/kiá»ƒm tra khá»‘i Ä‘Ã³
+    // rá»“i tráº£ vá» danh sÃ¡ch thay Ä‘á»•i. NgÆ°á»i dÃ¹ng duyá»‡t trong tháº» xem trÆ°á»›c trÆ°á»›c khi ghi.
+    async function fetchActionPlan(replyText) {
+        try {
+            const response = await fetch('/api/ai-actions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reply: replyText, ...collectContext() })
+            });
+            if (!response.ok) return null;
+            const plan = await response.json();
+            return plan && typeof plan === 'object' ? plan : null;
+        } catch (error) {
+            console.warn('KhÃ´ng Ä‘á»c Ä‘Æ°á»£c Ä‘á» xuáº¥t thay Ä‘á»•i cá»§a AI:', error);
+            return null;
+        }
+    }
+
+    function actionGroup(container, labelKey, entries) {
+        if (!entries.length) return;
+        const heading = document.createElement('div');
+        heading.className = 'ai-action-group';
+        heading.textContent = svT(labelKey);
+        container.appendChild(heading);
+
+        const list = document.createElement('ul');
+        list.className = 'ai-action-list';
+        entries.forEach(entry => {
+            const item = document.createElement('li');
+            item.textContent = typeof entry === 'string' ? entry : svActionSummary(entry);
+            list.appendChild(item);
+        });
+        container.appendChild(list);
+    }
+
+    function renderActionCard(contentDiv, plan) {
+        const summary = Array.isArray(plan.summary) ? plan.summary : [];
+        const problems = Array.isArray(plan.problems) ? plan.problems.map(svActionProblem) : [];
+        const actions = Array.isArray(plan.actions) ? plan.actions : [];
+        if (!summary.length && !problems.length) return;
+
+        const card = document.createElement('div');
+        card.className = 'ai-action-card';
+
+        const head = document.createElement('div');
+        head.className = 'ai-action-head';
+        const headIcon = document.createElement('i');
+        headIcon.className = 'fa-solid fa-wand-magic-sparkles';
+        headIcon.setAttribute('aria-hidden', 'true');
+        head.appendChild(headIcon);
+        head.appendChild(document.createTextNode(' ' + svT('aiAct.title')));
+        card.appendChild(head);
+
+        actionGroup(card, 'aiAct.todoGroup', summary.filter(e => e && e.target === 'todo'));
+        actionGroup(card, 'aiAct.scheduleGroup', summary.filter(e => e && e.target === 'schedule'));
+
+        if (problems.length) {
+            const warn = document.createElement('div');
+            warn.className = 'ai-action-warn';
+            const warnIcon = document.createElement('i');
+            warnIcon.className = 'fa-solid fa-triangle-exclamation';
+            warnIcon.setAttribute('aria-hidden', 'true');
+            warn.appendChild(warnIcon);
+            warn.appendChild(document.createTextNode(' ' + svT('aiAct.skipped', { count: problems.length })));
+            const warnList = document.createElement('ul');
+            warnList.className = 'ai-action-list';
+            problems.forEach(text => {
+                const item = document.createElement('li');
+                item.textContent = text;
+                warnList.appendChild(item);
+            });
+            warn.appendChild(warnList);
+            card.appendChild(warn);
+        }
+
+        const controls = document.createElement('div');
+        controls.className = 'ai-action-controls';
+
+        if (actions.length) {
+            const applyBtn = document.createElement('button');
+            applyBtn.type = 'button';
+            applyBtn.className = 'ai-action-apply';
+            applyBtn.textContent = svT('aiAct.apply');
+            applyBtn.addEventListener('click', () => {
+                const result = svApplyAIActions(actions);
+                const applied = (result.todo || 0) + (result.schedule || 0);
+                controls.remove();
+                const status = document.createElement('div');
+                status.className = 'ai-action-status ' + (applied ? 'is-ok' : 'is-warn');
+                status.textContent = applied ? svT('aiAct.applied', { count: applied }) : svT('aiAct.applyFailed');
+                card.appendChild(status);
+                if (applied) {
+                    svNotice(svT('aiAct.applied', { count: applied }), { title: svT('aiAct.appliedTitle'), icon: 'fa-circle-check', tone: 'success' });
+                } else {
+                    svNotice(svT('aiAct.applyFailed'), { title: svT('aiAct.applyFailedTitle'), icon: 'fa-triangle-exclamation', tone: 'warn' });
+                }
+            });
+            controls.appendChild(applyBtn);
+        }
+
+        const dismissBtn = document.createElement('button');
+        dismissBtn.type = 'button';
+        dismissBtn.className = 'ai-action-dismiss';
+        dismissBtn.textContent = svT('aiAct.dismiss');
+        dismissBtn.addEventListener('click', () => card.remove());
+        controls.appendChild(dismissBtn);
+        card.appendChild(controls);
+
+        contentDiv.appendChild(card);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Hiá»ƒn thá»‹ cÃ¢u tráº£ lá»i hoÃ n chá»‰nh: bá» khá»‘i hÃ nh Ä‘á»™ng khá»i pháº§n chá»¯, render markdown,
+    // lÆ°u lá»‹ch sá»­ (báº£n Ä‘Ã£ bá» khá»‘i) rá»“i xin server báº£n xem trÆ°á»›c cÃ¡c thay Ä‘á»•i Ä‘á» xuáº¥t.
+    async function finalizeAnswer(messageDiv, contentDiv, full) {
+        const visible = svStripActionBlock(full);
+        contentDiv.innerHTML = svRenderMarkdown(visible);
+        addCopyButton(messageDiv, () => visible);
+        pushHistory('assistant', visible);
+
+        const plan = await fetchActionPlan(full);
+        if (plan) renderActionCard(contentDiv, plan);
+    }
+
+    async function sendToAI(message) {
+        const typingDiv = addTypingIndicator();
+        let streamed = false;
+
+        const { messageDiv, contentP, contentDiv } = addMessage('', false);
+        messageDiv.style.display = 'none'; // áº©n tin nháº¯n trá»‘ng cho tá»›i khi cÃ³ chá»¯ Ä‘áº§u tiÃªn
+
+        const onDelta = (piece) => {
+            if (!streamed) {
+                streamed = true;
+                typingDiv.remove();
+                messageDiv.style.display = '';
+            }
+            contentP.textContent += piece;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        };
+
+        try {
+            await streamAI(message, onDelta);
+            // Render markdown sau khi stream xong Ä‘á»ƒ khÃ´ng phÃ¡ vá»¡ tá»«ng máº£nh Ä‘ang gÃµ.
+            await finalizeAnswer(messageDiv, contentDiv, contentP.textContent);
+        } catch (error) {
+            console.error(error);
+            // Streaming fail (máº¡ng/provider cÅ© khÃ´ng há»— trá»£) â†’ thá»­ báº£n thÆ°á»ng
+            try {
+                const reply = await sendToAIFallback(message);
+                typingDiv.remove();
+                messageDiv.remove();
+                const { messageDiv: botDiv, contentDiv: botContent } = addMessage('', false);
+                await finalizeAnswer(botDiv, botContent, reply);
+            } catch (fallbackError) {
+                console.error(fallbackError);
+                typingDiv.remove();
+                messageDiv.remove();
+                addMessage(svT('career.error') + (fallbackError.message || svT('career.unknown')), false);
+            }
+        }
+    }
+
+    async function handleSend() {
+        if (isSending) return;
+        const text = userInput.value.trim();
+        if (!text) return;
+        isSending = true;
+        sendBtn.disabled = true;
+        addMessage(text, true);
+        pushHistory('user', text);
+        userInput.value = '';
+        userInput.style.height = 'auto';
+        try {
+            await sendToAI(text);
+        } finally {
+            isSending = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    // quick actions: gá»£i Ã½ cÃ¢u há»i táº­n dá»¥ng dá»¯ liá»‡u tháº­t
+    // Giá»¯ key i18n (khÃ´ng giá»¯ chuá»—i Ä‘Ã£ dá»‹ch) Ä‘á»ƒ Ä‘á»•i ngÃ´n ngá»¯ lÃ  nhÃ£n Ä‘á»•i theo
+    const QUICK_ACTIONS = [
+        { icon: 'fa-wand-magic-sparkles', labelKey: 'career.qa1', promptKey: 'career.q1' },
+        { icon: 'fa-chart-simple', labelKey: 'career.qa2', promptKey: 'career.q2' },
+        { icon: 'fa-graduation-cap', labelKey: 'career.qa3', promptKey: 'career.q3' }
+    ];
+
+    function renderQuickActions() {
+        const existing = document.getElementById('quickActions');
+        if (existing) existing.remove();
+        const wrap = document.createElement('div');
+        wrap.className = 'quick-actions';
+        wrap.id = 'quickActions';
+        QUICK_ACTIONS.forEach(action => {
+            const prompt = svT(action.promptKey);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'quick-action-btn';
+            btn.innerHTML = `<i class="fa-solid ${action.icon}"></i> ${escapeHtml(svT(action.labelKey))}`;
+            btn.addEventListener('click', () => {
+                if (isSending) return;
+                addMessage(prompt, true);
+                pushHistory('user', prompt);
+                sendToAI(prompt);
+            });
+            wrap.appendChild(btn);
+        });
+        chatMessages.parentElement.insertBefore(wrap, chatMessages.nextSibling);
+    }
+
+    // sá»± kiá»‡n
+    sendBtn.addEventListener('click', handleSend);
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    });
+    userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    resetBtn.addEventListener('click', async () => {
+        if (await svConfirm(svT('career.clearChat'), { title: svT('career.clearTitle'), confirmText: svT('todo.delete'), icon: 'fa-trash-can', danger: true })) {
+            chatMessages.innerHTML = '';
+            conversationHistory = [];
+            persistHistory();
+            addMessage(greetingText(), false);
+            renderQuickActions();
+        }
+    });
+
+    // Äá»•i ngÃ´n ngá»¯ (panel CÃ i Ä‘áº·t) â†’ cáº­p nháº­t gá»£i Ã½ nhanh, vÃ  lá»i chÃ o náº¿u chÆ°a chat gÃ¬
+    document.addEventListener('sv:langchange', () => {
+        renderQuickActions();
+        chatMessages.querySelectorAll('.msg-copy').forEach(btn => {
+            btn.setAttribute('aria-label', svT('career.copy'));
+            btn.title = svT('career.copy');
+        });
+        if (!isSending && conversationHistory.length === 0) {
+            chatMessages.innerHTML = '';
+            addMessage(greetingText(), false);
+        }
+    });
+
+    // Thay Ä‘á»•i há»“ sÆ¡ / tÃªn hiá»ƒn thá»‹ â†’ cáº­p nháº­t lá»i chÃ o náº¿u chÆ°a báº¯t Ä‘áº§u trÃ² chuyá»‡n
+    document.addEventListener('sv:profilechange', () => {
+        if (!isSending && conversationHistory.length === 0) {
+            chatMessages.innerHTML = '';
+            addMessage(greetingText(), false);
+        }
+    });
+
+    // Khá»Ÿi táº¡o: khÃ´i phá»¥c lá»‹ch sá»­ Ä‘Ã£ lÆ°u, náº¿u chÆ°a cÃ³ thÃ¬ hiá»‡n lá»i chÃ o
+    conversationHistory = loadHistory();
+    if (conversationHistory.length === 0) {
+        addMessage(greetingText(), false);
+    } else {
+        conversationHistory.forEach(addStoredMessage);
+    }
+    renderQuickActions();
+});
+Ó˜ÀÙb  _      5oúÒ
+      SV_STORAGE     ^Å¾„      window     CşEë	      SV_CONFIG      „‹"      storage    ñ+7!      BASE_PROJECTS_KEY      çéÖa      projects   Mà      studyverse_projects    ‚ŸJl      BASE_SCHEDULE_KEY      f‡êY      schedule	   k
+q³"      studyverse_schedule_dashboard_data
+     äzõc      BASE_CHAT_KEY      ‡ø3
+      careerChat     B•`È      studyverse_career_chat     ®=”ã      PROJECTS_KEY   Ô¨L      SCHEDULE_KEY   )EP      CHAT_KEY   O\      applyStorageScope      jœ6      scope      Dàò      svScopedKey    øŠˆ¨      key    «¶      svInlineMarkdown   Ø…ôR      `([^`\n]+)`    ñoÿÚ      <code>$1</code>    Úy6r      \*\*([^*\n]+)\*\*      úfİ      <strong>$1</strong>    è‚¥R      (^|[^*])\*([^*\n]+)\*      úÌÀÕ      $1<em>$2</em>      ê8èx&      \[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)     æÓõ=      <a href="$2" target="_blank" rel="noopener noreferrer">$1</a>      b§şc      svRenderMarkdown   ¸I|}      escaped    òóªb
+      escapeHtml      Â¹Aè
+      codeBlocks!     Ùæh      withPlaceholders"   ¡      ```[^\n]*\n?([\s\S]*?)```#      Êå4à      code$   (!íç      push%   \úÛe      \n$&    ëÜ       CODE'      `¢)      html(   ş†      listType)   %·xÑ	      closeList*      œ‡±1      </ul>+      d^â       </ol>,      Ó7¶O	      codeMatch-      e”£?      ^\u0000CODE(\d+)\u0000$.    Cøx      <pre class="sv-code"><code>/    ™©¢Ù      </code></pre>0      3&A      heading1    Í0{Ã      ^(#{1,4})\s+(.*)$2      tI|c      level3      –r¥      min4    \‡(ˆ      <h5     #a!Â      </h6    /¾ˆ      bullet7     ]$Wi      ^\s*[-*+]\s+(.*)$8      ª±‡ü      <ul>9   Ä;ã*      <li>:   ›t\      </li>;      îw¨      numbered<   œ`§¤      ^\s*\d+[.)]\s+(.*)$=    D!]      <ol>>   (7Z      trim?   òa{P      <p>@    ÕnŠ      </p>A   úîë      documentB   ñ{      addEventListenerC   8-j      DOMContentLoadedD   ‘ì¦      svAuthReadyE    O+©¬      sendBtnF    ó‰j€      getElementByIdG     ìüÀs	      userInputH      uE‹â      chatMessagesI   ¥*2      resetBtnJ   \³J      resetChatBtnK   È‡Ì·      conversationHistoryL    Ó7eÕ	      isSendingM      wŠöñ      greetingTextN   ÒFŠ      profO   İ€      svGetUserProfileP   'øZ      displayNameQ    Nup
+      streakDataR     ]Ö.x      svGetStreakS    {Ğ      streakT     jŸ5      currentStreakU      ÿP±%      isEnV   5Ìºô      svLangW     W\^      Hi X    Ö;¤`      ! I'm kumalala, your AI Study & Career Advisor. I'm connected to your Studyverse space (streak: Y   ½åQåD        d a y s   =Ø%İ) .   T e l l   m e   w h a t   y o u ' d   l i k e   t o   e x p l o r e ,   s t u d y ,   o r   p l a n   t o d a y ! Z   Ä<Í]      Chào [      éÏğ~      !   M ì n h   l à   k u m a l a l a   c ça   S t u d y v e r s e ,   t r ã  l ı   h Íc   t ­p   &   h °Ûn g   n g h i Çp   c ça   b ¡n .   M ì n h   ã   k ¿t   n Ñi   v Ûi   d ï  l i Çu   h Íc   t ­p   c ça   b ¡n   ( c h u ×i :   \   ¤ áV        n g à y   =Ø%İ) .   H ô m   n a y   b ¡n   m u Ñn   t ì m   h i Ãu   s ß  t h í c h ,   n g à n h   h Íc   h a y   g i £i   q u y ¿t   c ô n g   v i Çc   n à o ? ]   êØ÷‡      svT^    ÏL=      career.greeting_    zUãN      collectContext`     Æ¦L      savedProjectsa      ÛÛ;Ó      parseb      &N×î      localStoragec   §’ı      getItemd    ‰¥Rÿ      isArraye    \@µ”      guestProjectsf      Î\4H      savedScheduleg      Oºÿ]      hasRealDatah    ;ëÎ      subjectsi   RÉ#ı      timetableDataj      æ`,Ñ      somek   Êj      rowl    :J      cellm   DÑ¢{      guestSchedulen      ©Ø¸#      svReadScheduleDatao     a˜n      datap   ßB      profileq    _Pr      userProfiler    ÷"Æ      bodys   `·ò(      user_profilet   ·Xcë      loadHistoryu    áÈ      parsedv     Ì_2(      filterw     ¬      rolex   Š <      usery   Èiü›	      assistantz      /×É      content{    Á•z      persistHistory|     ¢dÄG
+      removeItem}     ™>˜á      setItem~    W ·7	      stringify      z‰      slice€      íØ       pushHistory    ÷*/ä      addCopyButton‚      ?­×%
+      messageDivƒ      ¦’      getText„    >µ
+ı      btn…    1Q      createElement†      \kcÁ      button‡     l¥Ì‹	      classNameˆ      /Îq0      msg-copy‰   âí½Ï      setAttributeŠ   / É      data-i18n-title‹    Hïô¦      career.copyŒ    ÙÛ¡      data-i18n-aria     0Äîn
+      aria-label     ¯Òd      title      §µ	      innerHTML      ±ÏÅ5      <i class="fa-regular fa-copy" aria-hidden="true"></i>‘      ¢ºf      click’      ~K›ë	      navigator“      Ú›¢Ù	      clipboard”      eÄê	      writeText•      áQƒY      textarea–   Z£Lë      position—   w—u      fixed˜      èâÎg      opacity™    @Oá      appendChildš    ô¨Øí      select›     TèF«      execCommandœ    1ø      copy   °”wy      remove     Äcİ	      classListŸ      ¾KF      copied      |«¯Ÿ4      <i class="fa-solid fa-check" aria-hidden="true"></i>¡   güìZ
+      setTimeout¢     6>kˆ
+      addMessage£     ‘Ä-P      isUser¤      R*      div¥    Ö-H      message ¦   Ó2u      bot§    œİ¸Ş      avatar¨     Zµ³Î"      <i class="fa-regular fa-user"></i>©     ¬zÔç!      <i class="fa-solid fa-brain"></i>ª      ´pQú
+      contentDiv«     àñ       textContent¬    ;EŸ	      scrollTop­      £†õ]      scrollHeight®   ü¡5      contentP¯   Z)¦      addStoredMessage°   n ¥¡      msg±    „‰î      addTypingIndicator²     ˆ¡ÜÕ	      typingDiv³      Wë	:      message bot´    ûÒÿs      typingIndicatorµ    ‹LÁ&‚      <div class="avatar"><i class="fa-solid fa-brain"></i></div><div class="content"><p><i class="fa-regular fa-spinner fa-pulse"></i> ¶     ìµ¤©      career.thinking·    ©ƒ;
+      </p></div>¸     vèØg      streamAI¹   [D’ğ      onDeltaº    I      context»    bø¹<      history¼    Bxäi      response½   ½Œ©½      fetch¾      ì°Şƒ      /api/career-ai-stream¿      û`à      POSTÀ   š°e      headersÁ    ®°>      Content-TypeÂ   jòô      application/jsonÃ   à¸ÍŒ      errTextÄ    ïô,      career.unknownÅ     L7ú6      readerÆ     w”	      getReaderÇ      ï‚Öâ      decoderÈ    S|ó      TextDecoderÉ    #eÜ      bufferÊ     ös9«
+      finalErrorË     Ãq¿      finishedÌ   îßÎ¨      decodeÍ     {ĞÄ8      streamÎ     Ì      sepIdxÏ     Áâ¥¹      indexOfĞ    :Ádï      
+
+Ñ     ïI“4      rawEventÒ   PÛcï
+      startsWithÓ     Ÿ»ye      data: Ô      ³e&      payloadÕ    T–€      [DONE]Ö     ¤,      evt×    áıÂÔ      deltaØ      Q[JÏ      successÙ    j¶ŠÂ      sendToAIFallbackÚ   ;I¢•      /api/career-aiÛ     3èÀØ      replyÜ      ’'×      fetchActionPlanİ    „İü	      replyTextŞ      6îù|      /api/ai-actionsß    \ÅU      planà   9:Ïà      consoleá    7ç      warnâ   s¼üó'      K h ô n g   Íc   °ãc   Á  x u ¥t   t h a y   Õi   c ça   A I : ã     'Ò‹—      actionGroupä    =¤¶	      containerå      L§Ï      labelKeyæ   En“      ai-action-groupç    6U†Ÿ      listè   k;‹.      ai-action-listé     aSO>      entryê      $Yt      itemë   „´ò      svActionSummaryì    «0¹      renderActionCardí   Û¾ê…      summaryî    ¸%÷Û      problemsï   ÓÏğ      mapğ    ‘8›¤      svActionProblemñ    ªjû±      actionsò    ƒ_sk      cardó   !Å¢       ai-action-cardô     (pi      headõ   ë’      ai-action-headö     ıŞ@æ      headIcon÷   øÖM      fa-solid fa-wand-magic-sparklesø    Ö¡!B      aria-hiddenù    )¨¯      createTextNodeú     +      aiAct.titleû    “çÒÛ      aiAct.todoGroupü    ÓfŞÎ      todoı   À	×z      aiAct.scheduleGroupş    êcÃf      ai-action-warnÿ     C2“      warnIcon   fä¼–       fa-solid fa-triangle-exclamation  |å‚      aiAct.skipped     *Xá\      warnList  á)u      controls  Fó½      ai-action-controls    I¦ä&      applyBtn  ¹œ†      ai-action-apply   õ|ß3      aiAct.apply   4/ÓÓ      svApplyAIActions	  ´á91      applied
+   Â!Š      ai-action-status      ‰‘ñı      is-ok     §êı      is-warn   £é;ı      aiAct.applied     Ï      aiAct.applyFailed     Ì©Aa      svNotice  w²      aiAct.appliedTitle    ‰?uG      icon  Õ:¶      fa-circle-check   ™¥yß      tone  ¬‘¹È      aiAct.applyFailedTitle    “ÕsÃ      fa-triangle-exclamation   FÀ¨
+      dismissBtn    ÄÇ      ai-action-dismiss     øß‹¡      aiAct.dismiss     ¤Œz      finalizeAnswer    ±¼¹Â      full  õÃC±      visible   ü8ÆÒ      svStripActionBlock    ¡HW      sendToAI  rÊš      streamed  Úıàß      display    † €      none!  ¢öbÂ      piece"     ;5šµ      botDiv#    q+Æ^
+      botContent$    f³DÈ      fallbackError%     çê`      career.error&  1	²
+      handleSend'    I®6J      disabled(  œááŠ      height)    –Sæá      auto*  Bt<Ş      focus+     ¥YA      QUICK_ACTIONS,     ×¥Ì—      fa-wand-magic-sparkles-    k—×
+      career.qa1.    Öw#	      promptKey/     ?2ß0	      career.q10     Şä6)      fa-chart-simple1   kPQ
+      career.qa22    ³s2	      career.q23     9vÕ      fa-graduation-cap4     k	Ë
+      career.qa35    Gì4ú	      career.q36     eá‹ş      renderQuickActions7    G Èˆ      existing8  #„‘      quickActions9  ‘¦3”      wrap:  í‹«      quick-actions;     Ó1e      action<    x*Æo      prompt=    ~}Çd      quick-action-btn>  pS—<      <i class="fa-solid ?   Ş²-V      "></i> @   ¾“Ã      parentElementA     9Œ      insertBeforeB  Aì ˆ      nextSiblingC   	ˆ›H      keydownD   G/®­      EnterE     &kÁ      shiftKeyF  ØÄ~      preventDefaultG    ³H	      svConfirmH     éËh      career.clearChatI  İŠsÿ      career.clearTitleJ     LÂ
+      confirmTextK   ÍïpÇ      todo.deleteL   Àp2      fa-trash-canM  ó5G      dangerN    (D#”      sv:langchangeO     ß^êT      querySelectorAllP  %ø÷	      .msg-copyQ     ÎÁÚ¥      sv:profilechangeR  $B       applyStorageScope/scope<S  èˆb"      svRenderMarkdown/withPlaceholders<V    ®2çŒ      collectContext/hasRealData/<W  2ÿÉ      collectContext/hasRealData/</<X    'ÍnÕ      loadHistory/<Y     ò¼"Ú      addCopyButton/<Z   `±t      addCopyButton/</<[     ã.i¯      addStoredMessage/<\    Ùmª      actionGroup/<]     ˜¸`      renderActionCard/<^    w)E      finalizeAnswer/<`  D`ÿ      renderQuickActions/<a  °ÄÊ      renderQuickActions/</<     1   ×  g   1   
+          ï%,‰                                                                                                                                                                             	                
+                                                           	                                                                                                  
+                                                                                                                                                                                                                                !                "                 #                $                %                #                                  (                                *                 +                 +                                 .                                 0                 1                2   	             2   	             1                5                6                7                8                8                                ;                                 =                 =                                  @                A                 B                                  D                E                 E                 E               H                  I                 E                K           !      L                 E           "                #      O                P           $                %      R                S           &      S                U                U                          '      X                            (      Z                [           )      \                ]           *                       _                            +                 ,                -                 .      d           /                 0      ³OŒc
+                            
+                                                             ¹               u              '  P(  P     P!  )               m  #                               ü                ,  0  6  ;     	          2                f  ` Pt  _  P  P¸  P& P¢  PÙ  PÜ  P6 P{  Pì  P€  P P¯  ã  P±  P            L  PK  PH  PM  PE  P+ PG  PI                                  p  Q  q  r              `               e              e              f  g               s               k               l     	          m              e                               u               m              e                              e               w  z               ‚  ƒ  P              „  P               f  `             ¹              e               J             _                             ¹  £               ‚  §  ª  p               °  P             ‚  ª                               p                               ²                `¹  Pf  `            É  Ê  Ë  º  r  ¼  Å  Ç     	         Ã     
+          o     
+         e              Î  b   í               Ñ               ü                Ô               Ö              e                `f  `             º  ¼  o               İ  Pf  `             ¼  ß              {                ä  å  v                0  ç  P             é               ê               ª  ß               í  î  ñ  Pò  Pô  ö   P              e               e               á  ÿ   P             ¹               ê                                             ‡  	 ®                               ‚  Pª  P Pf  `              Pß                                `f  `             P²  P‚  P®  Pª  ¹               !             {                Û  " #             $                f  `             ¹                               7 9 P             ;              < P„                                               N  -  Q  S  U               e                l                  f  `                             „                  ¯Â0°                    "     %      -      1      7      <      Iô$KE®úš                     
+     w  z         ‚  ®  ª          À  r        Á          Í            À  r        Á            À  r        Á          @           @           @                                å  .        å  .        å  .         J  M ‡&Õª!«!1   D  È2mÜD  ô                         İ   ¼   L   œ   —   â¼   L   L   —      —   â;   —   ³   â¼   L
+      —   â   —   ³	   â¼   L      —   â   —   ³   â¼   L      —   â   —   ³   â¼	   ³   â¼   ³   â¼   ³   â¼   äL   ç   o   y â¥E`Ä `¥ `¥ `¥@`+`+`;O`‘ .ÿÿÿÛP4€ kP€€à   Ú€Ã¹Ğ                           ±²   â¼   š   —   ¼   ™   —   o   —   ²   â¸   ¿    ¼   u Ë   â¸   ¿    ¼   u Ë   â¸   ¿    ¼	   u Ë   âÓ¥ &`¯ `
+ÿÿÿúP)`
+ÿÿÿúP)`
+ÿÿÿúPP€€€à          ~   ÿÿÿÿ(   X…‘(                             ½  ¢ `œ   "¦œİœ   U                         ½  äL   çn      u äL   çn      u äL   çn      u äL   çn   	   u ¢¥ `*
+ÿÿÿøP*
+ÿÿÿøP*
+ÿÿÿøP*E
+P3Q€  Óa­4  ì      	          V      $Ñ   ±²   ²  ²  â¼    ½     —   â   —   u ²   âj    ´    â¿   äL   çn   o   u ²  â   ´    â´    âo   ²  â±²  â¿  äL	   ç
+   u äMçw  fäL   ç˜   ±²  âåu  f äL   ›  —   L   ¬²  ±²  ²  ²  ²  â¿  äL   çn   u ²  â¿  š`   —   ¿   y  âÂ       Â    ¼    ¿  Mu M   —   â   —   3(   ((0Ï    âÓ™e  —   ¿  äL   çn   u ²  â¿  š‰   —   ±²  â¿   y  â¼   äL   ç¿  ML   (u ²  âÂ       ¿  3(   (¼    ¿  Mu 3(   (¿  3(   ((0Ï    âÓÓ™¼  Ó—0   ¿  äL   çn   u ²  â¿  š   —3   Â       š3   —5   ¿   y  âÂ       (0Ï    â   Ï    â—7   Â        ¼    ¿  Mu 3(!   ((0Ï    âÓ™  —=   ¿  äL   çn"   u ²  â¿  š   —@   Â    #   š3   —B   ¿   y  âÂ    $   (0Ï    â#   Ï    â—D   Â        ¼    ¿  Mu 3(!   ((0Ï    âÓ™{   —J   ¿  äL%   çu  ›   —M   ¿   y  âÓ™O   —N   ¿   y  âÂ    &   ¼    ¿  u 3('   ((0Ï    âÓ™   —T   ¯æ  d¨—U   â™àüÿÿ—U   ã Ó¿   y  âÂ    ¤Ò¥Ò¥ “ `˜ ÿÿÿÿP(`,`ÿÿÿÚPH`,`(`Jf P  ÿÿÿÜœ ,’ `ÿÿÿúP(`.`)`&ÿÿÿùPª `K`ÿÿÿúP(`	&`)`	 ÿÿÿüP(`	ÿÿÿïP"• `M`ÿÿÿúP(`.`– `	`” `‘ `ÿÿÿïP” `K"`ÿÿÿúP(`.`– `	`” `‘ `ÿÿÿïP” `K(`P
+`	`+	`)	`ÿÿÿïP¬@O,`)`T€€€  ä        æ  ÿÿÿÿ   €   X         Ö   Ü        _                                            ©           I           u            é                Ò   å        ª   %  ˆ   jaˆ   J                         Â    ¶    äL   ç½ äL   çn      u y â   Â    L   )3(   (¢¥ 	`“ 
+
+ÿÿÿøPÿÿÿöP$	`• Q˜   KbgØ˜   h                          Â    ¶    šV   —   Â    ¶    Â       š   —      ™   —      —   (0Ï    âÏ    â—   ¥ `– `Ä /`-P€¼  ğ?âz˜  †               O       9ŠÏ    â¬Ñ   ±²  âo   Ï   âo   Î   âo   Ï   âo   Ï   âo   Ï   âo   Ï   âo   Î  âo	   Ï   âo
+   Ï   âo   Ï 	  âo   Ï 
+  âo   Ï   âo   Ï   âo   Ï   âo   Ï   âo   Ï   âo   Ï   â¼   €šB   —   ¼   “”›+   —   Â   Â   ’   Œ   š   —   §—   â—   ¼    y  â¼   äL   ç   u ´    â¼   äL   ç   u ´  
+  â¼   äL   ç   u ´    â¼   äL   ç   u ²  âj    ´    â´    âo   ´    âj   ;      >      >    !   >"   k    ;#   $   >   %   >    &   >"   k   ;'   (   >   )   >    *   >"   k   ´  	  âÂ    äL+   ç,   Â   y âÂ  
+  äL+   ç-   o.   y âÂ  
+  äL+   ç/   o0   y â¿  äL+   ç,   o1   y â¼   äL+   ç2   o3   y â¼   äL+   ç4   o5   y â¿    u  Ï    âÂ    L6    š%   —J   Â    Â     u  y â™   —L   Â    äL7   ç¿  y â—N   Â    y  â±²  âÒ ¤£Â    ¤Â    ™   —O   ¯Â    ‘¤Â    —O   ¥	ÿÔ@	`‘ $`½ `J`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	PH
+`,`H`L€ Ê`%	
+ 
+/	
+
+/	
+
+–@€ è`’ "ÿÿÿæP$`’ &ÿÿÿäPD€ ï`’ $ÿÿÿæPD€ ô` #ÿÿÿæPD€ ÿ`‘ +ÿÿÿŞPD€ `‘ .ÿÿÿÛPD€ `P*	`˜ 	`WÿÿÿÿP 	`ÿÿÿøP `’±P€€€¼  ¬  œ          F  ÿÿÿÿ        	   b  <  òÔ$e                  $       ±²   ²  ²  ²  ²  â¼   š   —   ¼    u  ™   —   —   ²   â¿   œ   —   â¿   L   —   š"   —   ¿   L   äL   çu  ™   —      —   ²  â¼   š   —   ¼    u  ™   —   —   ²  â¿  š   —   ¿  L   ™   —   —   ²  â¼   œ   —   â¼    u  	   —   ²  â¿  šd   —   ¿  š,   —   
+   ¿  3(   (¿  3(   (™'   —      ¿  3(   (¿  3(   (—"   ¤Ó¥—"   ¼       u ¤Ó¥Ó¥ – `— )P˜ `· -Pœ `— $P˜ `¬ `˜  P“ `.`.‘ g– ‘ €  …‘@H	`P#T<           ÿÿÿÿ    …             ›         ¸  qÆ3  è      	          _       $±²   ²  ²  ²  ²  ²  âj    ²   â²  â¬±²  â¼   äL   ç¼   äL   ç¼   u u ²  â¼   äL	   ç¿  u    —   â¿  L
+    —   œ   —   â¼   ¼   —   š   —   ±²  â¼   äL   ç¼   äL   ç¼   u u ²  â¼   äL	   ç¿  u œ   —   â¿  L
+    —    š   —!   ¿  Î  â—!   Ó—!   ¼   äL	   ç¿  u š   —%   ¿  Î   â—%   Ó™   —%    ¤®±²  â²  âÓ—%   ¬±²  ²  â¼   äL   ç¼   äL   ç¼   u u ²  âo   ²  â¿   ¿  u œ   —0   â¼   ¼   —3   š]   —4   ±²  â¼   äL   ç¼   äL   ç¼   u u ²  â¿   ¿  u š   —=   ¿  Î  â—=   Ó—=   ¿  œ   —>   â¿  —?   š   —@   ¿  Î  â—@   Ó™   —@    ¤®±²  â²  âÓ—@   ¿  œ   —B   â¼   —D   š   —E   ¼    u  L   Î  â—H   ¼   š   —K   ¼    u  ™   —M   —M   ²  â¼   š   —P   ¼    u  ™   —R   —R   ²  â¿  šP   —S   :ä¿  Æ    èèy â¿  š   —W   ¿  L   ™   —X   —X   >   ™   —Y   —Y   ²  â;   ¿   >   ²  â¿  š   —\   ¿  ¿  N   â—]   ¿  š   —^   ¿  ¿  N   â—_   ¿  ¤Ó¥Ó¥ š `*`&'!`ÿÿÿøPÿÿÿíP(`ÿÿÿøP° J• &'`ÿÿÿøPÿÿÿíP(`ÿÿÿøP¨ `”@`ÿÿÿøP`œ ‘@+!`ÿÿÿøPÿÿÿíP(!`J`ÿÿÿôP” /• &'`ÿÿÿøPÿÿÿíP(`ÿÿÿÿP-`”@`• #`œ ‘@` –@ `P’@#`— )P˜ `— $P˜ ` “ ¶K+`%N.`
+`“ ``“ 	`$T¸  ˜         ç  ÿÿÿÿ   +   )         ®   u         a            s  ù          á  S         y             å                 +   .          s  ş   ä   g	j¡ä                            ½  œ•   —   â½  œ…   —   â¼   äL   ç½  L   u œ   —   â½  L   L    —   D   —   â¼   äL   ç½  L   u œ"   —   â½  L   äL   ço   u —   ¢ `  ” ÿÿÿøP­  ” ÿÿÿøP 1ÿÿÿûP(€l   V.‹]l   5                         ¼   äL   ç½  u œ   —   â½  äL   ço   u —   ¢ `ÿÿÿøP˜ ÿÿÿûPD   ìKb7D                            ½  œ   —   â½  L   —   ¢ `› €`  ×Z%X   —                        $¬±²   â¼   äL   ç¼   äL   ç¼   u u ²   â¼   äL   ç¿   u ›   —   j    ¤Ó¥—   ¿   äL	   ço
+   u ¤Ó¥Ó™!   —    ¤®±²   â²   âj    ¤Ó¥Ó—   ¥ '`ÿÿÿøPÿÿÿíP(`ÿÿÿøP`EH`ÿÿÿùPC‘@`%Y€`  P        o   ÿÿÿÿ    S              n             }      ÿÿÿÿ                        t   ¤   pÚQC¤   w                         ½  œn   —   â½  L         —   â½  L      —   œ7   —   â½  L      œ   —   â½  L   äL   çu  —   ¢ `Å © +P  ĞË”ëô   ˜          	              $¬Â    ¶    L    š$   —   ¼   äL   ç¼   y â™@   —   ¼   äL   ç¼   ¼   äL   çÂ    äL   çœu u y â—   ™   —    ¤®±²   â²   âÓ—   ¥!` `ÿÿÿõP@`
+PÿÿÿâPÿÿÿéP–@‘ P€    	   †      ÿÿÿÿ           }      µÚ	×   L                         ½ ›   —    ¢—   Â    ¶    äL   ç;   ½  >   ½ >   y âÂ    y  â¥ `
+`AF	`“ ÿÿÿóP$	`+P€€€Œ  ßY4ˆ|    
+                    ¾ Ï    âÑ   ¼   äL   ç   u ´    âÂ       N   âÂ       N   âÂ    äL   ç	   
+   y âÂ    äL   ç   
+   y âÂ    äL   ç   ¼    
+   u y âÂ    ¼    
+   u N   âÂ       N   âÂ    äL   ç   o   y â½  äL   çÂ    y âÒ¥
+%`‘ 	P*	`‘ 	`‘ 	`— P$	`— P$	`’ [ÿÿÿåP$	`‘ P)	`‘ 	`’ ÿÿÿæPD#	`
+ÿÿÿôP%P€€€Œ        ò   ÿÿÿÿ$  –lİ°  	        	       "       9ŠÏ    â¬±²   ²  âÂ    u  ²  â²   â¬¼   L   äL   ç¿  u “”›+   —   Â    Â    ’   Œ   š   —   §—   âÎ   â™ö   —    ¤®±²  â²  â±²  â¼   äL   ç	   u ²  â¿  ¿  N
+   â¿  L      N   â¿  L      N   â¼   L   äL   ç¿  y â¿  äL   çy  â¬¼   äL   ç   u Î   â™%   —    ¤®±²  â²  âÎ   â±²  âÓ—   ¿  äL   çy  â±²  âÓ±²  âÓ—   ¿   šN   —   Â   ¶   L   äL   ç   y âÂ      N   â¼    o   °y â—"   ±²   ²  âÓ ¤£Â    ¤Â    ™   —"   ¯Â    ‘¤Â    —"   ¥	*`/`!`‘ $ÿÿÿöP¶ `“ ‘@`‘ 	P(`.`” `” `‘ ÿÿÿôP$`P$a‘ P• !`’ `P—@`.` P$`‘ `5CP”@	±P€€€$  ô  ´  ^      	   Î  ÿÿÿÿ   ‡   é          ’   ×         6                             )   V           	   å  d   » Úid   3                          Â   ¶   L   äL   ç   y âÂ      N   â¥ ` P$`‘ P€€€  #’H`  Ê  
+      	       #      ±²   ²  â½  ²   â½ ä š   —   â—   ²  â±²  ²  ²  ²  â¼   äL   ç   u ²  â¿     ¿  š   —      ™   —      —   3(N   â¼   äL   ç   u ²  â¿  	   N   â¿  ¿  š   —   
+   ™   —      —   N   â¼   äL   ç   u ²  â¿     N   â¼   äL   ç   u ²  â¿  ¿   N   â¿  äL   ç¿  y â¿  äL   ç¿  y â¿  äL   ç¿  y âÂ    ¶    äL   ç¿  y âÂ    Â    L   N   â;   ¿  >   ¿  >   ¿  >   ¤Ó¥Ó¥¯ ’ `‘ 	P(	`	"¯ `‘ 	P(	`/	`± `‘ 	P(	`/`‘ 	P(	`.	`ÿÿÿôP$	`ÿÿÿôP$	`ÿÿÿôP$	`“ ÿÿÿôP$	`— 	`			)T€€     /   š  ÿÿÿÿ    Ç           kYap    
+                   ¾  Ï    â±²   ²  âÂ       Â    L      u gäL   ²   âäL   ²  ââÂ    L      šA   —   ¿  ¼    Â    L	   u N
+   âÂ    ¿   o   y â™a   —   ±²  â¿     N   â¼   äL   ç   u ²  â¿  Â    L	   N   â¿  äL   ç¿  y âÓ—   Ó¥
+*,`‘ ÿÿÿûP› `› `
+(ÿÿÿïP)`ÿÿÿóP.&`/`‘ 	P(`• `ÿÿÿôPKP     
+   ö   ÿÿÿÿ   £   W       4   Qíc4                             Â    L   ¢ `€€  %hıíô                           ±²   â¼   äL   ç   u ²   â¿      N   â¿      N   â¿   	   ¼
+       u 3(   (N   âÂ    ¶    äL   ç¿   y âÂ    Â    L   N   â¿   ¤Ó¥Ó¥ &`‘ 	P(	`/	`/	`	€  ›[‘ 	`“ ÿÿÿôP$	`— 	`$T€€€         œ   ÿÿÿÿ    š          È  P¨q]|                 d      9¾  Ï    â¾ Ï    âŠÏ    â¬±²   ²  ²  ²  ²  ²  ²  ²  âÂ    u  ²  â:Â    >   Â   ¶   äL   çÿu >   ä¿  Æ    èèy â²  â¼       ;   	   >
+   ;      >   >   ¼   äL   ç¿  u >   u “”›+   —   Â    Â    ’   Œ   š   —   §—   ²  â¿  L      —   â¿  L   —   šÕ   —   ±²  â¼       u ²  â¬±²	  â¿  äL   çu  “”›+   —    Â    Â    ’  Œ    š   —!   §—!   ²	  â¿	  L      —#   â¿  —#   Î  â±²	  âÓ™   —#    ¤®±²	  â²	  â±²	  âÓ—#   ¼   ‚¿  æ  ƒ §±²  âÓ—%   ¿  L   äL   çu  ²  â¼   ‚æ  ƒ  ²  â   ²   â²  â²  â˜*   š  —+   ±²  ²	  ²
+  â¿  äL   çu  “”›+   —.   Â    Â    ’  Œ.   š   —/   §—/   gäL    ²	  âäL!   ²
+  ââ¿	  š   —2   ±²  ²	  ²
+  âÓ™€  —2   ¿   ¿  äL"   ç¿
+  ;#   >$   u (0Î   â ²  â˜7   ¿   äL%   ç&   u Î  ÿš  —:   ±²  â¿   äL   ç¿  u ²  â¿   äL   ç¿  (u Î   â±²  â¿  äL)   ç*   u äMçw  fäL+   ç˜D   ±²  âåu  f äL    ›p  —G   L!   ¬²  ±²  â¿  äL-   ç.   u ›   —K   ±²  âÓ™'  —K   ¿  äL   çu ²  â¿  /   š   —O   ±²  âÓ™í   —O   ¬±²  â¼   äL1   ç¿  u ²  â¿  L2   š#   —T   Â     ¿  L2   y â™T   —V   ¿  L   š#   —X   ¿  L   Î  âÎ  â™#   —Y   ¿  L3   š   —[   Î  â—[   ±²  âÓ™   —[    ¤®±²  â²  â±²  âÓ—[   ±²  âÓ™   —[   ¯æ  d¨—\   â™}şÿÿ—\   ã ±²  âÓ±²  âÓ™Öıÿÿ—\   ±²  ²	  ²
+  âÓ™ñüÿÿ—\   ¿  š   —]   ¼   ‚¿  æ  ƒ §—_   ¿  ›&   —`   ¼   ‚¼       u æ  ƒ §—d   ±²   ²  ²  ²  ²  ²  ²  ²  âÓ ¤£Â    ¤Â    ™   —d   ¯Â    ‘¤Â    —d   ¥ ¢ `/`"+– P(˜@`%%*/ÿÿÿöPH Pº@`• ™ F`P('`Pº `¶ — `ÿÿÿöP@` P(`’ `*`&`Ff.%`PÍ ``™ `ÿÿÿğP:#&f P” &"`ÿÿÿ÷P(`ÿÿÿúP($f 	P  ÿÿÿäœ $&` P`‘ %`P(`” `‘ '%`ÿÿÿúP(`“ `	ÿÿÿÿP.$`“ `.` $`“ `Ÿ@5!µ@'$¿@:``ÿÿÿöPI?``[ÿÿÿöP¬ ±P€È  X  ˆ  ÷   Š  ™        Â  ÿÿÿÿ   ?  Ë          Y  t         Ú           `  ş         ã        '   E        (   }  Á     ,   Ó  ?     (   ı        (   7        0   B  ¥      4   ô                Y  y          B  ª          Ï  H        §  ˆ           /         O               Ù  ˜  D»;`  à               "      9¾  Ï    âŠÏ    â¬±²   ²  ²  âÂ    u  ²   â¼       ;      >   ;      >	   >
+   ¼   äL   ç:Â    >   Â   ¶   äL   çÿu >   ä¿   Æ    èèy âu >   u “”›+   —   Â    Â    ’   Œ   š   —   §—   ²  â¿  äL   çu  “”›+   —   Â    Â    ’  Œ   š   —   §—   ²  â¿  L   š(   —   ¿  L   ¤±²   ²  ²  âÓ™P   —   ¼   ‚¿  L      —   â¼       u —!   æ  ƒ §±²   ²  ²  âÓ ¤—"   £Â    ¤Â    ™   —"   ¯Â    ‘¤Â    —"   ¥“ 
+.`/`%*/"+– P(“@PH Pº@`Pº `“ `Iš@	`Ÿ PÿÿÿèP“ ¶P€€˜  ˆ  h  Ğ           –  ÿÿÿÿ    [                    ²    Ä•û´Œ                       9¾  Ï    âŠÏ    â¬¬±²   ²  â¼       ;      >   ;      >	   >
+   ¼   äL   ç:Â    >   äÂ    u  Æ    èèy âu >   u “”›+   —   Â    Â    ’   Œ   š   —   §—   ²   â¿   L   ›   —   ¤±²   ²  âÓ™ğ   —   ¿   äL   çu  “”›+   —   Â    Â    ’  Œ   š   —   §—   ²  â¿  œ   —   â¿  —   š   —   ¿  ™   —   —   ¤±²   ²  âÓ™]   ±²   ²  âÓ™F   —    ¤®±²   â²   â¼   äL   ç   ¿   y â¤±²   âÓ™   ±²   âÓ—    ¤—   £Â    ¤Â    ™   —   ¯Â    ‘¤Â    —   ¥“ +`%*/P‘ ÿÿÿßPH$Pº@`“ `A–@`Pº `©@©@
++`‘ 8ÿÿÿĞP$`AÏP  ä  ”  ¦           o  ÿÿÿÿ    à              s              9   ÿÿÿÿ    ½                   t             ×  d  •¡,D  Ë                       Ñ   ±²   â½ L   ›   —    ¤Ò¥—   ¼   äL   ç   u ²   â¿      N   â¿   ¼    ½ u N	   â½  äL
+   ç¿   y â¼   äL   ç   u ´    âÂ       N   â½ äL   ço   y â½  äL
+   çÂ    y âÒ¥ +`’ `AH`‘ 	P(	`/	`
+ÿÿÿüP)	`
+ÿÿÿôPD`‘ 	P*	`‘ 	`
+ÿÿÿøPD	`
+ÿÿÿôP%P€d        Å   ÿÿÿÿ               Ğ   Ó¤äoÀ   s                 
+      ±²   â¼   äL   ç   u ²   â¿   ½  š   —   ½  ™   —   ¼    ½  u —   N   âÂ    ¶    äL   ç¿   y âÓ¥ 	&`‘ 	P(`¢ 4ÿÿÿğP.`“ ÿÿÿôP%	P€€Ğ          r   ÿÿÿÿp  ³¿ 0  N                Š      Ñ   ±²   ²  ²  ²  ²  â¼   äL   ç½ L   u š   —   ½ L   ™   —   j    —   ²   â¼   äL   ç½ L   u š&   —   ½ L   äL   ç¼   u ™   —   j    —   ²  â¼   äL   ç½ L   u š   —   ½ L   ™   —   j    —   ´    â¿   L	   œ   —   â¿  L	   —   š   —    ¤Ò¥—   ¼
+   äL   ç   u ´    âÂ       N   â¼
+   äL   ç   u ²  â¿     N   â¼
+   äL   ç   u ²  â¿     N   â¿  äL   ç      y â¿  äL   ç¿  y â¿  äL   ç¼
+   äL   ç   ¼       u (u y âÂ    äL   ç¿  y âÂ    Â       ¿   äL   ço   u y âÂ    Â       ¿   äL   ço   u y â¿  L	   šE  —B   Ñ   ±²  ²  â¼
+   äL   ç   u ²  â¿      N   â¼
+   äL   ç   u ²  â¿  !   N   â¿  äL   ç      y â¿  äL   ç¿  y â¿  äL   ç¼
+   äL   ç   ¼    "   ;#   ¿  L	   >$   u (u y â¼
+   äL   ç%   u ´    âÂ    &   N   â¿  äL'   ço(   y â¿  äL   çÂ    y âÂ   äL   ç¿  y âÒ—d   ¼
+   äL   ç   u ´    âÂ    )   N   âÂ    L	   š   —j   ±²  â¼
+   äL   ç+   u ²  â¿  +   N,   â¿  -   N   â¿  ¼    .   u N/   â¿  äL0   ç1   o2   y âÂ    äL   ç¿  y âÓ—w   ¼
+   äL   ç+   u ²  â¿  +   N,   â¿  3   N   â¿  ¼    4   u N/   â¿  äL0   ç1   o5   y âÂ    äL   ç¿  y âÂ    äL   çÂ    y â½  äL   çÂ    y âÂ   ¶   Â   L6   N7   âÒ¥ › `ÿÿÿøP® `ÿÿÿøPœ +ÿÿÿüPœ `ÿÿÿøP° `• ™ `AKH`‘ 	P*	`‘@	`‘ 	P(	`/`‘ 	P(	`/	`• 	P$	`ÿÿÿôP$	`[ÿÿÿëPÿÿÿëP$	`ÿÿÿôPD	`ÿÿÿùPÿÿÿŞP$	`ÿÿÿùPÿÿÿÚPD`“ /`‘ 	P(`/`‘ 	P(`/`• 	P$`ÿÿÿôP$`ÿÿÿéPÿÿÿëPÿÿÿëP$`‘ 	P*`‘ `ÿÿÿøPD$`ÿÿÿôP$`ÿÿÿôPJ(`‘ 	P*	`‘@+`• &`‘ 	P(`/`/`P)` #ÿÿÿæPD>`ÿÿÿôPJA`‘ 	P(	`/	`/	`P)	` %ÿÿÿæP$	`ÿÿÿôP$	`ÿÿÿôPDI	`
+ÿÿÿôP$	` P€p        H  ÿÿÿÿ    #            ‚  6      *   ş  „       L   àAL   "                         ½  œ   —   â½  L      —   ¢ `¡ €€€L   àAL   "                         ½  œ   —   â½  L      —   ¢ `¡ €€€œ   ®Ù¾+Œ   I                       ±²   â¼   äL   ç   u ²   â¿   ½  N   âÂ    ¶    äL   ç¿   y âÓ¥ &`‘ 	P(`-`“ ÿÿÿôP%P€€€œ          H   ÿÿÿÿ¤  À¶	”  ê         
+       0       ±²   ²  ²  â¼    Â    ¶    u ²   â¿   L      —   â—   ¿   L      —   â—   (²  âÂ    ¶    äL   çy  â¼   äL   ç   u ²  â¿  	   ¿  š   —   
+   ™   —      —   (N   â¿  ¿  š+   —   ¼       ;   ¿  >   u ™   —   ¼       u —   N   âÂ    ¶    äL   ç¿  y â¿  ša   —   ¼    ¼       ;   ¿  >   u ;   ¼       u >      >      >   y â™N   —&   ¼    ¼       u ;   ¼       u >      >       >   y â—0   Ó¥ . `ÿÿÿÿP("`š   `“ 	P$ `‘ 	P(`	*® ` 4	ÿÿÿéP˜ +P.`“ ÿÿÿôP$`.`		ÿÿÿéP*P
+
+ÿÿÿ˜P `	[P
+!
+ÿÿÿœPJP¤         é  ÿÿÿÿD   ¿>±D                             Â    ¶    äL   çu  ¢ `“ P€€€Ü  ¨¬¬¸  7  &                   9¾  Ï    â¾ Ï    â¾ Ï    âŠÏ    â¬Ñ   ±²   â¼    Â   u ´    âÂ   ¼    Â    u N   âÂ    Â   o   y âÂ       Â    y âÂ 
+   Â   u “”›+   —
+   Â   Â   ’   Œ
+   š   —   §—   ²   â¿   š   —   Â    Â   ¿   y â—   ±²   âÒ ¤£Â    ¤Â    ™   —   ¯Â    ‘¤Â    —   ¥§ +`ÿÿÿÿP*	`(ÿÿÿïP)	`ÿÿÿóP$	`ÿÿÿòPD`ÿÿÿğPº ``ÿÿÿóP ±P€Ü  Ì  ¼  ¼      ,   Ù   ÿÿÿÿ        '   õ   4   ;Š4                              Â    ¶    ¢ `€€€  ]Şİ³  5               .      9¾  Ï    âŠÏ    â¬Ñ   ±²   ²  âÂ    u  ´    â´    âÂ       u gäL   ´    âäL   ´    âäL   ²   ââÂ    L      N   âo	   ²  â¬Â    Â   ¿  u “”›+   —
+   Â   Â   ’   Œ
+   š   —   §—   âÂ    Â    ¿   Â    L
+   u “”›+   —   Â   Â   ’  Œ   š   —   §—   â™Ç  —    ¤®±²  â²  â¼   äL   ç¿  y â¬±²  ²  ²  âÂ 	   Â   u “”›+   —   Â   Â   ’  Œ   š   —   §—   ²  âÂ    äL   çy  âÂ    äL   çy  âÂ       u gäL   ²  âäL   ²  ââÂ    ¿  ¿  ¿  u “”›+   —   Â   Â   ’  Œ   š   —   §—   â±²  ²  ²  âÓ™—   —    ¤®±²  â²  â¼   äL   ç¿  y âÂ    äL   çy  âÂ    äL   çy  âÂ    ¼       u ¿  L      —*   â¼       u —,   (y â±²  âÓ—.   ±²  âÓ—.   ±²   ²  âÒ ¤£Â    ¤Â    ™   —.   ¯Â    ‘¤Â    —.   ¥“ 
+/`‘ `H6`
+Pª 	`–@`:!`	ÿÿÿîP¶@`ÿÿÿÙPÃ +`ÿÿÿúPD/`ÿÿÿïPº `
+P$`P$H`
+P› `ÿÿÿİPÒ %+`ÿÿÿúP$`
+P$`P$`[Ÿ P
+ÿÿÿÏP§@%±P€€€  `     Ä     ”  +        ë  ÿÿÿÿ   9  º         Y  ÷         ]  Š              Y  ü           “                   Ğ   ½H ôĞ   ‘                  
+       Â    ¶    ›E   —   Ï    âÂ    ¶    äL   çy  âÂ    ¶    L      N   â—   Â    ¶    äL   ½  (0N   âÂ   ¶   Â   L   N   â¥ `– `(`“ 
+P$`¡@` ` 	Pœ  Ğ$7H  ³                      9ŠÏ    â¬±²   âÂ   ¶   š   —    ¤±²   âÓ™P  —   Â 
+  ¶ 
+  L   äL   çu  ²   â¿   ›   —    ¤±²   âÓ™  —   Ï   âÂ   ¶   N   âÂ    ¿   y âÂ       ¿   y âÂ 
+     N   âÂ 
+  L      N	   â¬Â    ¿   u “”›+   —   Â    Â    ’   Œ   š   —   §—   â™   —   °£ ¤Ï   âÂ   N   âÂ 
+  äL
+   çy  â¤š   —   ¨™   —   ââ—   ±²   âÓ ¤—   £Â    ¤Â    ™   —   ¯Â    ‘¤Â    —   ¥	&`– `A’@`˜ P(``A’@	`(	`“ 	`ÿÿÿÿP$	`ÿÿÿ÷P$	`‘ 	`–!`ÿÿÿ÷PÃ $`(`-`
+P¨@¶P€€œ  |  L       	   s  ÿÿÿÿ    .              o                 à   I           	     D  Ë:½34  Î                        Ñ   ±²   â¼   äL   ç   u ²   â¿   š   —   ¿   äL   çy  â—   ¼   äL   ç   u ´    âÂ       N	   âÂ       N
+   âÂ 	  ¶ 	  äL   ço   y âÂ   ¶   L   äL   çÂ    Â   L   y âÒ¥ +`‘ 	P(`
+`	P)`‘ 	P*	`‘ 	`‘ 	`“ ÿÿÿøPD	`˜ (ÿÿÿíP%P€€D        È   ÿÿÿÿP  æöÚæ@  Ë                       Ñ   ±²   â¼    ½  L   u ´    â¼   äL   ç   u ²   â¿      N   â¿      N	   â¿   
+   ½  L   3(   (¼    ¼    ½  L   u u 3(N   â¿   äL   ç   o   y âÂ   ¶   äL   ç¿   y âÒ¥ 
++`ÿÿÿÿP*`‘ 	P(`/`/`	& ÿÿÿüPÿÿÿõP+` ÿÿÿæPD`“ ÿÿÿôP%	P€€P        Å   ÿÿÿÿ°   Xq%°   ]                          Â   ¶   š   —    ¢—   Â    Â    ¶    y âÂ       Â    y âÂ    Â    y â¥ `– `AF`ÿÿÿÿP$`ÿÿÿ÷P$`	ÿÿÿÿP$P€€€ˆ   9é­ìˆ   P                  	       ½  L      œ   —   â½  L   —   š#   —   ½  äL   çy  âÂ    y  â—	   ¥ `™ ˜ `
+P$`@P€€€   CÃ®¿€   J                	        áÎ   â¿   L      N   â¿   L   ¼   äL   ç¿   L   xu    (N   â¥&	`” 	`• ÿÿÿüP/P€€¬  êxÌ˜  0                       %ŠÏ    â¬¼    ¼       u ;   ¼       u >   ¼       u >   	   >
+   >   u “”›+   —   Â    Â    ’   Œ   š   —   §—   šl   —   Â   ¶      N   âj    Â   ¶   âÏ   âÂ    y  âÂ    Â   ¶    u  y âÂ    y  â—    ¤£Â    ¤Â    ™   —   ¯Â    ‘¤Â    —   ¥)`[PP
+ÿÿÿƒP¿ `— `™ `+`]ÿÿÿÿP$`@±P€€¬  œ  x           	     ğ   Û€öuğ   ¤                          Â    y  âÂ    ¶    äL   ç   u äL   ço   y âÂ    ¶    œ   —   âÂ    ¶    L    —	   š7   —
+   Â       N   âÂ    Â    ¶     u  y â—   ¥ 	`+	`˜ P
+&ÿÿÿøPD`» `‘ `]ÿÿÿÿPI
+Pp   :µ¶7p   9                         ½  äL   ç   ¼       u y â½  ¼       u N   â¥ `[ÿÿÿåP$`P)	P€°   é0<×°   t                          Â    ¶    œ   —   âÂ    ¶    L    —   š=   —   Â    ¶       N   âÂ    Â    ¶     u  y â—   ¥ `» `— 5Êé`]ÿÿÿÿPIP€€€3õØ  `  `  `    p          
+    `{     P    P    P    P    `$  {    Po   &  ú        `• *  +    `  `  o   {    P  p  p	  `  
+  5  b   í  
+  `z    P.     /    P  `  3  ú   4  >    5    P• 8  9  :  	  P =  >  ?  @    `-    `  d  j    p  `  d  h  ú   i  j    p  `  `  `  a  b  c      d  ú       `  `  `  
+  p    `  `n  o  O  R  >   T  S    @    s    `w  x  y  z    >    `  `  a  b  c      d  v    p  `  `ú   b  |    }    ~      `  `$    @w  z  '  `    Ÿ      "  `#  `’  “  ”  $  `%  `A  …  •  í  ²  —  –  0  ˜  r  ™  š  ›  œ  &  `       Ÿ       ¡    p   `!  `A  …  †  ×  ˆ  ‡  ‰  Š  ‹  Œ    ]        B  ‘    p™  (  `)  `A  …  ¤  ¥  x  ¦  ‡  §  ¨  ©    z  p  «  ™  ­  ¬    @‚  ®  ª  ,  `z  *  `+  `o   w  x  ‚  ª  y    z      p-  `«  A  …  p  ™  .  `/  `A  …  ¤  ³  ‡  ´   µ  ]  ¶  ·    ™  ­  ¬  0  `1  `    »  >   ½  ¾    @¿      @Â  Á  À    ~  r   2  `]  Ä  3  `ò   {   4  `#  Æ  È  o   5  `w  b   í  Ì    @Í  Ï  Ğ  6  `7  `  
+  5  8  `Ò  Ó  Õ  9  `a  ×  Ø  :  `;  `<  `½  Ú    @¿      @Â  Á  À    ~      »  >   r  ò   Ø  Û  #  {   ]  Ä  =  `>  `½  Ş  	  @¿    
+  @Â  Á  À    ~  Û  >   r   ò   ?  `à  á  â  B  `C  `A  …  R ë  «  ™  @  `A  `ú   A  …  ¤  æ  ‡  ]  «  ™  • è  —     pF  `·  ü  G  `·    I  `J  `A  …  R «  ™  L  `M  ` ü      A  …  ¤  
+   ‡  ]     @@    «  ™     @  @     Ø     @  á  N  `  D  `E  `  d  í  î  ï  ğ  ñ  ú   A  …  ¤  ó  ‡  õ  i  ÷  ‰  ø  Ô  ™  ù     ]  ú  û  v    pı    pH  `ş       @@   • è  —      p K  `†  ×    «  B  ‘  !  p  "  p­  ¬  Q  `O  `P  `     $  py  T  `  ²  o    «  ­  ¬  R  `S  `o   ‚  ®  ª  ²     &  p«  U  `à  {   V  `  W  `]  %   Ä  X  `Y  `í  >  ' x  o   ²  ) ( * ^  `x  \  `]  `]  . A  …  †  ×  = ‡  >  ?   å    B  ‘  *  p™  Z  `[  `A  F  8   …  ¤  : ‡   —   )  p@ A B _  ``  `O  P  >  o   R  T  V  — W  X  Y  Z  [  \  ]  ^  a  `  D E F b  `²  ) (   3  ­  a c  `G ]  H   @I   K J L  M o     e  `‰    ]  ‹    d  `O P —   /  pú   o     f  `ú   o       `  `	  p  p  p  p  p  p  p  p  p  p  p  p  p#  p%  p'  p(  pD    A  F  E  G  H  J    p  @,  - å  / .   @0 1 2   @3 4 5 B  ‘  C +  pÙ   ,  p-  pN .  pQ 0  pú   —      `  p  p  p            @          	  
+            A  B  C    pÿX„¾                   
+                  R     !    
+           !   (                 S     !       )      !
+ †  8           ! G     M      !
+ X      _        P      g      !
+ K      V     ! I      W     ! ~      t        w      X     ! Š   
+   {        ”      €        ½              Ÿ      Y     ! ™      Z     ! Ò      ¢        ë      ¯        é      [     ! ı      ±          5   ¸         C     Ù         \     Ü         z     ã        r     \     ! ¹  8   ì        ‰     ]     ! Œ     ]     !      ]     ! –  !   ]     ! ·     ]     ! ò             ñ     ^     !              ù     ¹      !
+      &        7     6       #     `     ! !     a     ! Y             ! ^               f             ! z             ! t             ! ‚             ! H©À      Ík      Ík                 ¾  •  ¤  •                             F            §  ù    ù                  Ù  û  Ù                  ­  .  ­  .  #   L            t  Û  t  Û  *              D€  Êk  	  Êk  P   5             Ç  Ë  Ç  Ë  ^               =    &    m               N  S  N  S  }   !             C    C     I            )  B  )  B     o           d  ¹  P  ¹  ¡                        ¥   "            Ö  x!  ¿  x!  ª                ’!  "  ~!  "  µ             €f"  —(  P"  —(  ¼             D€M$  j(  G$  j(  Å   -              '  J(   '  J(  Ù                 )  N,  	)  N,  ã             €Ó,  ›.  º,  ›.  ö               »-  Ì-  »-  Ì-  ú   '             ¼.   0  ¡.   0                @€1  $<  î0  $<              @€–<  °>  w<  °>  Q  $          @€ÿ?  XB  á?  XB  d  #           rB  áD  ^B  áD  t              êC  ´D  êC  ´D  }              E  TS  çD  TS  …              {H  ˜H  {H  ˜H  —  =            ÜH  ıH  ÜH  ıH  ˜  A            cK  
+L  cK  
+L  ¤              íM  UQ  íM  UQ  µ  0             ˆR  ›R  ˆR  ›R  Ê  .           D€_T  ·U  BT  ·U  Ô  "            U  U  U  U  ×  #           D€ÔU  \  ½U  \  Ş              ÿV  X  ÿV  X  å            @€*\  ^  \  ^                `  ¹c  õ_  ¹c                  a  `c  a  `c  &              |b  1c  |b  1c  ,  +             +d  ­d  +d  ­d  9  +           àd  Se  Ød  Se  ?  1           @€„e  ûf  ~e  ûf  D  .            ¢g  )i  ¢g  )i  O  0             h  h  h  h  Q  <            Ói  €j  Ói  €j  \  3           5¡İÍo^1qeFşÒ      jÎjÎJ	ãNjÎ)‘   K    O^partitionKey=%28http%2C127.0.0.1%29,:http://127.0.0.1:5888/career/chat.js strongly-framed 1 request-method GET response-head HTTP/1.0 200 OK
+Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:42:33 GMT
+Content-type: text/javascript
+Content-Length: 27597
+Last-Modified: Mon, 12 Oct 2026 13:02:33 GMT
+ original-response-headers Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:42:33 GMT
+Content-type: text/javascript
+Content-Length: 27597
+Last-Modified: Mon, 12 Oct 2026 13:02:33 GMT
+ ctid 2 net-response-time-onstart 29 net-response-time-onstop 32 alt-data 1;27597,javascript/moz-script-bytecode-20261005135250-8l alt-data-from-child 1     ‚

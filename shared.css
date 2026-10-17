@@ -145,6 +145,8 @@ body {
     top: 0;
     left: 0;
     height: 110px;
+    min-height: calc(110px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
     background: var(--navbar-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -742,10 +744,10 @@ body {
 @media (max-width: 768px) {
     .sv-settings-panel,
     .sv-streak-popover {
-        top: 74px; /* navbar mobile cao 64px + 10px khoảng nghỉ */
+        top: calc(74px + env(safe-area-inset-top, 0px)); /* navbar mobile cao 64px + 10px khoảng nghỉ */
         right: 12px;
-        max-height: calc(100vh - 86px);
-        max-height: calc(100dvh - 86px);
+        max-height: calc(100vh - 86px - env(safe-area-inset-top, 0px));
+        max-height: calc(100dvh - 86px - env(safe-area-inset-top, 0px));
     }
     .nav-streak-btn { height: 38px; padding: 0 9px; font-size: 0.85rem; }
 }
@@ -1037,7 +1039,13 @@ body {
        Icon đứng yên trong pill, label ẩn (pill 50px không đủ chỗ cho
        icon nhảy + label nên trước đây bị tràn xuống), indicator chạy
        bên trong pill thay vì nhô lên trên. */
-    .navbar { height: 64px; align-items: center; padding-bottom: 0; }
+    .navbar {
+        height: auto;
+        min-height: calc(56px + env(safe-area-inset-top, 0px));
+        padding-top: env(safe-area-inset-top, 0px);
+        align-items: center;
+        padding-bottom: 0;
+    }
     .nav-container {
         flex-direction: row;
         justify-content: space-between;
@@ -1071,32 +1079,106 @@ body {
     }
 }
 
+/* Điện thoại hẹp (<=480px / 375px iPhone 11 Pro): Bố cục 2 hàng sạch sẽ, không tràn, tap target >= 44px */
 @media (max-width: 480px) {
-    .logo { font-size: 20px; }
-    .navigation ul li { width: 42px; }
-    .indicator { width: 36px; }
+    .navbar {
+        height: auto;
+        min-height: calc(96px + env(safe-area-inset-top, 0px));
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: 6px;
+    }
+    .nav-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 12px;
+        row-gap: 6px;
+    }
+    .logo {
+        order: 1;
+        font-size: 19px;
+        white-space: nowrap;
+        margin-right: auto;
+        flex-shrink: 0;
+    }
+    .nav-streak-container {
+        order: 2;
+        margin-right: 6px;
+    }
+    .nav-streak-btn {
+        height: 38px;
+        padding: 0 10px;
+        font-size: 0.85rem;
+        gap: 5px;
+        min-height: 38px;
+    }
+    .nav-account {
+        order: 3;
+        width: 38px;
+        height: 38px;
+        font-size: 0.95rem;
+        margin-right: 6px;
+        flex-shrink: 0;
+    }
+    .nav-settings {
+        order: 4;
+        width: 38px;
+        height: 38px;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+    .navigation {
+        order: 5;
+        width: 100%;
+        height: 44px;
+        border-radius: 22px;
+        padding: 0 4px;
+        margin-top: 2px;
+    }
+    .navigation ul {
+        width: 100%;
+        display: flex;
+        justify-content: space-around;
+        gap: 0;
+    }
+    .navigation ul li {
+        flex: 1;
+        width: auto;
+        min-width: 0;
+        height: 44px;
+    }
+    .navigation ul li a {
+        width: 100%;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .navigation ul li a .icon {
+        font-size: 1.15rem;
+        line-height: 44px;
+    }
+    .indicator {
+        width: 48px;
+        height: 38px;
+        top: 50%;
+        margin-top: -19px;
+        border-radius: 19px;
+    }
+    .sv-settings-panel,
+    .sv-streak-popover {
+        top: calc(106px + env(safe-area-inset-top, 0px));
+        max-height: calc(100vh - 118px - env(safe-area-inset-top, 0px));
+        max-height: calc(100dvh - 118px - env(safe-area-inset-top, 0px));
+    }
 }
 
-/* Điện thoại hẹp (<=400px): logo + pill menu 5 tab + nút Cài đặt vẫn nằm gọn */
-@media (max-width: 400px) {
-    .nav-container { padding: 0 8px; }
-    .logo { font-size: 16px; }
-    .navigation { padding: 0 3px; }
-    .navigation ul li { width: 36px; }
-    .indicator { width: 32px; }
-    .nav-account, .nav-settings { width: 32px; height: 32px; font-size: 0.85rem; }
-    .nav-streak-btn { height: 32px; padding: 0 6px; font-size: 0.75rem; gap: 4px; }
-}
-
-/* Màn hình rất hẹp (<=330px, vd Galaxy Fold) thu thêm một nấc cho 5 tab */
+/* Màn hình rất hẹp (<=330px, vd Galaxy Fold gập) */
 @media (max-width: 330px) {
-    .nav-container { padding: 0 4px; }
-    .logo { font-size: 14px; }
-    .navigation { padding: 0 2px; }
-    .navigation ul li { width: 31px; }
-    .indicator { width: 27px; }
-    .nav-account, .nav-settings { width: 27px; height: 27px; font-size: 0.75rem; }
-    .nav-streak-btn { height: 27px; padding: 0 4px; font-size: 0.7rem; gap: 2px; }
+    .nav-container { padding: 4px 6px; }
+    .logo { font-size: 16px; }
+    .nav-streak-btn { padding: 0 6px; font-size: 0.75rem; }
 }
 
 /* IN ẤN: nút và panel Cài đặt không bao giờ được in ra */
@@ -1121,7 +1203,7 @@ body {
 .sv-guest-notice {
     position: fixed;
     left: 20px;
-    bottom: 20px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     z-index: 950;
     display: flex;
     align-items: flex-start;
@@ -1206,7 +1288,7 @@ body {
     .sv-guest-notice {
         left: 12px;
         right: 12px;
-        bottom: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
         width: auto;
     }
 }

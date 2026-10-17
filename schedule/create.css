@@ -6,9 +6,10 @@ body {
 
 /* MAIN CONTAINER LAYOUT */
 .main-schedule {
-    padding-top: 135px;
-    padding-bottom: 50px;
+    padding-top: calc(135px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px));
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .container-fluid {
@@ -565,6 +566,7 @@ input[type="color"] {
     backdrop-filter: blur(16px);
     min-width: 200px;
     max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
     overflow-y: auto;
     animation: pickerIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -625,8 +627,8 @@ input[type="color"] {
 
 @media (max-width: 768px) {
     .main-schedule {
-        padding-top: 100px; /* navbar mobile cao 64px */
-        padding-bottom: 30px;
+        padding-top: calc(76px + env(safe-area-inset-top, 0px)); /* navbar mobile cao 56px + padding */
+        padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
     }
 
     .container-fluid {
@@ -756,7 +758,13 @@ input[type="color"] {
     }
 
     .main-schedule {
-        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+@media (max-width: 480px) {
+    .main-schedule {
+        padding-top: calc(106px + env(safe-area-inset-top, 0px));
     }
 }
 

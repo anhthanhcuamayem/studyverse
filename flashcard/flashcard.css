@@ -8,9 +8,10 @@
 }
 
 .fc-main {
-    padding-top: 90px;
-    padding-bottom: 60px;
+    padding-top: calc(90px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .fc-container {
@@ -751,7 +752,7 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 14px;
     max-width: var(--fc-card-w);
-    margin: 0 auto 16px;
+    margin: 0 auto calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 .fc-btn-rate {
@@ -1385,6 +1386,10 @@
 }
 
 @media (max-width: 768px) {
+    .fc-main {
+        padding-top: calc(76px + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    }
     :root {
         --fc-card-w: 100%;
         --fc-card-h: 300px;
@@ -1409,6 +1414,9 @@
 }
 
 @media (max-width: 480px) {
+    .fc-main {
+        padding-top: calc(106px + env(safe-area-inset-top, 0px));
+    }
     .fc-stats-grid {
         grid-template-columns: 1fr;
     }
@@ -1438,6 +1446,7 @@ body.fc-zen-active .fc-hotkeys-hint {
 body.fc-zen-active .fc-main {
     padding: 0 !important;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;

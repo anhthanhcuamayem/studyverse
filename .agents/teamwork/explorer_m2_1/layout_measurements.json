@@ -1,0 +1,784 @@
+{
+  "index.html": {
+    "viewport": {
+      "innerWidth": 375,
+      "innerHeight": 812
+    },
+    "body": {
+      "scrollWidth": 363,
+      "clientWidth": 363,
+      "hasHorizontalOverflow": false
+    },
+    "navbar": {
+      "tag": "HEADER",
+      "className": "navbar",
+      "rect": {
+        "width": 363,
+        "height": 56,
+        "top": 0,
+        "left": 0
+      },
+      "scrollWidth": 403,
+      "clientWidth": 363,
+      "overflow": true
+    },
+    "navContainer": {
+      "rect": {
+        "width": 363,
+        "height": 44
+      },
+      "scrollWidth": 411,
+      "clientWidth": 363,
+      "overflow": true,
+      "flexWrap": "nowrap",
+      "justifyContent": "space-between",
+      "padding": "0px 8px"
+    },
+    "logo": {
+      "text": "Studyverse",
+      "rect": {
+        "width": 83.73333740234375,
+        "height": 23
+      },
+      "fontSize": "16px",
+      "whiteSpace": "normal",
+      "isMultiLine": false
+    },
+    "navigation": {
+      "rect": {
+        "width": 196,
+        "height": 44
+      },
+      "scrollWidth": 194,
+      "clientWidth": 194,
+      "items": [
+        {
+          "index": 0,
+          "id": "li-home",
+          "className": "list active",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 1,
+          "id": "li-project",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 2,
+          "id": "li-schedule",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 3,
+          "id": "li-career",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 4,
+          "id": "li-flashcard",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        }
+      ]
+    },
+    "streakBtn": {
+      "rect": {
+        "width": 51.0333251953125,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "accountBtn": {
+      "text": "",
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "settingsBtn": {
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    }
+  },
+  "account.html": {
+    "viewport": {
+      "innerWidth": 375,
+      "innerHeight": 812
+    },
+    "body": {
+      "scrollWidth": 363,
+      "clientWidth": 363,
+      "hasHorizontalOverflow": false
+    },
+    "navbar": {
+      "tag": "HEADER",
+      "className": "account-topbar",
+      "rect": {
+        "width": 335,
+        "height": 72,
+        "top": 0,
+        "left": 14
+      },
+      "scrollWidth": 335,
+      "clientWidth": 335,
+      "overflow": false
+    },
+    "logo": {
+      "text": "Studyverse",
+      "rect": {
+        "width": 141.4166717529297,
+        "height": 33
+      },
+      "fontSize": "19px",
+      "whiteSpace": "normal",
+      "isMultiLine": true
+    },
+    "accountBtn": {
+      "text": "Về trang chủ",
+      "rect": {
+        "width": 82.30000305175781,
+        "height": 18
+      },
+      "tapTargetValid44": false
+    }
+  },
+  "career/chat.html": {
+    "viewport": {
+      "innerWidth": 375,
+      "innerHeight": 812
+    },
+    "body": {
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "hasHorizontalOverflow": false
+    },
+    "navbar": {
+      "tag": "HEADER",
+      "className": "navbar",
+      "rect": {
+        "width": 375,
+        "height": 56,
+        "top": 0,
+        "left": 0
+      },
+      "scrollWidth": 403,
+      "clientWidth": 375,
+      "overflow": true
+    },
+    "navContainer": {
+      "rect": {
+        "width": 375,
+        "height": 44
+      },
+      "scrollWidth": 411,
+      "clientWidth": 375,
+      "overflow": true,
+      "flexWrap": "nowrap",
+      "justifyContent": "space-between",
+      "padding": "0px 8px"
+    },
+    "logo": {
+      "text": "Studyverse",
+      "rect": {
+        "width": 83.73333740234375,
+        "height": 23
+      },
+      "fontSize": "16px",
+      "whiteSpace": "normal",
+      "isMultiLine": false
+    },
+    "navigation": {
+      "rect": {
+        "width": 196,
+        "height": 44
+      },
+      "scrollWidth": 194,
+      "clientWidth": 194,
+      "items": [
+        {
+          "index": 0,
+          "id": "",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 1,
+          "id": "",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 2,
+          "id": "",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 3,
+          "id": "li-career",
+          "className": "list active",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 4,
+          "id": "li-flashcard",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        }
+      ]
+    },
+    "streakBtn": {
+      "rect": {
+        "width": 51.0333251953125,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "accountBtn": {
+      "text": "",
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "settingsBtn": {
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    }
+  },
+  "flashcard/flashcard.html": {
+    "viewport": {
+      "innerWidth": 375,
+      "innerHeight": 812
+    },
+    "body": {
+      "scrollWidth": 552,
+      "clientWidth": 363,
+      "hasHorizontalOverflow": true
+    },
+    "navbar": {
+      "tag": "HEADER",
+      "className": "navbar",
+      "rect": {
+        "width": 363,
+        "height": 56,
+        "top": 0,
+        "left": 0
+      },
+      "scrollWidth": 403,
+      "clientWidth": 363,
+      "overflow": true
+    },
+    "navContainer": {
+      "rect": {
+        "width": 363,
+        "height": 44
+      },
+      "scrollWidth": 411,
+      "clientWidth": 363,
+      "overflow": true,
+      "flexWrap": "nowrap",
+      "justifyContent": "space-between",
+      "padding": "0px 8px"
+    },
+    "logo": {
+      "text": "Studyverse",
+      "rect": {
+        "width": 83.73333740234375,
+        "height": 23
+      },
+      "fontSize": "16px",
+      "whiteSpace": "normal",
+      "isMultiLine": false
+    },
+    "navigation": {
+      "rect": {
+        "width": 196,
+        "height": 44
+      },
+      "scrollWidth": 194,
+      "clientWidth": 194,
+      "items": [
+        {
+          "index": 0,
+          "id": "li-home",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 1,
+          "id": "li-project",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 2,
+          "id": "li-schedule",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 3,
+          "id": "li-career",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 4,
+          "id": "li-flashcard",
+          "className": "list active",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        }
+      ]
+    },
+    "streakBtn": {
+      "rect": {
+        "width": 51.0333251953125,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "accountBtn": {
+      "text": "",
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "settingsBtn": {
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    }
+  },
+  "schedule/create.html": {
+    "viewport": {
+      "innerWidth": 375,
+      "innerHeight": 812
+    },
+    "body": {
+      "scrollWidth": 614,
+      "clientWidth": 363,
+      "hasHorizontalOverflow": true
+    },
+    "navbar": {
+      "tag": "HEADER",
+      "className": "navbar",
+      "rect": {
+        "width": 363,
+        "height": 56,
+        "top": 0,
+        "left": 0
+      },
+      "scrollWidth": 403,
+      "clientWidth": 363,
+      "overflow": true
+    },
+    "navContainer": {
+      "rect": {
+        "width": 363,
+        "height": 44
+      },
+      "scrollWidth": 411,
+      "clientWidth": 363,
+      "overflow": true,
+      "flexWrap": "nowrap",
+      "justifyContent": "space-between",
+      "padding": "0px 8px"
+    },
+    "logo": {
+      "text": "Studyverse",
+      "rect": {
+        "width": 83.73333740234375,
+        "height": 23
+      },
+      "fontSize": "16px",
+      "whiteSpace": "normal",
+      "isMultiLine": false
+    },
+    "navigation": {
+      "rect": {
+        "width": 196,
+        "height": 44
+      },
+      "scrollWidth": 194,
+      "clientWidth": 194,
+      "items": [
+        {
+          "index": 0,
+          "id": "li-home",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 1,
+          "id": "li-myproject",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 2,
+          "id": "li-schedule",
+          "className": "list active",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 3,
+          "id": "li-career",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 4,
+          "id": "li-flashcard",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        }
+      ]
+    },
+    "streakBtn": {
+      "rect": {
+        "width": 51.0333251953125,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "accountBtn": {
+      "text": "",
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "settingsBtn": {
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    }
+  },
+  "todo/mylist.html": {
+    "viewport": {
+      "innerWidth": 375,
+      "innerHeight": 812
+    },
+    "body": {
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "hasHorizontalOverflow": false
+    },
+    "navbar": {
+      "tag": "HEADER",
+      "className": "navbar",
+      "rect": {
+        "width": 375,
+        "height": 56,
+        "top": 0,
+        "left": 0
+      },
+      "scrollWidth": 403,
+      "clientWidth": 375,
+      "overflow": true
+    },
+    "navContainer": {
+      "rect": {
+        "width": 375,
+        "height": 44
+      },
+      "scrollWidth": 411,
+      "clientWidth": 375,
+      "overflow": true,
+      "flexWrap": "nowrap",
+      "justifyContent": "space-between",
+      "padding": "0px 8px"
+    },
+    "logo": {
+      "text": "Studyverse",
+      "rect": {
+        "width": 83.73333740234375,
+        "height": 23
+      },
+      "fontSize": "16px",
+      "whiteSpace": "normal",
+      "isMultiLine": false
+    },
+    "navigation": {
+      "rect": {
+        "width": 196,
+        "height": 44
+      },
+      "scrollWidth": 194,
+      "clientWidth": 194,
+      "items": [
+        {
+          "index": 0,
+          "id": "li-home",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 1,
+          "id": "li-myproject",
+          "className": "list active",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 2,
+          "id": "li-schedule",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 3,
+          "id": "li-career",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        },
+        {
+          "index": 4,
+          "id": "li-flashcard",
+          "className": "list",
+          "rect": {
+            "width": 36,
+            "height": 44
+          },
+          "aRect": {
+            "width": 36,
+            "height": 44
+          },
+          "tapTargetValid44": false
+        }
+      ]
+    },
+    "streakBtn": {
+      "rect": {
+        "width": 51.0333251953125,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "accountBtn": {
+      "text": "",
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    },
+    "settingsBtn": {
+      "rect": {
+        "width": 32,
+        "height": 32
+      },
+      "tapTargetValid44": false
+    }
+  }
+}

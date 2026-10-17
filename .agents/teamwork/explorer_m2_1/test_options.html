@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="stylesheet" href="/shared.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+/* OPTION A: 2-Row Header on <= 480px */
+@media (max-width: 480px) {
+    .opt-a .navbar {
+        height: auto;
+        min-height: calc(96px + env(safe-area-inset-top, 0px));
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: 8px;
+    }
+    .opt-a .nav-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 12px;
+        row-gap: 6px;
+    }
+    .opt-a .logo {
+        order: 1;
+        font-size: 18px;
+        white-space: nowrap;
+    }
+    .opt-a .nav-streak-container {
+        order: 2;
+        margin-left: auto;
+        margin-right: 6px;
+    }
+    .opt-a .nav-account {
+        order: 3;
+        margin-right: 6px;
+        width: 36px;
+        height: 36px;
+    }
+    .opt-a .nav-settings {
+        order: 4;
+        width: 36px;
+        height: 36px;
+    }
+    .opt-a .navigation {
+        order: 5;
+        width: 100%;
+        height: 44px;
+        margin-top: 2px;
+        display: flex;
+        justify-content: space-around;
+    }
+    .opt-a .navigation ul {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+    .opt-a .navigation ul li {
+        flex: 1;
+        width: auto;
+        min-width: 0;
+        height: 44px;
+    }
+    .opt-a .navigation ul li a {
+        width: 100%;
+        height: 44px;
+    }
+}
+</style>
+</head>
+<body class="opt-a">
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">Study<span>verse</span></a>
+            <nav class="navigation">
+                <ul>
+                    <li class="list active" id="li-home"><a href="/index.html"><span class="icon"><i class="fa-solid fa-house"></i></span><span class="text">Home</span></a></li>
+                    <li class="list" id="li-project"><a href="/todo/mylist.html"><span class="icon"><i class="fa-solid fa-list-check"></i></span><span class="text">My Project</span></a></li>
+                    <li class="list" id="li-schedule"><a href="/schedule/create.html"><span class="icon"><i class="fa-regular fa-calendar"></i></span><span class="text">Schedule</span></a></li>
+                    <li class="list" id="li-career"><a href="/career/chat.html"><span class="icon"><i class="fa-regular fa-comment-dots"></i></span><span class="text">AI Career</span></a></li>
+                    <li class="list" id="li-flashcard"><a href="/flashcard/flashcard.html"><span class="icon"><i class="fa-solid fa-layer-group"></i></span><span class="text">Flashcard</span></a></li>
+                    <div class="indicator"></div>
+                </ul>
+            </nav>
+            <div class="nav-streak-container" id="navStreakContainer">
+                <button type="button" class="nav-streak-btn" id="navStreakBtn">
+                    <span class="nav-streak-flame"><i class="fa-solid fa-fire-flame-curved"></i></span>
+                    <span class="nav-streak-count">0</span>
+                </button>
+            </div>
+            <a class="nav-account" href="/account.html"><i class="fa-regular fa-user"></i></a>
+            <button class="nav-settings" type="button"><i class="fa-solid fa-gear"></i></button>
+        </div>
+    </header>
+    <main style="padding-top: calc(110px + env(safe-area-inset-top, 0px)); padding-left: 16px;">
+        <h2>Main Content Starts Cleanly Below Navbar</h2>
+        <p>No overlap, no clipping, all 5 tabs and 3 action icons fit on 375px.</p>
+    </main>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" class="sv-theme-loading">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title data-i18n="home.title">Home - Studyverse</title>
+    <script src="/config.js"></script>
+    <script src="/theme-init.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="/shared.css">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">Study<span>verse</span></a>
+            
+            <nav class="navigation">
+                <ul>
+                    <li class="list active" id="li-home" data-index="0" >
+                        <a href="/index.html">
+                            <span class="icon"><i class="fa-solid fa-house"></i></span>
+                            <span class="text" data-i18n="nav.home">Home</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-project" data-index="1" >
+                        <a href="/todo/mylist.html"> 
+                            <span class="icon"><i class="fa-solid fa-list-check"></i></span>
+                            <span class="text" data-i18n="nav.project">My Project</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-schedule" data-index="2" >
+                        <a href="/schedule/create.html">
+                            <span class="icon"><i class="fa-regular fa-calendar"></i></span>
+                            <span class="text" data-i18n="nav.schedule">Schedule</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-career"  data-index="3">
+                        <a href="/career/chat.html">
+                            <span class="icon"><i class="fa-regular fa-comment-dots"></i></span>
+                            <span class="text" data-i18n="nav.career">AI Career</span>
+                        </a>
+                    </li>
+                    <li class="list" id="li-flashcard" data-index="4">
+                        <a href="/flashcard/flashcard.html">
+                            <span class="icon"><i class="fa-solid fa-layer-group"></i></span>
+                            <span class="text" data-i18n="nav.flashcard">Flashcard</span>
+                        </a>
+                    </li>
+                    <div class="indicator"></div>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="hero-ambient-glow" aria-hidden="true">
+            <div class="glow-orb glow-orb-1"></div>
+            <div class="glow-orb glow-orb-2"></div>
+            <div class="glow-grid"></div>
+        </div>
+
+        <section class="hero container">
+            <div class="hero-badge">
+                <span class="badge-dot"><span class="badge-ping"></span></span>
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span data-i18n="home.heroBadge">Không gian học tập & quản lý thông minh</span>
+            </div>
+
+            <h1 class="hero-title">
+                <span class="white-text" data-i18n="home.hero1">A simple list to</span>
+                <span class="blue-text draw-underline" data-i18n="home.hero2">manage everything</span>
+            </h1>
+            <p class="hero-subtitle">
+                <span data-i18n="home.desc1">Organize your work and life every day in a scientific</span> <br class="desktop-only"> 
+                <span data-i18n="home.desc2">and most effective way with Studyverse.</span>
+            </p>
+            <div class="home-entry-actions" id="homeGuestActions" aria-label="Studyverse access options">
+                <a class="btn-start" href="/account.html?mode=login" data-i18n="home.login">Đăng nhập</a>
+                <a class="btn-entry-secondary" href="/account.html?mode=register" data-i18n="home.register">Đăng ký</a>
+                <a href="/todo/mylist.html" class="btn-guest" id="btnContinueGuest" data-i18n="home.guest">Dùng ngay với Guest</a>
+            </div>
+            <div class="home-entry-actions" id="homeUserActions" aria-label="Studyverse access options" hidden>
+                <a class="btn-start" href="/todo/mylist.html" data-i18n="home.enterApp">Vào ứng dụng</a>
+                <a class="btn-entry-secondary" href="/account.html" data-i18n="home.myAccount">Tài khoản</a>
+            </div>
+            <script>
+                (function() {
+                    try {
+                        for (var i = 0; i < localStorage.length; i++) {
+                            var k = localStorage.key(i);
+                            if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) {
+                                var val = localStorage.getItem(k);
+                                if (val && (val.indexOf('"access_token"') !== -1 || val.indexOf('"user"') !== -1)) {
+                                    var g = document.getElementById('homeGuestActions');
+                                    var u = document.getElementById('homeUserActions');
+                                    if (g && u) { g.hidden = true; u.hidden = false; }
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                })();
+            </script>
+            <div class="big-illustration-container">
+                <div class="illustration-aura" aria-hidden="true"></div>
+                <div class="illustration-wrapper">
+                    <!-- Floating Card 1: AI Career -->
+                    <div class="hero-float-card card-ai">
+                        <div class="card-icon is-ai"><i class="fa-solid fa-robot"></i></div>
+                        <div class="card-text">
+                            <div class="card-title" data-i18n="home.cardAiTitle">AI Career Advisor</div>
+                            <div class="card-desc" data-i18n="home.cardAiDesc">Đề xuất lộ trình tối ưu</div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Card 2: Completed Task -->
+                    <div class="hero-float-card card-task">
+                        <div class="card-icon is-green"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="card-text">
+                            <div class="card-title" data-i18n="home.cardTaskTitle">Nhiệm vụ hoàn thành</div>
+                            <div class="card-desc" data-i18n="home.cardTaskDesc">Toán cao cấp • 100%</div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Card 3: Smart Timetable -->
+                    <div class="hero-float-card card-schedule">
+                        <div class="card-icon is-purple"><i class="fa-regular fa-calendar-check"></i></div>
+                        <div class="card-text">
+                            <div class="card-title" data-i18n="home.cardSchedTitle">Thời khóa biểu</div>
+                            <div class="card-desc" data-i18n="home.cardSchedDesc">Tự động xếp tiết học</div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Card 4: Study Streak -->
+                    <div class="hero-float-card card-streak">
+                        <div class="card-icon is-orange"><i class="fa-solid fa-fire-flame-curved"></i></div>
+                        <div class="card-text">
+                            <div class="card-title" data-i18n="home.cardStreakTitle">Chuỗi tập trung</div>
+                            <div class="card-desc" data-i18n="home.cardStreakDesc">🔥 7 ngày liên tục</div>
+                        </div>
+                    </div>
+
+                    <img src="pockup.png" alt="Studyverse Illustration" class="img-large">
+                </div>
+            </div>
+
+            <!-- Highlights Bar -->
+            <div class="hero-stats-bar">
+                <div class="stat-item">
+                    <div class="stat-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div class="stat-info">
+                        <strong class="stat-number">100%</strong>
+                        <span class="stat-label" data-i18n="home.statLocal">Bảo mật & lưu trên máy</span>
+                    </div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                    <div class="stat-info">
+                        <strong class="stat-number">24/7</strong>
+                        <span class="stat-label" data-i18n="home.statAi">Trợ lý AI đồng hành</span>
+                    </div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-icon"><i class="fa-solid fa-palette"></i></div>
+                    <div class="stat-info">
+                        <strong class="stat-number">8+</strong>
+                        <span class="stat-label" data-i18n="home.statThemes">Theme bảo vệ mắt</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features container">
+            <div class="feature-box">
+                <span class="feature-tag" data-i18n="home.f1.tag">Kế hoạch</span>
+                <div class="icon-wrapper"><i class="fa-solid fa-bolt-lightning"></i></div>
+                <h3 data-i18n="home.f1.title">Planning</h3>
+                <p data-i18n="home.f1.desc">Build a personalized to-do list, helping you stay proactive in your studies.</p>
+            </div>
+            <div class="feature-box">
+                <span class="feature-tag" data-i18n="home.f2.tag">Giao diện</span>
+                <div class="icon-wrapper"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <h3 data-i18n="home.f2.title">Eye-friendly Interface</h3>
+                <p data-i18n="home.f2.desc">"Dark Mode reduces eye strain and boosts focus for long study sessions."</p>
+            </div>
+            <div class="feature-box">
+                <span class="feature-tag" data-i18n="home.f3.tag">Bảo mật</span>
+                <div class="icon-wrapper"><i class="fa-solid fa-user-shield"></i></div>
+                <h3 data-i18n="home.f3.title">Security & Speed</h3>
+                <p data-i18n="home.f3.desc">Data is stored securely right on the browser, ensuring instant access.</p>
+            </div>
+            <div class="feature-box">
+                <span class="feature-tag" data-i18n="home.f4.tag">Ghi nhớ</span>
+                <div class="icon-wrapper"><i class="fa-solid fa-layer-group"></i></div>
+                <h3 data-i18n="home.f4.title">Flashcards Ghi nhớ</h3>
+                <p data-i18n="home.f4.desc">Nhập tài liệu tự động tạo flashcard 3D và ôn tập theo ngắt quãng hiệu quả.</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="/icons.js"></script>
+    <script src="/shared.js"></script>
+</body>
+</html>
+j�D�"V      j�$j�%J	�j�	3   G    O^partitionKey=%28http%2C127.0.0.1%29,:http://127.0.0.1:5577/index.html necko:classified 1 peer-ip-address 127.0.0.1 peer-port 5577 strongly-framed 1 request-method GET response-head HTTP/1.0 200 OK
+Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:08:36 GMT
+Content-type: text/html
+Content-Length: 11557
+Last-Modified: Tue, 13 Oct 2026 05:49:56 GMT
+ original-response-headers Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:08:36 GMT
+Content-type: text/html
+Content-Length: 11557
+Last-Modified: Tue, 13 Oct 2026 05:49:56 GMT
+ ctid 1 net-response-time-onstart 876 net-response-time-onstop 1811      -%

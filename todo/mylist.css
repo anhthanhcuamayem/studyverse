@@ -19,10 +19,11 @@ html {
     align-items: stretch;
     gap: 25px;
     max-width: 1200px;
-    margin: 140px auto 40px;
+    margin: calc(140px + env(safe-area-inset-top, 0px)) auto calc(40px + env(safe-area-inset-bottom, 0px));
     padding: 0 20px;
     font-family: 'Inter', sans-serif;
     min-height: calc(100vh - 180px);
+    min-height: calc(100dvh - 180px);
     height: auto;
 }
 
@@ -674,7 +675,7 @@ html {
 @media (max-width: 768px) {
     .project-wrapper {
         flex-direction: column;
-        margin-top: 100px; /* navbar mobile cao 64px */
+        margin-top: calc(76px + env(safe-area-inset-top, 0px)); /* navbar mobile cao 56px + padding */
         padding: 0 15px;
         gap: 15px;
     }
@@ -736,7 +737,13 @@ html {
     }
 
     main {
-        padding-bottom: env(safe-area-inset-bottom);
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+@media (max-width: 480px) {
+    .project-wrapper {
+        margin-top: calc(106px + env(safe-area-inset-top, 0px));
     }
 }
 

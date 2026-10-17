@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<body>
+<iframe id="f" src="/index.html" style="width:375px;height:812px;border:none;"></iframe>
+<script>
+window.onload = () => {
+    const f = document.getElementById('f');
+    f.onload = () => {
+        setTimeout(() => {
+            const d = f.contentDocument;
+            const w = f.contentWindow;
+            function g(el) {
+                if (!el) return null;
+                const r = el.getBoundingClientRect();
+                const cs = w.getComputedStyle(el);
+                return {
+                    tag: el.tagName,
+                    class: el.className,
+                    rect: { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom },
+                    scrollWidth: el.scrollWidth,
+                    clientWidth: el.clientWidth,
+                    offsetWidth: el.offsetWidth,
+                    padding: cs.padding,
+                    margin: cs.margin,
+                    flexShrink: cs.flexShrink
+                };
+            }
+            const data = {
+                viewport: { innerWidth: w.innerWidth, innerHeight: w.innerHeight },
+                body: { scrollWidth: d.body.scrollWidth, clientWidth: d.body.clientWidth },
+                navbar: g(d.querySelector('.navbar')),
+                navContainer: g(d.querySelector('.nav-container')),
+                logo: g(d.querySelector('.logo')),
+                navigation: g(d.querySelector('.navigation')),
+                navStreak: g(d.querySelector('#navStreakContainer')),
+                navStreakBtn: g(d.querySelector('#navStreakBtn')),
+                navAccount: g(d.querySelector('.nav-account')),
+                navSettings: g(d.querySelector('.nav-settings')),
+                navItems: Array.from(d.querySelectorAll('.navigation li')).map(li => ({
+                    id: li.id,
+                    rect: li.getBoundingClientRect(),
+                    aRect: li.querySelector('a') ? li.querySelector('a').getBoundingClientRect() : null
+                }))
+            };
+            fetch('/report', { method: 'POST', body: JSON.stringify(data) });
+        }, 600);
+    };
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+import http.server
+import socketserver
+import threading
+import json
+import subprocess
+import os
+import shutil
+import time
+from pathlib import Path
+
+PORT = 5889
+BASE_DIR = Path("/home/thanh/LÀM VIỆC/project/studyverse")
+OUTPUT_DIR = BASE_DIR / ".agents/teamwork/challenger_m2_1"
+PROFILE_DIR = OUTPUT_DIR / "harness_profile"
+
+# Reset profile
+if PROFILE_DIR.exists():
+    shutil.rmtree(PROFILE_DIR, ignore_errors=True)
+PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+
+results = {}
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(BASE_DIR), **kwargs)
+
+    def do_POST(self):
+        if self.path == '/api/report_adversarial':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            results.update(data)
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+        elif self.path == '/api/log':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            print("[HARNESS LOG]", post_data.decode('utf-8'))
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format, *args):
+        pass
+
+def run_server():
+    socketserver.TCPServer.allow_reuse_address = True
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        httpd.serve_forever()
+
+runner_html = """<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Adversarial M2 Header Harness</title>
+<style>
+body { margin: 0; padding: 0; background: #111; color: #fff; font-family: monospace; }
+#testFrame { border: 1px solid #444; }
+</style>
+</head>
+<body>
+<div id="status">Initializing...</div>
+<iframe id="testFrame" width="375" height="812"></iframe>
+
+<script>
+const testCases = [
+  // 375px - iPhone 11 Pro target
+  { page: 'index.html', width: 375 },
+  { page: 'account.html', width: 375 },
+  { page: 'career/chat.html', width: 375 },
+  { page: 'flashcard/flashcard.html', width: 375 },
+  { page: 'schedule/create.html', width: 375 },
+  { page: 'todo/mylist.html', width: 375 },
+
+  // Boundary 320px - Narrow mobile
+  { page: 'index.html', width: 320 },
+  { page: 'account.html', width: 320 },
+  { page: 'career/chat.html', width: 320 },
+  { page: 'schedule/create.html', width: 320 },
+  { page: 'todo/mylist.html', width: 320 },
+  { page: 'flashcard/flashcard.html', width: 320 },
+
+  // Boundary 480px - Mobile breakpoint upper edge
+  { page: 'index.html', width: 480 },
+  { page: 'account.html', width: 480 },
+  { page: 'career/chat.html', width: 480 },
+
+  // Boundary 768px - Tablet
+  { page: 'index.html', width: 768 },
+  { page: 'account.html', width: 768 }
+];
+
+const allData = {};
+
+function log(msg) {
+  fetch('/api/log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(msg)
+  }).catch(() => {});
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function measureOne(tc) {
+  const frame = document.getElementById('testFrame');
+  frame.width = tc.width;
+  frame.height = 812;
+
+  return new Promise((resolve) => {
+    frame.src = '/' + tc.page;
+    frame.onload = async () => {
+      await sleep(350); // wait for dynamic injections and styles
+
+      try {
+        const doc = frame.contentDocument;
+        const win = frame.contentWindow;
+
+        const report = {
+          page: tc.page,
+          width: tc.width,
+          viewport: { innerWidth: win.innerWidth, innerHeight: win.innerHeight },
+          body: {
+            scrollWidth: doc.body.scrollWidth,
+            clientWidth: doc.body.clientWidth,
+            hasHorizontalOverflow: doc.body.scrollWidth > doc.body.clientWidth + 1
+          }
+        };
+
+        const navbar = doc.querySelector('.navbar, .account-topbar');
+        if (navbar) {
+          const nbR = navbar.getBoundingClientRect();
+          report.navbar = {
+            rect: { width: nbR.width, height: nbR.height, top: nbR.top, bottom: nbR.bottom },
+            scrollWidth: navbar.scrollWidth,
+            clientWidth: navbar.clientWidth,
+            overflow: navbar.scrollWidth > navbar.clientWidth + 1
+          };
+        }
+
+        const navContainer = doc.querySelector('.nav-container');
+        if (navContainer) {
+          const ncR = navContainer.getBoundingClientRect();
+          const ncs = win.getComputedStyle(navContainer);
+          report.navContainer = {
+            rect: { width: ncR.width, height: ncR.height },
+            scrollWidth: navContainer.scrollWidth,
+            clientWidth: navContainer.clientWidth,
+            overflow: navContainer.scrollWidth > navContainer.clientWidth + 1,
+            flexWrap: ncs.flexWrap
+          };
+        }
+
+        const streakBtn = doc.querySelector('.nav-streak-btn');
+        if (streakBtn) {
+          const sR = streakBtn.getBoundingClientRect();
+          report.streakBtn = {
+            rect: { width: sR.width, height: sR.height, left: sR.left, right: sR.right },
+            heightGe44: sR.height >= 43.5,
+            widthGe44: sR.width >= 43.5,
+            withinViewport: sR.right <= tc.width + 1 && sR.left >= -1
+          };
+        }
+
+        const accountBtn = doc.querySelector('.nav-account');
+        if (accountBtn) {
+          const aR = accountBtn.getBoundingClientRect();
+          report.accountBtn = {
+            rect: { width: aR.width, height: aR.height, left: aR.left, right: aR.right },
+            heightGe44: aR.height >= 43.5,
+            widthGe44: aR.width >= 43.5,
+            withinViewport: aR.right <= tc.width + 1 && aR.left >= -1
+          };
+        }
+
+        const accountBack = doc.querySelector('.account-back-link');
+        if (accountBack) {
+          const abR = accountBack.getBoundingClientRect();
+          report.accountBackLink = {
+            rect: { width: abR.width, height: abR.height },
+            heightGe44: abR.height >= 43.5
+          };
+        }
+
+        const settingsBtn = doc.querySelector('.nav-settings');
+        if (settingsBtn) {
+          const setR = settingsBtn.getBoundingClientRect();
+          report.settingsBtn = {
+            rect: { width: setR.width, height: setR.height, left: setR.left, right: setR.right },
+            heightGe44: setR.height >= 43.5,
+            widthGe44: setR.width >= 43.5,
+            withinViewport: setR.right <= tc.width + 1 && setR.left >= -1
+          };
+        }
+
+        const careerReset = doc.querySelector('.btn-reset');
+        if (careerReset) {
+          const crR = careerReset.getBoundingClientRect();
+          report.careerResetBtn = {
+            rect: { width: crR.width, height: crR.height },
+            heightGe44: crR.height >= 43.5
+          };
+        }
+
+        const nav = doc.querySelector('.navigation');
+        if (nav) {
+          const nR = nav.getBoundingClientRect();
+          report.navigation = {
+            rect: { width: nR.width, height: nR.height, left: nR.left, right: nR.right },
+            scrollWidth: nav.scrollWidth,
+            clientWidth: nav.clientWidth,
+            overflow: nav.scrollWidth > nav.clientWidth + 1,
+            tabs: []
+          };
+          const lis = nav.querySelectorAll('li');
+          lis.forEach((li, idx) => {
+            const a = li.querySelector('a');
+            const aR = a ? a.getBoundingClientRect() : li.getBoundingClientRect();
+            report.navigation.tabs.push({
+              index: idx,
+              rect: { width: aR.width, height: aR.height, left: aR.left, right: aR.right },
+              heightGe44: aR.height >= 43.5,
+              widthGe44: aR.width >= 43.5,
+              withinViewport: aR.right <= tc.width + 1 && aR.left >= -1
+            });
+          });
+        }
+
+        // Content clearance
+        const mainContent = doc.querySelector('.main-content, .main-career, .main-schedule, .project-wrapper, .fc-main, .account-shell');
+        if (mainContent && navbar) {
+          const mR = mainContent.getBoundingClientRect();
+          const nbR = navbar.getBoundingClientRect();
+          report.contentClearance = {
+            mainTop: mR.top,
+            navbarBottom: nbR.bottom,
+            cleared: mR.top >= nbR.bottom - 2
+          };
+        }
+
+        // Test settings panel open
+        if (settingsBtn) {
+          settingsBtn.click();
+          await sleep(150);
+          const panel = doc.querySelector('.sv-settings-panel');
+          if (panel) {
+            const pR = panel.getBoundingClientRect();
+            report.settingsPanel = {
+              opened: true,
+              rect: { width: pR.width, height: pR.height, top: pR.top, right: pR.right, left: pR.left },
+              topBelowNavbar: navbar ? pR.top >= navbar.getBoundingClientRect().top : true,
+              withinViewport: pR.right <= tc.width + 1 && pR.left >= -1,
+              bodyOverflow: doc.body.scrollWidth > doc.body.clientWidth + 1
+            };
+          }
+          settingsBtn.click();
+          await sleep(100);
+        }
+
+        allData[`${tc.page}@${tc.width}`] = report;
+        log(`Finished ${tc.page} at ${tc.width}px`);
+        resolve();
+      } catch (err) {
+        allData[`${tc.page}@${tc.width}`] = { error: err.message };
+        log(`Error on ${tc.page} at ${tc.width}px: ` + err.message);
+        resolve();
+      }
+    };
+  });
+}
+
+async function run() {
+  for (const tc of testCases) {
+    document.getElementById('status').textContent = `Measuring ${tc.page} @ ${tc.width}px...`;
+    await measureOne(tc);
+  }
+  document.getElementById('status').textContent = 'Done! Posting data...';
+  await fetch('/api/report_adversarial', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(allData)
+  });
+  document.getElementById('status').textContent = 'Saved successfully.';
+}
+window.onload = run;
+</script>
+</body>
+</html>
+"""
+
+(OUTPUT_DIR / "runner_adversarial.html").write_text(runner_html, encoding='utf-8')
+
+server_thread = threading.Thread(target=run_server, daemon=True)
+server_thread.start()
+print("Server started on port", PORT)
+
+cmd = [
+    "firefox", "--headless", "--no-remote",
+    "--profile", str(PROFILE_DIR),
+    "--window-size=1024,900",
+    f"http://127.0.0.1:{PORT}/.agents/teamwork/challenger_m2_1/runner_adversarial.html"
+]
+
+proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+# Wait up to 60 seconds
+start_time = time.time()
+while time.time() - start_time < 60:
+    if results:
+        break
+    time.sleep(1)
+
+proc.terminate()
+
+with open(OUTPUT_DIR / "adversarial_measurements.json", "w", encoding="utf-8") as f:
+    json.dump(results, f, indent=2, ensure_ascii=False)
+
+print(f"Captured results for {len(results)} test cases.")

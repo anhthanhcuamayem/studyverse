@@ -1,0 +1,1977 @@
+// Studyverse account page: Supabase email/password auth, profile personalization, streak & configs.
+(function initAccountPage() {
+    const form = document.getElementById('authForm');
+    if (!form) return;
+
+    // Elements cho form xÃ¡c thá»±c Supabase
+    const emailInput = document.getElementById('authEmail');
+    const emailField = document.getElementById('emailField');
+    const passwordInput = document.getElementById('authPassword');
+    const confirmPasswordInput = document.getElementById('authPasswordConfirm');
+    const confirmPasswordField = document.getElementById('confirmPasswordField');
+    const passwordField = document.getElementById('passwordField');
+    const passwordHint = document.getElementById('passwordHint');
+    const submitButton = document.getElementById('authSubmit');
+    const submitLabel = document.getElementById('authSubmitLabel');
+    const notice = document.getElementById('authNotice');
+    const title = document.getElementById('authTitle');
+    const subtitle = document.getElementById('authSubtitle');
+    const forgotButton = document.getElementById('forgotPasswordButton');
+    const modeSwitchRow = document.getElementById('modeSwitchRow');
+    const modeSwitchPrompt = document.getElementById('modeSwitchPrompt');
+    const modeSwitchButton = document.getElementById('modeSwitchButton');
+    const divider = document.getElementById('accountDivider');
+    const guestLink = document.getElementById('guestLink');
+
+    // Tabs & Panels
+    const accountTabs = document.getElementById('accountTabs');
+    const tabProfileBtn = document.getElementById('tabProfileBtn');
+    const tabAuthBtn = document.getElementById('tabAuthBtn');
+    const tabAuthLabel = document.getElementById('tabAuthLabel');
+    const signedInPanel = document.getElementById('signedInPanel');
+
+    // Profile & Header elements
+    const accountEmail = document.getElementById('accountEmail');
+    const accountAvatar = document.getElementById('accountAvatar');
+    const accountDisplayName = document.getElementById('accountDisplayName');
+    const accountModePill = document.getElementById('accountModePill');
+    const accountModePillLabel = document.getElementById('accountModePillLabel');
+    const signOutButton = document.getElementById('signOutButton');
+    const cloudNudgeBanner = document.getElementById('cloudNudgeBanner');
+    const nudgeLoginBtn = document.getElementById('nudgeLoginBtn');
+
+    // Streak & Stats elements
+    const streakFlameWrap = document.getElementById('streakFlameWrap');
+    const streakCount = document.getElementById('streakCount');
+    const streakBestCount = document.getElementById('streakBestCount');
+    const streakLevelPill = document.getElementById('streakLevelPill');
+    const tasksDoneCount = document.getElementById('tasksDoneCount');
+    const tasksTotalCount = document.getElementById('tasksTotalCount');
+    const weekDaysContainer = document.getElementById('weekDaysContainer');
+    const badgesGrid = document.getElementById('badgesGrid');
+
+    // Form settings elements
+    const profileForm = document.getElementById('profileSettingsForm');
+    const profileDisplayNameInput = document.getElementById('profileDisplayName');
+    const profileDailyGoalInput = document.getElementById('profileDailyGoal');
+    const profileInterestsInput = document.getElementById('profileInterests');
+    const profileAiCallingInput = document.getElementById('profileAiCalling');
+    const profileAiStyleInput = document.getElementById('profileAiStyle');
+    const profileAiFocusInput = document.getElementById('profileAiFocus');
+    const profileNotifyStreakInput = document.getElementById('profileNotifyStreak');
+    const profileNotifyDeadlineInput = document.getElementById('profileNotifyDeadline');
+    const profileSoundEnabledInput = document.getElementById('profileSoundEnabled');
+    const accountThemeSwatches = document.getElementById('accountThemeSwatches');
+    const accountLangToggle = document.getElementById('accountLangToggle');
+    const goalChips = document.getElementById('goalChips');
+    const interestChips = document.getElementById('interestChips');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    const saveProfileBtnLabel = document.getElementById('saveProfileBtnLabel');
+
+    const url = new URL(window.location.href);
+    const validModes = ['login', 'register', 'forgot', 'recovery'];
+    let mode = validModes.includes(url.searchParams.get('mode')) ? url.searchParams.get('mode') : 'login';
+    const recoveryFromHash = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
+    if (recoveryFromHash) mode = 'recovery';
+
+    // Náº¿u ngÆ°á»i dÃ¹ng truy cáº­p vá»›i ?mode=... thÃ¬ hiá»ƒn thá»‹ tab auth, cÃ²n máº·c Ä‘á»‹nh hiá»ƒn thá»‹ há»“ sÆ¡ & cÃ i Ä‘áº·t
+    let activeTab = (url.searchParams.has('mode') || recoveryFromHash) ? 'auth' : 'profile';
+
+    let supabaseClient = null;
+    let clientPromise = null;
+    let signedInUser = null;
+    let isBusy = false;
+    let uiReady = false;
+
+    document.getElementById('currentYear').textContent = String(new Date().getFullYear());
+
+    const translate = (key, fallback) => typeof svT === 'function' ? svT(key) : fallback;
+
+    function setNotice(text = '', tone = 'info') {
+        notice.textContent = text;
+        notice.dataset.tone = tone;
+        notice.hidden = !text;
+    }
+
+    function showFriendlyError(error) {
+        const message = String(error && error.message ? error.message : '').toLowerCase();
+        if (message.includes('invalid login credentials')) return translate('account.invalidCredentials', 'Email hoáº·c máº­t kháº©u chÆ°a chÃ­nh xÃ¡c.');
+        if (message.includes('email not confirmed')) return translate('account.emailNotConfirmed', 'HÃ£y xÃ¡c nháº­n email trÆ°á»›c khi Ä‘Äƒng nháº­p.');
+        if (message.includes('session missing') || message.includes('auth session')) return translate('account.recoveryLinkInvalid', 'LiÃªn káº¿t Ä‘áº·t láº¡i khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.');
+        if (message.includes('user already registered') || message.includes('already been registered')) return translate('account.userExists', 'Email nÃ y Ä‘Ã£ cÃ³ tÃ i khoáº£n. HÃ£y Ä‘Äƒng nháº­p.');
+        if (message.includes('password') && (message.includes('least') || message.includes('characters'))) return translate('account.passwordTooShort', 'Máº­t kháº©u cáº§n cÃ³ Ã­t nháº¥t 8 kÃ½ tá»±.');
+        return error && error.message ? error.message : translate('auth.genericError', 'KhÃ´ng thá»ƒ thá»±c hiá»‡n lÃºc nÃ y. Vui lÃ²ng thá»­ láº¡i.');
+    }
+
+    function clearPasswords() {
+        passwordInput.value = '';
+        confirmPasswordInput.value = '';
+    }
+
+    function syncPasswordToggleLabels() {
+        const english = typeof svLang === 'function' && svLang() === 'en';
+        document.querySelectorAll('[data-toggle-password]').forEach(button => {
+            const input = document.getElementById(button.dataset.togglePassword);
+            const key = input && input.type === 'text' ? 'account.hidePassword' : 'account.showPassword';
+            const fallback = key === 'account.hidePassword'
+                ? (english ? 'Hide password' : 'áº¨n máº­t kháº©u')
+                : (english ? 'Show password' : 'Hiá»‡n máº­t kháº©u');
+            const label = translate(key, fallback);
+            button.setAttribute('aria-label', label);
+            button.title = label;
+        });
+    }
+
+    // Chuyá»ƒn Ä‘á»•i giá»¯a 2 tab: Profile & Settings vs Cloud Auth
+    function switchTab(targetTab) {
+        activeTab = targetTab;
+        if (tabProfileBtn && tabAuthBtn) {
+            tabProfileBtn.classList.toggle('active', activeTab === 'profile');
+            tabProfileBtn.setAttribute('aria-selected', String(activeTab === 'profile'));
+            tabAuthBtn.classList.toggle('active', activeTab === 'auth');
+            tabAuthBtn.setAttribute('aria-selected', String(activeTab === 'auth'));
+        }
+
+        if (activeTab === 'profile') {
+            form.hidden = true;
+            modeSwitchRow.hidden = true;
+            divider.hidden = true;
+            guestLink.hidden = true;
+            signedInPanel.hidden = false;
+            renderProfileView(signedInUser);
+        } else {
+            signedInPanel.hidden = true;
+            form.hidden = false;
+            modeSwitchRow.hidden = false;
+            divider.hidden = mode === 'forgot' || mode === 'recovery';
+            guestLink.hidden = false;
+            setMode(mode, { keepNotice: true });
+        }
+    }
+
+    function setMode(nextMode, { keepNotice = false } = {}) {
+        mode = validModes.includes(nextMode) ? nextMode : 'login';
+        if (!keepNotice) setNotice('');
+
+        const isLogin = mode === 'login';
+        const isRegister = mode === 'register';
+        const isForgot = mode === 'forgot';
+        const isRecovery = mode === 'recovery';
+        const copy = {
+            login: ['account.loginTitle', 'ChÃ o má»«ng trá»Ÿ láº¡i', 'account.loginSubtitle', 'ÄÄƒng nháº­p Ä‘á»ƒ tiáº¿p tá»¥c hÃ nh trÃ¬nh há»c táº­p.'],
+            register: ['account.registerTitle', 'Táº¡o tÃ i khoáº£n', 'account.registerSubtitle', 'Báº¯t Ä‘áº§u sáº¯p xáº¿p viá»‡c há»c theo cÃ¡ch cá»§a báº¡n.'],
+            forgot: ['account.forgotTitle', 'Äáº·t láº¡i máº­t kháº©u', 'account.forgotSubtitle', 'Nháº­p email, chÃºng tÃ´i sáº½ gá»­i cho báº¡n Ä‘Æ°á»ng dáº«n Ä‘áº·t láº¡i máº­t kháº©u.'],
+            recovery: ['account.recoveryTitle', 'Táº¡o máº­t kháº©u má»›i', 'account.recoverySubtitle', 'Chá»n má»™t máº­t kháº©u má»›i cho tÃ i khoáº£n cá»§a báº¡n.']
+        }[mode];
+
+        title.textContent = translate(copy[0], copy[1]);
+        subtitle.textContent = translate(copy[2], copy[3]);
+        submitLabel.textContent = translate({
+            login: 'account.submitLogin',
+            register: 'account.submitRegister',
+            forgot: 'account.submitForgot',
+            recovery: 'account.submitRecovery'
+        }[mode], mode);
+
+        passwordField.hidden = isForgot;
+        confirmPasswordField.hidden = !(isRegister || isRecovery);
+        emailField.hidden = isRecovery;
+        emailInput.required = !isRecovery;
+        passwordInput.required = !isForgot;
+        passwordInput.minLength = isRegister || isRecovery ? 8 : 0;
+        confirmPasswordInput.required = isRegister || isRecovery;
+        confirmPasswordInput.minLength = isRegister || isRecovery ? 8 : 0;
+        passwordInput.autocomplete = isLogin ? 'current-password' : 'new-password';
+        confirmPasswordInput.autocomplete = 'new-password';
+        emailInput.placeholder = translate('account.emailPlaceholder', 'you@example.com');
+        passwordInput.placeholder = isLogin
+            ? translate('account.passwordPlaceholderLogin', 'Máº­t kháº©u cá»§a báº¡n')
+            : translate('account.passwordPlaceholder', 'Tá»‘i thiá»ƒu 8 kÃ½ tá»±');
+        confirmPasswordInput.placeholder = translate('account.confirmPlaceholder', 'Nháº­p láº¡i máº­t kháº©u');
+        passwordHint.textContent = isLogin
+            ? translate('account.passwordHintLogin', 'Nháº­p máº­t kháº©u cá»§a báº¡n Ä‘á»ƒ Ä‘Äƒng nháº­p.')
+            : translate('account.passwordHint', 'DÃ¹ng Ã­t nháº¥t 8 kÃ½ tá»±.');
+        forgotButton.hidden = !isLogin;
+        modeSwitchRow.hidden = !uiReady || (activeTab === 'profile');
+        divider.hidden = !uiReady || isForgot || isRecovery || (activeTab === 'profile');
+        guestLink.hidden = !uiReady || (activeTab === 'profile');
+
+        if (isRegister) {
+            modeSwitchPrompt.textContent = translate('account.loginPrompt', 'ÄÃ£ cÃ³ tÃ i khoáº£n?');
+            modeSwitchButton.textContent = translate('account.switchToLogin', 'ÄÄƒng nháº­p');
+        } else if (isForgot) {
+            modeSwitchPrompt.textContent = translate('account.loginPrompt', 'ÄÃ£ cÃ³ tÃ i khoáº£n?');
+            modeSwitchButton.textContent = translate('account.switchToLogin', 'ÄÄƒng nháº­p');
+        } else if (isRecovery) {
+            modeSwitchPrompt.textContent = translate('account.recoveryHelp', 'KhÃ´ng nháº­n Ä‘Æ°á»£c email?');
+            modeSwitchButton.textContent = translate('account.recoveryBack', 'Quay láº¡i Ä‘Äƒng nháº­p');
+        } else {
+            modeSwitchPrompt.textContent = translate('account.registerPrompt', 'ChÆ°a cÃ³ tÃ i khoáº£n?');
+            modeSwitchButton.textContent = translate('account.switchToRegister', 'ÄÄƒng kÃ½');
+        }
+    }
+
+    // Hiá»‡n giao diá»‡n sau khi khá»Ÿi táº¡o
+    function revealAuthUI() {
+        if (uiReady) return;
+        uiReady = true;
+        switchTab(activeTab);
+    }
+
+    // Render nhá»‹p há»c 7 ngÃ y trong tuáº§n
+    function renderWeekActivity(streakData) {
+        if (!weekDaysContainer) return;
+        weekDaysContainer.innerHTML = '';
+
+        const isEn = typeof svLang === 'function' && svLang() === 'en';
+        const daysOfWeek = isEn ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+        const today = new Date();
+        const currentDayIndex = (today.getDay() + 6) % 7; // Thá»© 2 = 0, CN = 6
+        const activeDatesSet = new Set(streakData.activeDates || []);
+
+        const activeLabel = isEn ? 'Studied' : 'ÄÃ£ há»c táº­p';
+        const todayLabel = isEn ? 'Today' : 'HÃ´m nay';
+        const restLabel = isEn ? 'Rest day' : 'Nghá»‰ ngÆ¡i';
+
+        // Dá»±ng 7 ngÃ y cá»§a tuáº§n hiá»‡n táº¡i
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - (currentDayIndex - i));
+            const dateStr = typeof svGetLocalDateStr === 'function' ? svGetLocalDateStr(d) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+            const isToday = i === currentDayIndex;
+            const isActive = activeDatesSet.has(dateStr);
+
+            const dayDiv = document.createElement('div');
+            dayDiv.className = `strip-day ${isActive ? 'active' : ''} ${isToday ? 'today' : ''}`;
+            dayDiv.innerHTML = `
+                <span class="strip-day-name">${daysOfWeek[i]}</span>
+                <span class="strip-day-dot">
+                    <i class="fa-solid ${isActive ? 'fa-fire-flame-curved' : 'fa-circle'}"></i>
+                </span>
+            `;
+            dayDiv.title = `${dateStr}: ${isActive ? activeLabel : (isToday ? todayLabel : restLabel)}`;
+            weekDaysContainer.appendChild(dayDiv);
+        }
+    }
+
+    // Render huy hiá»‡u thÃ nh tÃ­ch
+    function renderBadges(streakData) {
+        if (!badgesGrid || typeof svGetStreakBadges !== 'function') return;
+        badgesGrid.innerHTML = '';
+        const badges = svGetStreakBadges(streakData.bestStreak);
+
+        badges.forEach(b => {
+            const card = document.createElement('div');
+            card.className = `badge-card ${b.unlocked ? 'unlocked' : 'locked'}`;
+
+            const title = translate(b.titleKey, b.titleKey);
+            const desc = translate(b.descKey, b.descKey);
+            const statusLabel = b.unlocked
+                ? translate('account.badgeUnlocked', 'ÄÃ£ má»Ÿ khÃ³a ğŸ‰')
+                : (translate('account.badgeRemaining', 'cÃ²n {n} ngÃ y').replace('{n}', b.remaining));
+
+            card.innerHTML = `
+                <div class="badge-icon-box" style="${b.unlocked ? `color: ${b.color}; background: ${b.color}20;` : ''}">
+                    <i class="fa-solid ${b.icon}"></i>
+                </div>
+                <strong class="badge-name">${escapeHtml(title)}</strong>
+                <span class="badge-desc">${escapeHtml(desc)}</span>
+                <span class="badge-status-tag"><i class="fa-solid ${b.unlocked ? 'fa-check' : 'fa-lock'}"></i> ${escapeHtml(statusLabel)}</span>
+            `;
+            badgesGrid.appendChild(card);
+        });
+    }
+
+    // Render Theme Swatches
+    function renderThemeSwatches() {
+        if (!accountThemeSwatches) return;
+        accountThemeSwatches.innerHTML = '';
+        const themes = (window.SV_CONFIG && window.SV_CONFIG.themes) || ['midnight', 'ocean', 'cyan', 'sunset', 'royal', 'forest', 'light', 'pink'];
+        const currentTheme = typeof svTheme === 'function' ? svTheme() : 'midnight';
+
+        themes.forEach(t => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `account-swatch-btn sv-sw-${t} ${t === currentTheme ? 'active' : ''}`;
+            btn.dataset.theme = t;
+            btn.title = translate(`theme.${t}`, t);
+            btn.setAttribute('aria-label', translate(`theme.${t}`, t));
+            btn.addEventListener('click', () => {
+                if (typeof svSaveUserProfile === 'function') {
+                    svSaveUserProfile({ theme: t });
+                }
+                accountThemeSwatches.querySelectorAll('.account-swatch-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+            accountThemeSwatches.appendChild(btn);
+        });
+    }
+
+    // Render Language Switcher
+    function renderLangButtons() {
+        if (!accountLangToggle) return;
+        const currentLang = typeof svLang === 'function' ? svLang() : 'vi';
+        accountLangToggle.querySelectorAll('.lang-pill').forEach(btn => {
+            const lang = btn.dataset.lang;
+            btn.classList.toggle('active', lang === currentLang);
+            btn.onclick = () => {
+                if (typeof svSaveUserProfile === 'function') {
+                    svSaveUserProfile({ lang: lang });
+                }
+            };
+        });
+    }
+
+    // Hiá»ƒn thá»‹ Há»“ sÆ¡ & CÃ i Ä‘áº·t (cáº£ ngÆ°á»i dÃ¹ng Ä‘Ã£ Ä‘Äƒng nháº­p hoáº·c khÃ¡ch)
+    function renderProfileView(user = null) {
+        signedInUser = user || null;
+        const recoveryActive = mode === 'recovery';
+
+        if (recoveryActive) {
+            switchTab('auth');
+            return;
+        }
+
+        const localProfile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
+        const meta = (signedInUser && signedInUser.user_metadata) || {};
+
+        // Äá»“ng bá»™ dá»¯ liá»‡u Ä‘Ã¡m mÃ¢y vÃ o cache cá»¥c bá»™ náº¿u má»›i Ä‘Äƒng nháº­p
+        if (signedInUser && signedInUser.user_metadata) {
+            if (meta.display_name && !localProfile.displayName) {
+                if (typeof svSaveUserProfile === 'function') {
+                    svSaveUserProfile({
+                        displayName: meta.display_name || '',
+                        dailyGoal: meta.daily_goal || localProfile.dailyGoal || '',
+                        interests: meta.interests || localProfile.interests || '',
+                        aiCalling: meta.ai_calling || localProfile.aiCalling || 'Báº¡n - MÃ¬nh',
+                        aiStyle: meta.ai_style || localProfile.aiStyle || 'Nhiá»‡t tÃ¬nh & truyá»n cáº£m há»©ng',
+                        aiFocus: meta.ai_focus || localProfile.aiFocus || 'HÆ°á»›ng nghiá»‡p & Láº­p káº¿ hoáº¡ch tÆ°Æ¡ng lai',
+                        notifyStreak: meta.notify_streak !== undefined ? Boolean(meta.notify_streak) : localProfile.notifyStreak,
+                        notifyDeadline: meta.notify_deadline !== undefined ? Boolean(meta.notify_deadline) : localProfile.notifyDeadline,
+                        soundEnabled: meta.sound_enabled !== undefined ? Boolean(meta.sound_enabled) : localProfile.soundEnabled,
+                    });
+                }
+            }
+        }
+
+        const effectiveDisplayName = meta.display_name || meta.full_name || localProfile.displayName || (signedInUser && signedInUser.email ? signedInUser.email.split('@')[0] : '');
+        const displayToShow = effectiveDisplayName.trim() || translate('account.guestDefaultName', 'Há»c viÃªn Studyverse');
+
+        if (accountDisplayName) accountDisplayName.textContent = displayToShow;
+        if (accountAvatar) accountAvatar.textContent = (displayToShow || 'S').trim().charAt(0).toUpperCase();
+
+        if (signedInUser) {
+            if (accountEmail) accountEmail.textContent = signedInUser.email || '';
+            if (accountModePill) {
+                accountModePill.className = 'account-mode-pill cloud';
+                if (accountModePillLabel) accountModePillLabel.textContent = translate('account.cloudBadge', 'ÄÃ£ Ä‘á»“ng bá»™ Cloud');
+            }
+            if (cloudNudgeBanner) cloudNudgeBanner.hidden = true;
+            if (signOutButton) signOutButton.hidden = false;
+            if (accountTabs) accountTabs.hidden = true;
+        } else {
+            if (accountEmail) accountEmail.textContent = translate('account.localDataNotice', 'Dá»¯ liá»‡u vÃ  há»“ sÆ¡ lÆ°u an toÃ n trÃªn trÃ¬nh duyá»‡t nÃ y');
+            if (accountModePill) {
+                accountModePill.className = 'account-mode-pill';
+                if (accountModePillLabel) accountModePillLabel.textContent = translate('account.localBadge', 'Há»“ sÆ¡ mÃ¡y nÃ y');
+            }
+            if (cloudNudgeBanner) cloudNudgeBanner.hidden = false;
+            if (signOutButton) signOutButton.hidden = true;
+            if (accountTabs) accountTabs.hidden = false;
+        }
+
+        // Form fields
+        if (profileDisplayNameInput) profileDisplayNameInput.value = meta.display_name || localProfile.displayName || '';
+        if (profileDailyGoalInput) profileDailyGoalInput.value = meta.daily_goal || localProfile.dailyGoal || '';
+        if (profileInterestsInput) profileInterestsInput.value = meta.interests || localProfile.interests || '';
+        if (profileAiCallingInput) profileAiCallingInput.value = meta.ai_calling || localProfile.aiCalling || 'Báº¡n - MÃ¬nh';
+        if (profileAiStyleInput) profileAiStyleInput.value = meta.ai_style || localProfile.aiStyle || 'Nhiá»‡t tÃ¬nh & truyá»n cáº£m há»©ng';
+        if (profileAiFocusInput) profileAiFocusInput.value = meta.ai_focus || localProfile.aiFocus || 'HÆ°á»›ng nghiá»‡p & Láº­p káº¿ hoáº¡ch tÆ°Æ¡ng lai';
+
+        if (profileNotifyStreakInput) profileNotifyStreakInput.checked = meta.notify_streak !== undefined ? Boolean(meta.notify_streak) : localProfile.notifyStreak !== false;
+        if (profileNotifyDeadlineInput) profileNotifyDeadlineInput.checked = meta.notify_deadline !== undefined ? Boolean(meta.notify_deadline) : localProfile.notifyDeadline !== false;
+        if (profileSoundEnabledInput) profileSoundEnabledInput.checked = meta.sound_enabled !== undefined ? Boolean(meta.sound_enabled) : localProfile.soundEnabled !== false;
+
+        // Streak & Badges
+        const streak = typeof svGetStreak === 'function' ? svGetStreak() : { currentStreak: 1, bestStreak: 1 };
+        if (streakCount) streakCount.textContent = streak.currentStreak;
+        if (streakBestCount) streakBestCount.textContent = streak.bestStreak;
+
+        if (typeof svGetStreakLevel === 'function' && streakLevelPill) {
+            const levelInfo = svGetStreakLevel(streak.currentStreak);
+            streakLevelPill.textContent = `${translate('account.streakLevel', 'Cáº¥p Ä‘á»™')} ${levelInfo.level}: ${levelInfo.name}`;
+            streakLevelPill.style.color = levelInfo.color;
+            streakLevelPill.style.borderColor = `${levelInfo.color}55`;
+            streakLevelPill.style.background = `${levelInfo.color}15`;
+            if (streakFlameWrap) {
+                streakFlameWrap.classList.add('flame-active');
+            }
+        }
+
+        renderWeekActivity(streak);
+        renderBadges(streak);
+        renderThemeSwatches();
+        renderLangButtons();
+
+        // Äáº¿m tasks Ä‘Ã£ hoÃ n thÃ nh tá»« studyverse_projects
+        try {
+            const projectsKey = typeof svScopedKey === 'function' ? svScopedKey('studyverse_projects') : 'studyverse_projects';
+            let rawProjects = localStorage.getItem(projectsKey);
+            if (!rawProjects && projectsKey !== 'studyverse_projects') {
+                rawProjects = localStorage.getItem('studyverse_projects');
+            }
+            if (rawProjects) {
+                const projects = JSON.parse(rawProjects);
+                if (Array.isArray(projects)) {
+                    let totalTasks = 0;
+                    let doneTasks = 0;
+                    projects.forEach(p => {
+                        if (Array.isArray(p.tasks)) {
+                            totalTasks += p.tasks.length;
+                            doneTasks += p.tasks.filter(t => t.status === 'done' || t.completed).length;
+                        }
+                    });
+                    if (tasksDoneCount) tasksDoneCount.textContent = doneTasks;
+                    if (tasksTotalCount) tasksTotalCount.textContent = `/ ${totalTasks}`;
+                }
+            }
+        } catch (_) {}
+
+        if (signedInUser) {
+            title.textContent = translate('account.accountReady', 'Báº¡n Ä‘Ã£ Ä‘Äƒng nháº­p');
+            subtitle.textContent = translate('account.accountReadyCopy', 'TÃ i khoáº£n Studyverse cá»§a báº¡n Ä‘ang hoáº¡t Ä‘á»™ng.');
+        } else {
+            title.textContent = translate('account.profileTitle', 'Há»“ sÆ¡ & TÃ¹y biáº¿n AI');
+            subtitle.textContent = translate('account.guestProfileSubtitle', 'TÃ¹y chá»‰nh thÃ´ng tin Ä‘á»ƒ AI há»— trá»£ báº¡n tá»‘t nháº¥t.');
+        }
+    }
+
+    // LÆ°u Há»“ sÆ¡ & Cáº¥u hÃ¬nh (LÆ°u LocalStorage vÃ  Supabase náº¿u Ä‘Ã£ Ä‘Äƒng nháº­p)
+    async function saveProfile(event) {
+        if (event) event.preventDefault();
+
+        const newName = profileDisplayNameInput ? profileDisplayNameInput.value.trim() : '';
+        const newGoal = profileDailyGoalInput ? profileDailyGoalInput.value.trim() : '';
+        const newInterests = profileInterestsInput ? profileInterestsInput.value.trim() : '';
+        const newCalling = profileAiCallingInput ? profileAiCallingInput.value : 'Báº¡n - MÃ¬nh';
+        const newStyle = profileAiStyleInput ? profileAiStyleInput.value : 'Nhiá»‡t tÃ¬nh & truyá»n cáº£m há»©ng';
+        const newFocus = profileAiFocusInput ? profileAiFocusInput.value : 'HÆ°á»›ng nghiá»‡p & Láº­p káº¿ hoáº¡ch tÆ°Æ¡ng lai';
+        const notifyStreak = profileNotifyStreakInput ? profileNotifyStreakInput.checked : true;
+        const notifyDeadline = profileNotifyDeadlineInput ? profileNotifyDeadlineInput.checked : true;
+        const soundEnabled = profileSoundEnabledInput ? profileSoundEnabledInput.checked : true;
+
+        const effectiveName = newName || (signedInUser && signedInUser.email ? signedInUser.email.split('@')[0] : 'Há»c viÃªn Studyverse');
+
+        if (saveProfileBtn) {
+            saveProfileBtn.disabled = true;
+            if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.loading', 'Äang xá»­ lÃ½â€¦');
+        }
+
+        try {
+            const updates = {
+                displayName: newName,
+                dailyGoal: newGoal,
+                interests: newInterests,
+                aiCalling: newCalling,
+                aiStyle: newStyle,
+                aiFocus: newFocus,
+                notifyStreak: notifyStreak,
+                notifyDeadline: notifyDeadline,
+                soundEnabled: soundEnabled
+            };
+
+            if (typeof svSaveUserProfile === 'function') {
+                svSaveUserProfile(updates);
+            }
+
+            if (signedInUser) {
+                const client = await ensureSupabaseClient();
+                if (client) {
+                    const updateRes = await client.auth.updateUser({
+                        data: {
+                            display_name: newName,
+                            daily_goal: newGoal,
+                            interests: newInterests,
+                            ai_calling: newCalling,
+                            ai_style: newStyle,
+                            ai_focus: newFocus,
+                            notify_streak: notifyStreak,
+                            notify_deadline: notifyDeadline,
+                            sound_enabled: soundEnabled
+                        }
+                    });
+                    if (updateRes && updateRes.error) throw updateRes.error;
+                    if (updateRes && updateRes.data && updateRes.data.user) {
+                        signedInUser = updateRes.data.user;
+                    }
+                }
+            }
+
+            if (accountDisplayName) accountDisplayName.textContent = effectiveName;
+            if (accountAvatar) accountAvatar.textContent = (effectiveName || 'S').trim().charAt(0).toUpperCase();
+
+            setNotice(
+                signedInUser
+                    ? translate('account.profileSavedCloud', 'ÄÃ£ lÆ°u há»“ sÆ¡ vÃ  Ä‘á»“ng bá»™ lÃªn Supabase Cloud thÃ nh cÃ´ng!')
+                    : translate('account.profileSavedLocal', 'ÄÃ£ lÆ°u cáº¥u hÃ¬nh vÃ  há»“ sÆ¡ trÃªn mÃ¡y nÃ y! AI sáº½ ghi nhá»› tÃªn vÃ  tÃ¹y chá»n cá»§a báº¡n.'),
+                'success'
+            );
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            setNotice(showFriendlyError(error), 'error');
+        } finally {
+            if (saveProfileBtn) {
+                saveProfileBtn.disabled = false;
+                if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.saveProfile', 'LÆ°u thay Ä‘á»•i');
+            }
+        }
+    }
+
+    function setBusy(busy) {
+        isBusy = busy;
+        submitButton.disabled = busy;
+        submitButton.setAttribute('aria-busy', String(busy));
+        const icon = submitButton.querySelector('i');
+        if (icon) icon.className = busy ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-arrow-right';
+        submitLabel.textContent = busy
+            ? translate('account.loading', 'Äang xá»­ lÃ½â€¦')
+            : translate({ login: 'account.submitLogin', register: 'account.submitRegister', forgot: 'account.submitForgot', recovery: 'account.submitRecovery' }[mode], mode);
+    }
+
+    async function ensureSupabaseClient() {
+        if (typeof svSupabase === 'function') {
+            if (!supabaseClient) supabaseClient = await svSupabase();
+            return supabaseClient;
+        }
+        if (supabaseClient) return supabaseClient;
+        if (clientPromise) return clientPromise;
+
+        clientPromise = (async () => {
+            const response = await fetch('/api/public-config', { headers: { Accept: 'application/json' } });
+            if (!response.ok) throw new Error('Supabase configuration is unavailable.');
+            const config = await response.json();
+            const supabaseUrl = String(config.supabaseUrl || '').trim();
+            const publishableKey = String(config.supabasePublishableKey || '').trim();
+            if (!supabaseUrl || !publishableKey) throw new Error('Supabase configuration is incomplete.');
+
+            if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+                    script.async = true;
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('Could not load the account service.'));
+                    document.head.appendChild(script);
+                });
+            }
+
+            if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+                throw new Error('Could not initialize the account service.');
+            }
+
+            supabaseClient = window.supabase.createClient(supabaseUrl, publishableKey, {
+                auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+            });
+            return supabaseClient;
+        })().catch(error => {
+            clientPromise = null;
+            throw error;
+        });
+
+        return clientPromise;
+    }
+
+    function getSafeNextUrl() {
+        const requested = url.searchParams.get('next');
+        if (!requested || !requested.startsWith('/') || requested.startsWith('//')) return '/todo/mylist.html';
+        const destination = new URL(requested, window.location.origin);
+        return destination.origin === window.location.origin ? destination.pathname + destination.search + destination.hash : '/todo/mylist.html';
+    }
+
+    async function submitAuth(event) {
+        event.preventDefault();
+        if (isBusy) return;
+        if (!form.reportValidity()) return;
+
+        if ((mode === 'register' || mode === 'recovery') && passwordInput.value !== confirmPasswordInput.value) {
+            setNotice(translate('account.passwordMismatch', 'Hai máº­t kháº©u chÆ°a trÃ¹ng khá»›p.'), 'error');
+            confirmPasswordInput.focus();
+            return;
+        }
+
+        setBusy(true);
+        setNotice('');
+
+        try {
+            const client = await ensureSupabaseClient();
+            const email = emailInput.value.trim();
+            let result;
+
+            if (mode === 'login') {
+                result = await client.auth.signInWithPassword({ email, password: passwordInput.value });
+                if (result.error) throw result.error;
+                signedInUser = result.data.user;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                renderProfileView(signedInUser);
+                switchTab('profile');
+                setNotice(translate('account.accountReady', 'Báº¡n Ä‘Ã£ Ä‘Äƒng nháº­p thÃ nh cÃ´ng!'), 'success');
+                return;
+            }
+
+            if (mode === 'register') {
+                const localProfile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
+                result = await client.auth.signUp({
+                    email,
+                    password: passwordInput.value,
+                    options: {
+                        emailRedirectTo: `${window.location.origin}/account.html?confirmed=1`,
+                        data: {
+                            display_name: localProfile.displayName || email.split('@')[0],
+                            daily_goal: localProfile.dailyGoal || '',
+                            interests: localProfile.interests || '',
+                            ai_calling: localProfile.aiCalling || 'Báº¡n - MÃ¬nh',
+                            ai_style: localProfile.aiStyle || 'Nhiá»‡t tÃ¬nh & truyá»n cáº£m há»©ng',
+                            ai_focus: localProfile.aiFocus || 'HÆ°á»›ng nghiá»‡p & Láº­p káº¿ hoáº¡ch tÆ°Æ¡ng lai',
+                            notify_streak: localProfile.notifyStreak !== false,
+                            notify_deadline: localProfile.notifyDeadline !== false,
+                            sound_enabled: localProfile.soundEnabled !== false
+                        }
+                    }
+                });
+                if (result.error) throw result.error;
+
+                if (result.data && result.data.user && Array.isArray(result.data.user.identities) && result.data.user.identities.length === 0) {
+                    setNotice(translate('account.userExists', 'Email nÃ y Ä‘Ã£ cÃ³ tÃ i khoáº£n. HÃ£y Ä‘Äƒng nháº­p.'), 'error');
+                    return;
+                }
+
+                if (result.data.session) {
+                    signedInUser = result.data.user;
+                    if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                    if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                    renderProfileView(signedInUser);
+                    switchTab('profile');
+                    return;
+                }
+
+                clearPasswords();
+                setMode('login');
+                setNotice(translate('account.signupCheckEmail', 'TÃ i khoáº£n Ä‘Ã£ táº¡o. HÃ£y má»Ÿ email xÃ¡c nháº­n Ä‘á»ƒ hoÃ n táº¥t Ä‘Äƒng kÃ½.'), 'success');
+                return;
+            }
+
+            if (mode === 'forgot') {
+                result = await client.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/account.html?mode=recovery`
+                });
+                if (result.error) throw result.error;
+                setNotice(translate('account.emailSent', 'Náº¿u Ä‘á»‹a chá»‰ email há»£p lá»‡, liÃªn káº¿t Ä‘áº·t láº¡i máº­t kháº©u sáº½ sá»›m Ä‘Æ°á»£c gá»­i Ä‘áº¿n há»™p thÆ° cá»§a báº¡n.'), 'success');
+                return;
+            }
+
+            const { data: recoverySession } = await client.auth.getSession();
+            if (!recoverySession || !recoverySession.session) {
+                clearPasswords();
+                setMode('login');
+                setNotice(translate('account.recoveryLinkInvalid', 'LiÃªn káº¿t Ä‘áº·t láº¡i khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.'), 'error');
+                return;
+            }
+
+            result = await client.auth.updateUser({ password: passwordInput.value });
+            if (result.error) throw result.error;
+            clearPasswords();
+            setMode('login');
+            if (result.data && result.data.user) {
+                signedInUser = result.data.user;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                renderProfileView(signedInUser);
+                switchTab('profile');
+            }
+            setNotice(translate('account.passwordUpdated', 'Máº­t kháº©u Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t. Báº¡n cÃ³ thá»ƒ tiáº¿p tá»¥c vÃ o Studyverse.'), 'success');
+        } catch (error) {
+            console.error('Studyverse account action failed:', error);
+            setNotice(showFriendlyError(error), 'error');
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function signOut() {
+        if (!supabaseClient || isBusy) return;
+        signOutButton.disabled = true;
+        try {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) throw error;
+            if (typeof svSetStorageScope === 'function') svSetStorageScope('');
+            signedInUser = null;
+            renderProfileView(null);
+            switchTab('profile');
+            setNotice(translate('account.signedOut', 'Báº¡n Ä‘Ã£ Ä‘Äƒng xuáº¥t khá»i tÃ i khoáº£n.'), 'success');
+        } catch (error) {
+            setNotice(showFriendlyError(error), 'error');
+        } finally {
+            signOutButton.disabled = false;
+        }
+    }
+
+    // Sá»± kiá»‡n tÆ°Æ¡ng tÃ¡c
+    form.addEventListener('submit', submitAuth);
+    if (profileForm) profileForm.addEventListener('submit', saveProfile);
+
+    if (tabProfileBtn) tabProfileBtn.addEventListener('click', () => switchTab('profile'));
+    if (tabAuthBtn) tabAuthBtn.addEventListener('click', () => switchTab('auth'));
+    if (nudgeLoginBtn) nudgeLoginBtn.addEventListener('click', () => switchTab('auth'));
+
+    if (modeSwitchButton) {
+        modeSwitchButton.addEventListener('click', () => {
+            clearPasswords();
+            setMode(mode === 'login' ? 'register' : 'login');
+            emailInput.focus();
+        });
+    }
+
+    if (forgotButton) {
+        forgotButton.addEventListener('click', () => {
+            clearPasswords();
+            setMode('forgot');
+            emailInput.focus();
+        });
+    }
+
+    if (signOutButton) signOutButton.addEventListener('click', signOut);
+
+    // Xá»­ lÃ½ Quick Chips (Má»¥c tiÃªu há»c táº­p & Sá»Ÿ thÃ­ch)
+    if (goalChips && profileDailyGoalInput) {
+        const syncGoalChips = () => {
+            const current = profileDailyGoalInput.value.trim().toLowerCase();
+            goalChips.querySelectorAll('.quick-chip').forEach(chip => {
+                const val = (chip.dataset.goal || chip.textContent).trim().toLowerCase();
+                chip.classList.toggle('active', Boolean(current && current === val));
+            });
+        };
+        profileDailyGoalInput.addEventListener('input', syncGoalChips);
+
+        goalChips.querySelectorAll('.quick-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const goal = chip.dataset.goal || chip.textContent;
+                if (profileDailyGoalInput.value.trim().toLowerCase() === goal.toLowerCase()) {
+                    profileDailyGoalInput.value = '';
+                } else {
+                    profileDailyGoalInput.value = goal;
+                }
+                syncGoalChips();
+                profileDailyGoalInput.focus();
+            });
+        });
+        syncGoalChips();
+    }
+
+    if (interestChips && profileInterestsInput) {
+        const syncInterestChips = () => {
+            const currentItems = profileInterestsInput.value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            interestChips.querySelectorAll('.quick-chip').forEach(chip => {
+                const val = (chip.dataset.interest || chip.textContent).trim().toLowerCase();
+                chip.classList.toggle('active', currentItems.includes(val));
+            });
+        };
+        profileInterestsInput.addEventListener('input', syncInterestChips);
+
+        interestChips.querySelectorAll('.quick-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const interest = chip.dataset.interest || chip.textContent;
+                const raw = profileInterestsInput.value;
+                let items = raw.split(',').map(s => s.trim()).filter(Boolean);
+                const idx = items.findIndex(item => item.toLowerCase() === interest.toLowerCase());
+                if (idx !== -1) {
+                    items.splice(idx, 1);
+                } else {
+                    items.push(interest);
+                }
+                profileInterestsInput.value = items.join(', ');
+                syncInterestChips();
+                profileInterestsInput.focus();
+            });
+        });
+        syncInterestChips();
+    }
+
+    document.querySelectorAll('[data-toggle-password]').forEach(button => {
+        button.addEventListener('click', () => {
+            const input = document.getElementById(button.dataset.togglePassword);
+            if (!input) return;
+            const reveal = input.type === 'password';
+            input.type = reveal ? 'text' : 'password';
+            button.querySelector('i').className = reveal ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+            syncPasswordToggleLabels();
+        });
+    });
+
+    // Hiá»ƒn thá»‹ UI ngay láº­p tá»©c khÃ´ng phá»¥ thuá»™c tá»‘c Ä‘á»™ táº£i CDN
+    revealAuthUI();
+
+    // Khá»Ÿi táº¡o Supabase client & theo dÃµi auth state
+    const authError = new URLSearchParams(window.location.hash.slice(1)).get('error_description');
+    if (authError) setNotice(authError, 'error');
+
+    ensureSupabaseClient().then(async client => {
+        client.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                mode = 'recovery';
+                switchTab('auth');
+                return;
+            }
+            if (session && mode !== 'recovery') {
+                signedInUser = session.user;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                renderProfileView(signedInUser);
+            } else if (!session && signedInUser) {
+                signedInUser = null;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope('');
+                renderProfileView(null);
+            }
+        });
+
+        const { data, error } = await client.auth.getSession();
+        if (error) throw error;
+        if (data.session && mode !== 'recovery') {
+            signedInUser = data.session.user;
+            if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+            if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+            renderProfileView(signedInUser);
+            if (url.searchParams.has('confirmed') && !authError) {
+                setNotice(translate('account.confirmEmail', 'TÃ i khoáº£n Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c nháº­n. Báº¡n cÃ³ thá»ƒ tiáº¿p tá»¥c vÃ o Studyverse.'), 'success');
+            }
+        } else if (url.searchParams.has('confirmed') && !authError) {
+            setNotice(translate('account.confirmEmail', 'TÃ i khoáº£n Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c nháº­n. ÄÄƒng nháº­p Ä‘á»ƒ tiáº¿p tá»¥c.'), 'success');
+        } else if (mode === 'recovery' && !data.session) {
+            setNotice(translate('account.recoveryLinkInvalid', 'LiÃªn káº¿t Ä‘áº·t láº¡i khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.'), 'error');
+        }
+    }).catch(error => {
+        console.warn('Studyverse account service is offline or not configured in .env', error);
+        // Supabase khÃ´ng kháº£ dá»¥ng khÃ´ng lÃ m treo tráº£i nghiá»‡m: UI Ä‘Ã£ Ä‘Æ°á»£c hiá»ƒn thá»‹
+    });
+
+    document.addEventListener('sv:langchange', () => {
+        syncPasswordToggleLabels();
+        renderProfileView(signedInUser);
+        if (activeTab === 'auth') setMode(mode, { keepNotice: true });
+    });
+})();
+        ì® x ÿÿ     20261005135250-8lÏ® ‘÷,*   http://127.0.0.1:5888/auth.js?v=20261003-2      d°  // Studyverse account page: Supabase email/password auth, profile personalization, streak & configs.
+(function initAccountPage() {
+    const form = document.getElementById('authForm');
+    if (!form) return;
+
+    // Elements cho form xÃ¡c thá»±c Supabase
+    const emailInput = document.getElementById('authEmail');
+    const emailField = document.getElementById('emailField');
+    const passwordInput = document.getElementById('authPassword');
+    const confirmPasswordInput = document.getElementById('authPasswordConfirm');
+    const confirmPasswordField = document.getElementById('confirmPasswordField');
+    const passwordField = document.getElementById('passwordField');
+    const passwordHint = document.getElementById('passwordHint');
+    const submitButton = document.getElementById('authSubmit');
+    const submitLabel = document.getElementById('authSubmitLabel');
+    const notice = document.getElementById('authNotice');
+    const title = document.getElementById('authTitle');
+    const subtitle = document.getElementById('authSubtitle');
+    const forgotButton = document.getElementById('forgotPasswordButton');
+    const modeSwitchRow = document.getElementById('modeSwitchRow');
+    const modeSwitchPrompt = document.getElementById('modeSwitchPrompt');
+    const modeSwitchButton = document.getElementById('modeSwitchButton');
+    const divider = document.getElementById('accountDivider');
+    const guestLink = document.getElementById('guestLink');
+
+    // Tabs & Panels
+    const accountTabs = document.getElementById('accountTabs');
+    const tabProfileBtn = document.getElementById('tabProfileBtn');
+    const tabAuthBtn = document.getElementById('tabAuthBtn');
+    const tabAuthLabel = document.getElementById('tabAuthLabel');
+    const signedInPanel = document.getElementById('signedInPanel');
+
+    // Profile & Header elements
+    const accountEmail = document.getElementById('accountEmail');
+    const accountAvatar = document.getElementById('accountAvatar');
+    const accountDisplayName = document.getElementById('accountDisplayName');
+    const accountModePill = document.getElementById('accountModePill');
+    const accountModePillLabel = document.getElementById('accountModePillLabel');
+    const signOutButton = document.getElementById('signOutButton');
+    const cloudNudgeBanner = document.getElementById('cloudNudgeBanner');
+    const nudgeLoginBtn = document.getElementById('nudgeLoginBtn');
+
+    // Streak & Stats elements
+    const streakFlameWrap = document.getElementById('streakFlameWrap');
+    const streakCount = document.getElementById('streakCount');
+    const streakBestCount = document.getElementById('streakBestCount');
+    const streakLevelPill = document.getElementById('streakLevelPill');
+    const tasksDoneCount = document.getElementById('tasksDoneCount');
+    const tasksTotalCount = document.getElementById('tasksTotalCount');
+    const weekDaysContainer = document.getElementById('weekDaysContainer');
+    const badgesGrid = document.getElementById('badgesGrid');
+
+    // Form settings elements
+    const profileForm = document.getElementById('profileSettingsForm');
+    const profileDisplayNameInput = document.getElementById('profileDisplayName');
+    const profileDailyGoalInput = document.getElementById('profileDailyGoal');
+    const profileInterestsInput = document.getElementById('profileInterests');
+    const profileAiCallingInput = document.getElementById('profileAiCalling');
+    const profileAiStyleInput = document.getElementById('profileAiStyle');
+    const profileAiFocusInput = document.getElementById('profileAiFocus');
+    const profileNotifyStreakInput = document.getElementById('profileNotifyStreak');
+    const profileNotifyDeadlineInput = document.getElementById('profileNotifyDeadline');
+    const profileSoundEnabledInput = document.getElementById('profileSoundEnabled');
+    const accountThemeSwatches = document.getElementById('accountThemeSwatches');
+    const accountLangToggle = document.getElementById('accountLangToggle');
+    const goalChips = document.getElementById('goalChips');
+    const interestChips = document.getElementById('interestChips');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    const saveProfileBtnLabel = document.getElementById('saveProfileBtnLabel');
+
+    const url = new URL(window.location.href);
+    const validModes = ['login', 'register', 'forgot', 'recovery'];
+    let mode = validModes.includes(url.searchParams.get('mode')) ? url.searchParams.get('mode') : 'login';
+    const recoveryFromHash = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
+    if (recoveryFromHash) mode = 'recovery';
+
+    // Náº¿u ngÆ°á»i dÃ¹ng truy cáº­p vá»›i ?mode=... thÃ¬ hiá»ƒn thá»‹ tab auth, cÃ²n máº·c Ä‘á»‹nh hiá»ƒn thá»‹ há»“ sÆ¡ & cÃ i Ä‘áº·t
+    let activeTab = (url.searchParams.has('mode') || recoveryFromHash) ? 'auth' : 'profile';
+
+    let supabaseClient = null;
+    let clientPromise = null;
+    let signedInUser = null;
+    let isBusy = false;
+    let uiReady = false;
+
+    document.getElementById('currentYear').textContent = String(new Date().getFullYear());
+
+    const translate = (key, fallback) => typeof svT === 'function' ? svT(key) : fallback;
+
+    function setNotice(text = '', tone = 'info') {
+        notice.textContent = text;
+        notice.dataset.tone = tone;
+        notice.hidden = !text;
+    }
+
+    function showFriendlyError(error) {
+        const message = String(error && error.message ? error.message : '').toLowerCase();
+        if (message.includes('invalid login credentials')) return translate('account.invalidCredentials', 'Email hoáº·c máº­t kháº©u chÆ°a chÃ­nh xÃ¡c.');
+        if (message.includes('email not confirmed')) return translate('account.emailNotConfirmed', 'HÃ£y xÃ¡c nháº­n email trÆ°á»›c khi Ä‘Äƒng nháº­p.');
+        if (message.includes('session missing') || message.includes('auth session')) return translate('account.recoveryLinkInvalid', 'LiÃªn káº¿t Ä‘áº·t láº¡i khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.');
+        if (message.includes('user already registered') || message.includes('already been registered')) return translate('account.userExists', 'Email nÃ y Ä‘Ã£ cÃ³ tÃ i khoáº£n. HÃ£y Ä‘Äƒng nháº­p.');
+        if (message.includes('password') && (message.includes('least') || message.includes('characters'))) return translate('account.passwordTooShort', 'Máº­t kháº©u cáº§n cÃ³ Ã­t nháº¥t 8 kÃ½ tá»±.');
+        return error && error.message ? error.message : translate('auth.genericError', 'KhÃ´ng thá»ƒ thá»±c hiá»‡n lÃºc nÃ y. Vui lÃ²ng thá»­ láº¡i.');
+    }
+
+    function clearPasswords() {
+        passwordInput.value = '';
+        confirmPasswordInput.value = '';
+    }
+
+    function syncPasswordToggleLabels() {
+        const english = typeof svLang === 'function' && svLang() === 'en';
+        document.querySelectorAll('[data-toggle-password]').forEach(button => {
+            const input = document.getElementById(button.dataset.togglePassword);
+            const key = input && input.type === 'text' ? 'account.hidePassword' : 'account.showPassword';
+            const fallback = key === 'account.hidePassword'
+                ? (english ? 'Hide password' : 'áº¨n máº­t kháº©u')
+                : (english ? 'Show password' : 'Hiá»‡n máº­t kháº©u');
+            const label = translate(key, fallback);
+            button.setAttribute('aria-label', label);
+            button.title = label;
+        });
+    }
+
+    // Chuyá»ƒn Ä‘á»•i giá»¯a 2 tab: Profile & Settings vs Cloud Auth
+    function switchTab(targetTab) {
+        activeTab = targetTab;
+        if (tabProfileBtn && tabAuthBtn) {
+            tabProfileBtn.classList.toggle('active', activeTab === 'profile');
+            tabProfileBtn.setAttribute('aria-selected', String(activeTab === 'profile'));
+            tabAuthBtn.classList.toggle('active', activeTab === 'auth');
+            tabAuthBtn.setAttribute('aria-selected', String(activeTab === 'auth'));
+        }
+
+        if (activeTab === 'profile') {
+            form.hidden = true;
+            modeSwitchRow.hidden = true;
+            divider.hidden = true;
+            guestLink.hidden = true;
+            signedInPanel.hidden = false;
+            renderProfileView(signedInUser);
+        } else {
+            signedInPanel.hidden = true;
+            form.hidden = false;
+            modeSwitchRow.hidden = false;
+            divider.hidden = mode === 'forgot' || mode === 'recovery';
+            guestLink.hidden = false;
+            setMode(mode, { keepNotice: true });
+        }
+    }
+
+    function setMode(nextMode, { keepNotice = false } = {}) {
+        mode = validModes.includes(nextMode) ? nextMode : 'login';
+        if (!keepNotice) setNotice('');
+
+        const isLogin = mode === 'login';
+        const isRegister = mode === 'register';
+        const isForgot = mode === 'forgot';
+        const isRecovery = mode === 'recovery';
+        const copy = {
+            login: ['account.loginTitle', 'ChÃ o má»«ng trá»Ÿ láº¡i', 'account.loginSubtitle', 'ÄÄƒng nháº­p Ä‘á»ƒ tiáº¿p tá»¥c hÃ nh trÃ¬nh há»c táº­p.'],
+            register: ['account.registerTitle', 'Táº¡o tÃ i khoáº£n', 'account.registerSubtitle', 'Báº¯t Ä‘áº§u sáº¯p xáº¿p viá»‡c há»c theo cÃ¡ch cá»§a báº¡n.'],
+            forgot: ['account.forgotTitle', 'Äáº·t láº¡i máº­t kháº©u', 'account.forgotSubtitle', 'Nháº­p email, chÃºng tÃ´i sáº½ gá»­i cho báº¡n Ä‘Æ°á»ng dáº«n Ä‘áº·t láº¡i máº­t kháº©u.'],
+            recovery: ['account.recoveryTitle', 'Táº¡o máº­t kháº©u má»›i', 'account.recoverySubtitle', 'Chá»n má»™t máº­t kháº©u má»›i cho tÃ i khoáº£n cá»§a báº¡n.']
+        }[mode];
+
+        title.textContent = translate(copy[0], copy[1]);
+        subtitle.textContent = translate(copy[2], copy[3]);
+        submitLabel.textContent = translate({
+            login: 'account.submitLogin',
+            register: 'account.submitRegister',
+            forgot: 'account.submitForgot',
+            recovery: 'account.submitRecovery'
+        }[mode], mode);
+
+        passwordField.hidden = isForgot;
+        confirmPasswordField.hidden = !(isRegister || isRecovery);
+        emailField.hidden = isRecovery;
+        emailInput.required = !isRecovery;
+        passwordInput.required = !isForgot;
+        passwordInput.minLength = isRegister || isRecovery ? 8 : 0;
+        confirmPasswordInput.required = isRegister || isRecovery;
+        confirmPasswordInput.minLength = isRegister || isRecovery ? 8 : 0;
+        passwordInput.autocomplete = isLogin ? 'current-password' : 'new-password';
+        confirmPasswordInput.autocomplete = 'new-password';
+        emailInput.placeholder = translate('account.emailPlaceholder', 'you@example.com');
+        passwordInput.placeholder = isLogin
+            ? translate('account.passwordPlaceholderLogin', 'Máº­t kháº©u cá»§a báº¡n')
+            : translate('account.passwordPlaceholder', 'Tá»‘i thiá»ƒu 8 kÃ½ tá»±');
+        confirmPasswordInput.placeholder = translate('account.confirmPlaceholder', 'Nháº­p láº¡i máº­t kháº©u');
+        passwordHint.textContent = isLogin
+            ? translate('account.passwordHintLogin', 'Nháº­p máº­t kháº©u cá»§a báº¡n Ä‘á»ƒ Ä‘Äƒng nháº­p.')
+            : translate('account.passwordHint', 'DÃ¹ng Ã­t nháº¥t 8 kÃ½ tá»±.');
+        forgotButton.hidden = !isLogin;
+        modeSwitchRow.hidden = !uiReady || (activeTab === 'profile');
+        divider.hidden = !uiReady || isForgot || isRecovery || (activeTab === 'profile');
+        guestLink.hidden = !uiReady || (activeTab === 'profile');
+
+        if (isRegister) {
+            modeSwitchPrompt.textContent = translate('account.loginPrompt', 'ÄÃ£ cÃ³ tÃ i khoáº£n?');
+            modeSwitchButton.textContent = translate('account.switchToLogin', 'ÄÄƒng nháº­p');
+        } else if (isForgot) {
+            modeSwitchPrompt.textContent = translate('account.loginPrompt', 'ÄÃ£ cÃ³ tÃ i khoáº£n?');
+            modeSwitchButton.textContent = translate('account.switchToLogin', 'ÄÄƒng nháº­p');
+        } else if (isRecovery) {
+            modeSwitchPrompt.textContent = translate('account.recoveryHelp', 'KhÃ´ng nháº­n Ä‘Æ°á»£c email?');
+            modeSwitchButton.textContent = translate('account.recoveryBack', 'Quay láº¡i Ä‘Äƒng nháº­p');
+        } else {
+            modeSwitchPrompt.textContent = translate('account.registerPrompt', 'ChÆ°a cÃ³ tÃ i khoáº£n?');
+            modeSwitchButton.textContent = translate('account.switchToRegister', 'ÄÄƒng kÃ½');
+        }
+    }
+
+    // Hiá»‡n giao diá»‡n sau khi khá»Ÿi táº¡o
+    function revealAuthUI() {
+        if (uiReady) return;
+        uiReady = true;
+        switchTab(activeTab);
+    }
+
+    // Render nhá»‹p há»c 7 ngÃ y trong tuáº§n
+    function renderWeekActivity(streakData) {
+        if (!weekDaysContainer) return;
+        weekDaysContainer.innerHTML = '';
+
+        const isEn = typeof svLang === 'function' && svLang() === 'en';
+        const daysOfWeek = isEn ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+        const today = new Date();
+        const currentDayIndex = (today.getDay() + 6) % 7; // Thá»© 2 = 0, CN = 6
+        const activeDatesSet = new Set(streakData.activeDates || []);
+
+        const activeLabel = isEn ? 'Studied' : 'ÄÃ£ há»c táº­p';
+        const todayLabel = isEn ? 'Today' : 'HÃ´m nay';
+        const restLabel = isEn ? 'Rest day' : 'Nghá»‰ ngÆ¡i';
+
+        // Dá»±ng 7 ngÃ y cá»§a tuáº§n hiá»‡n táº¡i
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - (currentDayIndex - i));
+            const dateStr = typeof svGetLocalDateStr === 'function' ? svGetLocalDateStr(d) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+            const isToday = i === currentDayIndex;
+            const isActive = activeDatesSet.has(dateStr);
+
+            const dayDiv = document.createElement('div');
+            dayDiv.className = `strip-day ${isActive ? 'active' : ''} ${isToday ? 'today' : ''}`;
+            dayDiv.innerHTML = `
+                <span class="strip-day-name">${daysOfWeek[i]}</span>
+                <span class="strip-day-dot">
+                    <i class="fa-solid ${isActive ? 'fa-fire-flame-curved' : 'fa-circle'}"></i>
+                </span>
+            `;
+            dayDiv.title = `${dateStr}: ${isActive ? activeLabel : (isToday ? todayLabel : restLabel)}`;
+            weekDaysContainer.appendChild(dayDiv);
+        }
+    }
+
+    // Render huy hiá»‡u thÃ nh tÃ­ch
+    function renderBadges(streakData) {
+        if (!badgesGrid || typeof svGetStreakBadges !== 'function') return;
+        badgesGrid.innerHTML = '';
+        const badges = svGetStreakBadges(streakData.bestStreak);
+
+        badges.forEach(b => {
+            const card = document.createElement('div');
+            card.className = `badge-card ${b.unlocked ? 'unlocked' : 'locked'}`;
+
+            const title = translate(b.titleKey, b.titleKey);
+            const desc = translate(b.descKey, b.descKey);
+            const statusLabel = b.unlocked
+                ? translate('account.badgeUnlocked', 'ÄÃ£ má»Ÿ khÃ³a ğŸ‰')
+                : (translate('account.badgeRemaining', 'cÃ²n {n} ngÃ y').replace('{n}', b.remaining));
+
+            card.innerHTML = `
+                <div class="badge-icon-box" style="${b.unlocked ? `color: ${b.color}; background: ${b.color}20;` : ''}">
+                    <i class="fa-solid ${b.icon}"></i>
+                </div>
+                <strong class="badge-name">${escapeHtml(title)}</strong>
+                <span class="badge-desc">${escapeHtml(desc)}</span>
+                <span class="badge-status-tag"><i class="fa-solid ${b.unlocked ? 'fa-check' : 'fa-lock'}"></i> ${escapeHtml(statusLabel)}</span>
+            `;
+            badgesGrid.appendChild(card);
+        });
+    }
+
+    // Render Theme Swatches
+    function renderThemeSwatches() {
+        if (!accountThemeSwatches) return;
+        accountThemeSwatches.innerHTML = '';
+        const themes = (window.SV_CONFIG && window.SV_CONFIG.themes) || ['midnight', 'ocean', 'cyan', 'sunset', 'royal', 'forest', 'light', 'pink'];
+        const currentTheme = typeof svTheme === 'function' ? svTheme() : 'midnight';
+
+        themes.forEach(t => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `account-swatch-btn sv-sw-${t} ${t === currentTheme ? 'active' : ''}`;
+            btn.dataset.theme = t;
+            btn.title = translate(`theme.${t}`, t);
+            btn.setAttribute('aria-label', translate(`theme.${t}`, t));
+            btn.addEventListener('click', () => {
+                if (typeof svSaveUserProfile === 'function') {
+                    svSaveUserProfile({ theme: t });
+                }
+                accountThemeSwatches.querySelectorAll('.account-swatch-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+            accountThemeSwatches.appendChild(btn);
+        });
+    }
+
+    // Render Language Switcher
+    function renderLangButtons() {
+        if (!accountLangToggle) return;
+        const currentLang = typeof svLang === 'function' ? svLang() : 'vi';
+        accountLangToggle.querySelectorAll('.lang-pill').forEach(btn => {
+            const lang = btn.dataset.lang;
+            btn.classList.toggle('active', lang === currentLang);
+            btn.onclick = () => {
+                if (typeof svSaveUserProfile === 'function') {
+                    svSaveUserProfile({ lang: lang });
+                }
+            };
+        });
+    }
+
+    // Hiá»ƒn thá»‹ Há»“ sÆ¡ & CÃ i Ä‘áº·t (cáº£ ngÆ°á»i dÃ¹ng Ä‘Ã£ Ä‘Äƒng nháº­p hoáº·c khÃ¡ch)
+    function renderProfileView(user = null) {
+        signedInUser = user || null;
+        const recoveryActive = mode === 'recovery';
+
+        if (recoveryActive) {
+            switchTab('auth');
+            return;
+        }
+
+        const localProfile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
+        const meta = (signedInUser && signedInUser.user_metadata) || {};
+
+        // Äá»“ng bá»™ dá»¯ liá»‡u Ä‘Ã¡m mÃ¢y vÃ o cache cá»¥c bá»™ náº¿u má»›i Ä‘Äƒng nháº­p
+        if (signedInUser && signedInUser.user_metadata) {
+            if (meta.display_name && !localProfile.displayName) {
+                if (typeof svSaveUserProfile === 'function') {
+                    svSaveUserProfile({
+                        displayName: meta.display_name || '',
+                        dailyGoal: meta.daily_goal || localProfile.dailyGoal || '',
+                        interests: meta.interests || localProfile.interests || '',
+                        aiCalling: meta.ai_calling || localProfile.aiCalling || 'Báº¡n - MÃ¬nh',
+                        aiStyle: meta.ai_style || localProfile.aiStyle || 'Nhiá»‡t tÃ¬nh & truyá»n cáº£m há»©ng',
+                        aiFocus: meta.ai_focus || localProfile.aiFocus || 'HÆ°á»›ng nghiá»‡p & Láº­p káº¿ hoáº¡ch tÆ°Æ¡ng lai',
+                        notifyStreak: meta.notify_streak !== undefined ? Boolean(meta.notify_streak) : localProfile.notifyStreak,
+                        notifyDeadline: meta.notify_deadline !== undefined ? Boolean(meta.notify_deadline) : localProfile.notifyDeadline,
+                        soundEnabled: meta.sound_enabled !== undefined ? Boolean(meta.sound_enabled) : localProfile.soundEnabled,
+                    });
+                }
+            }
+        }
+
+        const effectiveDisplayName = meta.display_name || meta.full_name || localProfile.displayName || (signedInUser && signedInUser.email ? signedInUser.email.split('@')[0] : '');
+        const displayToShow = effectiveDisplayName.trim() || translate('account.guestDefaultName', 'Há»c viÃªn Studyverse');
+
+        if (accountDisplayName) accountDisplayName.textContent = displayToShow;
+        if (accountAvatar) accountAvatar.textContent = (displayToShow || 'S').trim().charAt(0).toUpperCase();
+
+        if (signedInUser) {
+            if (accountEmail) accountEmail.textContent = signedInUser.email || '';
+            if (accountModePill) {
+                accountModePill.className = 'account-mode-pill cloud';
+                if (accountModePillLabel) accountModePillLabel.textContent = translate('account.cloudBadge', 'ÄÃ£ Ä‘á»“ng bá»™ Cloud');
+            }
+            if (cloudNudgeBanner) cloudNudgeBanner.hidden = true;
+            if (signOutButton) signOutButton.hidden = false;
+            if (accountTabs) accountTabs.hidden = true;
+        } else {
+            if (accountEmail) accountEmail.textContent = translate('account.localDataNotice', 'Dá»¯ liá»‡u vÃ  há»“ sÆ¡ lÆ°u an toÃ n trÃªn trÃ¬nh duyá»‡t nÃ y');
+            if (accountModePill) {
+                accountModePill.className = 'account-mode-pill';
+                if (accountModePillLabel) accountModePillLabel.textContent = translate('account.localBadge', 'Há»“ sÆ¡ mÃ¡y nÃ y');
+            }
+            if (cloudNudgeBanner) cloudNudgeBanner.hidden = false;
+            if (signOutButton) signOutButton.hidden = true;
+            if (accountTabs) accountTabs.hidden = false;
+        }
+
+        // Form fields
+        if (profileDisplayNameInput) profileDisplayNameInput.value = meta.display_name || localProfile.displayName || '';
+        if (profileDailyGoalInput) profileDailyGoalInput.value = meta.daily_goal || localProfile.dailyGoal || '';
+        if (profileInterestsInput) profileInterestsInput.value = meta.interests || localProfile.interests || '';
+        if (profileAiCallingInput) profileAiCallingInput.value = meta.ai_calling || localProfile.aiCalling || 'Báº¡n - MÃ¬nh';
+        if (profileAiStyleInput) profileAiStyleInput.value = meta.ai_style || localProfile.aiStyle || 'Nhiá»‡t tÃ¬nh & truyá»n cáº£m há»©ng';
+        if (profileAiFocusInput) profileAiFocusInput.value = meta.ai_focus || localProfile.aiFocus || 'HÆ°á»›ng nghiá»‡p & Láº­p káº¿ hoáº¡ch tÆ°Æ¡ng lai';
+
+        if (profileNotifyStreakInput) profileNotifyStreakInput.checked = meta.notify_streak !== undefined ? Boolean(meta.notify_streak) : localProfile.notifyStreak !== false;
+        if (profileNotifyDeadlineInput) profileNotifyDeadlineInput.checked = meta.notify_deadline !== undefined ? Boolean(meta.notify_deadline) : localProfile.notifyDeadline !== false;
+        if (profileSoundEnabledInput) profileSoundEnabledInput.checked = meta.sound_enabled !== undefined ? Boolean(meta.sound_enabled) : localProfile.soundEnabled !== false;
+
+        // Streak & Badges
+        const streak = typeof svGetStreak === 'function' ? svGetStreak() : { currentStreak: 1, bestStreak: 1 };
+        if (streakCount) streakCount.textContent = streak.currentStreak;
+        if (streakBestCount) streakBestCount.textContent = streak.bestStreak;
+
+        if (typeof svGetStreakLevel === 'function' && streakLevelPill) {
+            const levelInfo = svGetStreakLevel(streak.currentStreak);
+            streakLevelPill.textContent = `${translate('account.streakLevel', 'Cáº¥p Ä‘á»™')} ${levelInfo.level}: ${levelInfo.name}`;
+            streakLevelPill.style.color = levelInfo.color;
+            streakLevelPill.style.borderColor = `${levelInfo.color}55`;
+            streakLevelPill.style.background = `${levelInfo.color}15`;
+            if (streakFlameWrap) {
+                streakFlameWrap.classList.add('flame-active');
+            }
+        }
+
+        renderWeekActivity(streak);
+        renderBadges(streak);
+        renderThemeSwatches();
+        renderLangButtons();
+
+        // Äáº¿m tasks Ä‘Ã£ hoÃ n thÃ nh tá»« studyverse_projects
+        try {
+            const projectsKey = typeof svScopedKey === 'function' ? svScopedKey('studyverse_projects') : 'studyverse_projects';
+            let rawProjects = localStorage.getItem(projectsKey);
+            if (!rawProjects && projectsKey !== 'studyverse_projects') {
+                rawProjects = localStorage.getItem('studyverse_projects');
+            }
+            if (rawProjects) {
+                const projects = JSON.parse(rawProjects);
+                if (Array.isArray(projects)) {
+                    let totalTasks = 0;
+                    let doneTasks = 0;
+                    projects.forEach(p => {
+                        if (Array.isArray(p.tasks)) {
+                            totalTasks += p.tasks.length;
+                            doneTasks += p.tasks.filter(t => t.status === 'done' || t.completed).length;
+                        }
+                    });
+                    if (tasksDoneCount) tasksDoneCount.textContent = doneTasks;
+                    if (tasksTotalCount) tasksTotalCount.textContent = `/ ${totalTasks}`;
+                }
+            }
+        } catch (_) {}
+
+        if (signedInUser) {
+            title.textContent = translate('account.accountReady', 'Báº¡n Ä‘Ã£ Ä‘Äƒng nháº­p');
+            subtitle.textContent = translate('account.accountReadyCopy', 'TÃ i khoáº£n Studyverse cá»§a báº¡n Ä‘ang hoáº¡t Ä‘á»™ng.');
+        } else {
+            title.textContent = translate('account.profileTitle', 'Há»“ sÆ¡ & TÃ¹y biáº¿n AI');
+            subtitle.textContent = translate('account.guestProfileSubtitle', 'TÃ¹y chá»‰nh thÃ´ng tin Ä‘á»ƒ AI há»— trá»£ báº¡n tá»‘t nháº¥t.');
+        }
+    }
+
+    // LÆ°u Há»“ sÆ¡ & Cáº¥u hÃ¬nh (LÆ°u LocalStorage vÃ  Supabase náº¿u Ä‘Ã£ Ä‘Äƒng nháº­p)
+    async function saveProfile(event) {
+        if (event) event.preventDefault();
+
+        const newName = profileDisplayNameInput ? profileDisplayNameInput.value.trim() : '';
+        const newGoal = profileDailyGoalInput ? profileDailyGoalInput.value.trim() : '';
+        const newInterests = profileInterestsInput ? profileInterestsInput.value.trim() : '';
+        const newCalling = profileAiCallingInput ? profileAiCallingInput.value : 'Báº¡n - MÃ¬nh';
+        const newStyle = profileAiStyleInput ? profileAiStyleInput.value : 'Nhiá»‡t tÃ¬nh & truyá»n cáº£m há»©ng';
+        const newFocus = profileAiFocusInput ? profileAiFocusInput.value : 'HÆ°á»›ng nghiá»‡p & Láº­p káº¿ hoáº¡ch tÆ°Æ¡ng lai';
+        const notifyStreak = profileNotifyStreakInput ? profileNotifyStreakInput.checked : true;
+        const notifyDeadline = profileNotifyDeadlineInput ? profileNotifyDeadlineInput.checked : true;
+        const soundEnabled = profileSoundEnabledInput ? profileSoundEnabledInput.checked : true;
+
+        const effectiveName = newName || (signedInUser && signedInUser.email ? signedInUser.email.split('@')[0] : 'Há»c viÃªn Studyverse');
+
+        if (saveProfileBtn) {
+            saveProfileBtn.disabled = true;
+            if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.loading', 'Äang xá»­ lÃ½â€¦');
+        }
+
+        try {
+            const updates = {
+                displayName: newName,
+                dailyGoal: newGoal,
+                interests: newInterests,
+                aiCalling: newCalling,
+                aiStyle: newStyle,
+                aiFocus: newFocus,
+                notifyStreak: notifyStreak,
+                notifyDeadline: notifyDeadline,
+                soundEnabled: soundEnabled
+            };
+
+            if (typeof svSaveUserProfile === 'function') {
+                svSaveUserProfile(updates);
+            }
+
+            if (signedInUser) {
+                const client = await ensureSupabaseClient();
+                if (client) {
+                    const updateRes = await client.auth.updateUser({
+                        data: {
+                            display_name: newName,
+                            daily_goal: newGoal,
+                            interests: newInterests,
+                            ai_calling: newCalling,
+                            ai_style: newStyle,
+                            ai_focus: newFocus,
+                            notify_streak: notifyStreak,
+                            notify_deadline: notifyDeadline,
+                            sound_enabled: soundEnabled
+                        }
+                    });
+                    if (updateRes && updateRes.error) throw updateRes.error;
+                    if (updateRes && updateRes.data && updateRes.data.user) {
+                        signedInUser = updateRes.data.user;
+                    }
+                }
+            }
+
+            if (accountDisplayName) accountDisplayName.textContent = effectiveName;
+            if (accountAvatar) accountAvatar.textContent = (effectiveName || 'S').trim().charAt(0).toUpperCase();
+
+            setNotice(
+                signedInUser
+                    ? translate('account.profileSavedCloud', 'ÄÃ£ lÆ°u há»“ sÆ¡ vÃ  Ä‘á»“ng bá»™ lÃªn Supabase Cloud thÃ nh cÃ´ng!')
+                    : translate('account.profileSavedLocal', 'ÄÃ£ lÆ°u cáº¥u hÃ¬nh vÃ  há»“ sÆ¡ trÃªn mÃ¡y nÃ y! AI sáº½ ghi nhá»› tÃªn vÃ  tÃ¹y chá»n cá»§a báº¡n.'),
+                'success'
+            );
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            setNotice(showFriendlyError(error), 'error');
+        } finally {
+            if (saveProfileBtn) {
+                saveProfileBtn.disabled = false;
+                if (saveProfileBtnLabel) saveProfileBtnLabel.textContent = translate('account.saveProfile', 'LÆ°u thay Ä‘á»•i');
+            }
+        }
+    }
+
+    function setBusy(busy) {
+        isBusy = busy;
+        submitButton.disabled = busy;
+        submitButton.setAttribute('aria-busy', String(busy));
+        const icon = submitButton.querySelector('i');
+        if (icon) icon.className = busy ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-arrow-right';
+        submitLabel.textContent = busy
+            ? translate('account.loading', 'Äang xá»­ lÃ½â€¦')
+            : translate({ login: 'account.submitLogin', register: 'account.submitRegister', forgot: 'account.submitForgot', recovery: 'account.submitRecovery' }[mode], mode);
+    }
+
+    async function ensureSupabaseClient() {
+        if (typeof svSupabase === 'function') {
+            if (!supabaseClient) supabaseClient = await svSupabase();
+            return supabaseClient;
+        }
+        if (supabaseClient) return supabaseClient;
+        if (clientPromise) return clientPromise;
+
+        clientPromise = (async () => {
+            const response = await fetch('/api/public-config', { headers: { Accept: 'application/json' } });
+            if (!response.ok) throw new Error('Supabase configuration is unavailable.');
+            const config = await response.json();
+            const supabaseUrl = String(config.supabaseUrl || '').trim();
+            const publishableKey = String(config.supabasePublishableKey || '').trim();
+            if (!supabaseUrl || !publishableKey) throw new Error('Supabase configuration is incomplete.');
+
+            if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+                    script.async = true;
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('Could not load the account service.'));
+                    document.head.appendChild(script);
+                });
+            }
+
+            if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+                throw new Error('Could not initialize the account service.');
+            }
+
+            supabaseClient = window.supabase.createClient(supabaseUrl, publishableKey, {
+                auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+            });
+            return supabaseClient;
+        })().catch(error => {
+            clientPromise = null;
+            throw error;
+        });
+
+        return clientPromise;
+    }
+
+    function getSafeNextUrl() {
+        const requested = url.searchParams.get('next');
+        if (!requested || !requested.startsWith('/') || requested.startsWith('//')) return '/todo/mylist.html';
+        const destination = new URL(requested, window.location.origin);
+        return destination.origin === window.location.origin ? destination.pathname + destination.search + destination.hash : '/todo/mylist.html';
+    }
+
+    async function submitAuth(event) {
+        event.preventDefault();
+        if (isBusy) return;
+        if (!form.reportValidity()) return;
+
+        if ((mode === 'register' || mode === 'recovery') && passwordInput.value !== confirmPasswordInput.value) {
+            setNotice(translate('account.passwordMismatch', 'Hai máº­t kháº©u chÆ°a trÃ¹ng khá»›p.'), 'error');
+            confirmPasswordInput.focus();
+            return;
+        }
+
+        setBusy(true);
+        setNotice('');
+
+        try {
+            const client = await ensureSupabaseClient();
+            const email = emailInput.value.trim();
+            let result;
+
+            if (mode === 'login') {
+                result = await client.auth.signInWithPassword({ email, password: passwordInput.value });
+                if (result.error) throw result.error;
+                signedInUser = result.data.user;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                renderProfileView(signedInUser);
+                switchTab('profile');
+                setNotice(translate('account.accountReady', 'Báº¡n Ä‘Ã£ Ä‘Äƒng nháº­p thÃ nh cÃ´ng!'), 'success');
+                return;
+            }
+
+            if (mode === 'register') {
+                const localProfile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
+                result = await client.auth.signUp({
+                    email,
+                    password: passwordInput.value,
+                    options: {
+                        emailRedirectTo: `${window.location.origin}/account.html?confirmed=1`,
+                        data: {
+                            display_name: localProfile.displayName || email.split('@')[0],
+                            daily_goal: localProfile.dailyGoal || '',
+                            interests: localProfile.interests || '',
+                            ai_calling: localProfile.aiCalling || 'Báº¡n - MÃ¬nh',
+                            ai_style: localProfile.aiStyle || 'Nhiá»‡t tÃ¬nh & truyá»n cáº£m há»©ng',
+                            ai_focus: localProfile.aiFocus || 'HÆ°á»›ng nghiá»‡p & Láº­p káº¿ hoáº¡ch tÆ°Æ¡ng lai',
+                            notify_streak: localProfile.notifyStreak !== false,
+                            notify_deadline: localProfile.notifyDeadline !== false,
+                            sound_enabled: localProfile.soundEnabled !== false
+                        }
+                    }
+                });
+                if (result.error) throw result.error;
+
+                if (result.data && result.data.user && Array.isArray(result.data.user.identities) && result.data.user.identities.length === 0) {
+                    setNotice(translate('account.userExists', 'Email nÃ y Ä‘Ã£ cÃ³ tÃ i khoáº£n. HÃ£y Ä‘Äƒng nháº­p.'), 'error');
+                    return;
+                }
+
+                if (result.data.session) {
+                    signedInUser = result.data.user;
+                    if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                    if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                    renderProfileView(signedInUser);
+                    switchTab('profile');
+                    return;
+                }
+
+                clearPasswords();
+                setMode('login');
+                setNotice(translate('account.signupCheckEmail', 'TÃ i khoáº£n Ä‘Ã£ táº¡o. HÃ£y má»Ÿ email xÃ¡c nháº­n Ä‘á»ƒ hoÃ n táº¥t Ä‘Äƒng kÃ½.'), 'success');
+                return;
+            }
+
+            if (mode === 'forgot') {
+                result = await client.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/account.html?mode=recovery`
+                });
+                if (result.error) throw result.error;
+                setNotice(translate('account.emailSent', 'Náº¿u Ä‘á»‹a chá»‰ email há»£p lá»‡, liÃªn káº¿t Ä‘áº·t láº¡i máº­t kháº©u sáº½ sá»›m Ä‘Æ°á»£c gá»­i Ä‘áº¿n há»™p thÆ° cá»§a báº¡n.'), 'success');
+                return;
+            }
+
+            const { data: recoverySession } = await client.auth.getSession();
+            if (!recoverySession || !recoverySession.session) {
+                clearPasswords();
+                setMode('login');
+                setNotice(translate('account.recoveryLinkInvalid', 'LiÃªn káº¿t Ä‘áº·t láº¡i khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.'), 'error');
+                return;
+            }
+
+            result = await client.auth.updateUser({ password: passwordInput.value });
+            if (result.error) throw result.error;
+            clearPasswords();
+            setMode('login');
+            if (result.data && result.data.user) {
+                signedInUser = result.data.user;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                renderProfileView(signedInUser);
+                switchTab('profile');
+            }
+            setNotice(translate('account.passwordUpdated', 'Máº­t kháº©u Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t. Báº¡n cÃ³ thá»ƒ tiáº¿p tá»¥c vÃ o Studyverse.'), 'success');
+        } catch (error) {
+            console.error('Studyverse account action failed:', error);
+            setNotice(showFriendlyError(error), 'error');
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function signOut() {
+        if (!supabaseClient || isBusy) return;
+        signOutButton.disabled = true;
+        try {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) throw error;
+            if (typeof svSetStorageScope === 'function') svSetStorageScope('');
+            signedInUser = null;
+            renderProfileView(null);
+            switchTab('profile');
+            setNotice(translate('account.signedOut', 'Báº¡n Ä‘Ã£ Ä‘Äƒng xuáº¥t khá»i tÃ i khoáº£n.'), 'success');
+        } catch (error) {
+            setNotice(showFriendlyError(error), 'error');
+        } finally {
+            signOutButton.disabled = false;
+        }
+    }
+
+    // Sá»± kiá»‡n tÆ°Æ¡ng tÃ¡c
+    form.addEventListener('submit', submitAuth);
+    if (profileForm) profileForm.addEventListener('submit', saveProfile);
+
+    if (tabProfileBtn) tabProfileBtn.addEventListener('click', () => switchTab('profile'));
+    if (tabAuthBtn) tabAuthBtn.addEventListener('click', () => switchTab('auth'));
+    if (nudgeLoginBtn) nudgeLoginBtn.addEventListener('click', () => switchTab('auth'));
+
+    if (modeSwitchButton) {
+        modeSwitchButton.addEventListener('click', () => {
+            clearPasswords();
+            setMode(mode === 'login' ? 'register' : 'login');
+            emailInput.focus();
+        });
+    }
+
+    if (forgotButton) {
+        forgotButton.addEventListener('click', () => {
+            clearPasswords();
+            setMode('forgot');
+            emailInput.focus();
+        });
+    }
+
+    if (signOutButton) signOutButton.addEventListener('click', signOut);
+
+    // Xá»­ lÃ½ Quick Chips (Má»¥c tiÃªu há»c táº­p & Sá»Ÿ thÃ­ch)
+    if (goalChips && profileDailyGoalInput) {
+        const syncGoalChips = () => {
+            const current = profileDailyGoalInput.value.trim().toLowerCase();
+            goalChips.querySelectorAll('.quick-chip').forEach(chip => {
+                const val = (chip.dataset.goal || chip.textContent).trim().toLowerCase();
+                chip.classList.toggle('active', Boolean(current && current === val));
+            });
+        };
+        profileDailyGoalInput.addEventListener('input', syncGoalChips);
+
+        goalChips.querySelectorAll('.quick-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const goal = chip.dataset.goal || chip.textContent;
+                if (profileDailyGoalInput.value.trim().toLowerCase() === goal.toLowerCase()) {
+                    profileDailyGoalInput.value = '';
+                } else {
+                    profileDailyGoalInput.value = goal;
+                }
+                syncGoalChips();
+                profileDailyGoalInput.focus();
+            });
+        });
+        syncGoalChips();
+    }
+
+    if (interestChips && profileInterestsInput) {
+        const syncInterestChips = () => {
+            const currentItems = profileInterestsInput.value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            interestChips.querySelectorAll('.quick-chip').forEach(chip => {
+                const val = (chip.dataset.interest || chip.textContent).trim().toLowerCase();
+                chip.classList.toggle('active', currentItems.includes(val));
+            });
+        };
+        profileInterestsInput.addEventListener('input', syncInterestChips);
+
+        interestChips.querySelectorAll('.quick-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const interest = chip.dataset.interest || chip.textContent;
+                const raw = profileInterestsInput.value;
+                let items = raw.split(',').map(s => s.trim()).filter(Boolean);
+                const idx = items.findIndex(item => item.toLowerCase() === interest.toLowerCase());
+                if (idx !== -1) {
+                    items.splice(idx, 1);
+                } else {
+                    items.push(interest);
+                }
+                profileInterestsInput.value = items.join(', ');
+                syncInterestChips();
+                profileInterestsInput.focus();
+            });
+        });
+        syncInterestChips();
+    }
+
+    document.querySelectorAll('[data-toggle-password]').forEach(button => {
+        button.addEventListener('click', () => {
+            const input = document.getElementById(button.dataset.togglePassword);
+            if (!input) return;
+            const reveal = input.type === 'password';
+            input.type = reveal ? 'text' : 'password';
+            button.querySelector('i').className = reveal ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+            syncPasswordToggleLabels();
+        });
+    });
+
+    // Hiá»ƒn thá»‹ UI ngay láº­p tá»©c khÃ´ng phá»¥ thuá»™c tá»‘c Ä‘á»™ táº£i CDN
+    revealAuthUI();
+
+    // Khá»Ÿi táº¡o Supabase client & theo dÃµi auth state
+    const authError = new URLSearchParams(window.location.hash.slice(1)).get('error_description');
+    if (authError) setNotice(authError, 'error');
+
+    ensureSupabaseClient().then(async client => {
+        client.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                mode = 'recovery';
+                switchTab('auth');
+                return;
+            }
+            if (session && mode !== 'recovery') {
+                signedInUser = session.user;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                renderProfileView(signedInUser);
+            } else if (!session && signedInUser) {
+                signedInUser = null;
+                if (typeof svSetStorageScope === 'function') svSetStorageScope('');
+                renderProfileView(null);
+            }
+        });
+
+        const { data, error } = await client.auth.getSession();
+        if (error) throw error;
+        if (data.session && mode !== 'recovery') {
+            signedInUser = data.session.user;
+            if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+            if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+            renderProfileView(signedInUser);
+            if (url.searchParams.has('confirmed') && !authError) {
+                setNotice(translate('account.confirmEmail', 'TÃ i khoáº£n Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c nháº­n. Báº¡n cÃ³ thá»ƒ tiáº¿p tá»¥c vÃ o Studyverse.'), 'success');
+            }
+        } else if (url.searchParams.has('confirmed') && !authError) {
+            setNotice(translate('account.confirmEmail', 'TÃ i khoáº£n Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c nháº­n. ÄÄƒng nháº­p Ä‘á»ƒ tiáº¿p tá»¥c.'), 'success');
+        } else if (mode === 'recovery' && !data.session) {
+            setNotice(translate('account.recoveryLinkInvalid', 'LiÃªn káº¿t Ä‘áº·t láº¡i khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.'), 'error');
+        }
+    }).catch(error => {
+        console.warn('Studyverse account service is offline or not configured in .env', error);
+        // Supabase khÃ´ng kháº£ dá»¥ng khÃ´ng lÃ m treo tráº£i nghiá»‡m: UI Ä‘Ã£ Ä‘Æ°á»£c hiá»ƒn thá»‹
+    });
+
+    document.addEventListener('sv:langchange', () => {
+        syncPasswordToggleLabels();
+        renderProfileView(signedInUser);
+        if (activeTab === 'auth') setMode(mode, { keepNotice: true });
+    });
+})();
+Ó˜ÀÙ"  "         >Ö÷      initAccountPage    h§ß      form   úîë      document   ó‰j€      getElementById     æ¹      authForm   +=Ë
+      emailInput     {Á#µ	      authEmail      	›æ
+      emailField     €Üˆ?      passwordInput	      §¸3'      authPassword
+   ÖÅDí      confirmPasswordInput   oº      authPasswordConfirm    ‘Î2W      confirmPasswordField   T*İÃ      passwordField      õØ j      passwordHint   ßDH¨      submitButton   P(›/
+      authSubmit     %ÙÀ©      submitLabel    Ñ	      authSubmitLabel    p~=t      notice     ZÇÄc
+      authNotice     ¯Òd      title      ój	      authTitle      jZ:      subtitle   6’W      authSubtitle   5Ø@Ê      forgotButton   Pd      forgotPasswordButton   Lz¥      modeSwitchRow      ¼$j      modeSwitchPrompt   6^      modeSwitchButton   ªe7      divider    6 Î      accountDivider      zš3	      guestLink!      ¡EYÇ      accountTabs"    1Ò.y      tabProfileBtn#      V6‹£
+      tabAuthBtn$     ~r»      tabAuthLabel%   =)õÕ      signedInPanel&      æ+      accountEmail'   _^Ş      accountAvatar(      ù•‡õ      accountDisplayName)     jÓ™‹      accountModePill*    ‹»¹Ğ      accountModePillLabel+   †èÖK      signOutButton,      ¸s<ì      cloudNudgeBanner-   nìş†      nudgeLoginBtn.      iˆáá      streakFlameWrap/    ŞG¸[      streakCount0    Ğ9o
+      streakBestCount1    ¹ëj      streakLevelPill2    ß–Uà      tasksDoneCount3     "?¸Á      tasksTotalCount4    €¾o@      weekDaysContainer5      úzı«
+      badgesGrid6     zk‡      profileForm7    ¼ñ#      profileSettingsForm8    ©ŸzÃ      profileDisplayNameInput9    ©î Ñ      profileDisplayName:     ³ÈÚ      profileDailyGoalInput;      °#j      profileDailyGoal<   À¾ôÚ      profileInterestsInput=      rÍI      profileInterests>   „Rê      profileAiCallingInput?      îú©      profileAiCalling@   Óş‹ô      profileAiStyleInputA    öx×¦      profileAiStyleB     ®ã<í      profileAiFocusInputC    š(F1      profileAiFocusD     jÒ
+E      profileNotifyStreakInputE   ÷óYÂ      profileNotifyStreakF    ÂJ      profileNotifyDeadlineInputG     nºK¢      profileNotifyDeadlineH      È_—ÿ      profileSoundEnabledInputI   ²XÚ’      profileSoundEnabledJ     ¤U;      accountThemeSwatchesK    "À       accountLangToggleL      YqÚ_	      goalChipsM      ²m      interestChipsN      ek'      saveProfileBtnO     F#      saveProfileBtnLabelP    W	ªü      URLQ    ^Å¾„      windowR     #Äê¡      locationS   šcÆh      hrefT   şÑ±
+      validModesU     …Åy      loginV      g—Tt      registerW   ¸S1.      forgotX     /˜Q      recoveryY   ÀÑü      modeZ   ’8ˆ      searchParams[   ´?ÊK      recoveryFromHash\   |Ú’í      URLSearchParams]    Ç_†      hash^   z‰      slice_      ¨kš	      activeTab`      –S-h      autha   ßB      profileb    ÙäÊö      supabaseClientc     [‚Íë      clientPromised      nWìu      signedInUsere   M»g      isBusyf     şÊ‰      uiReadyg    Ü³»»      currentYearh    àñ       textContenti    \B      getFullYearj     Lt	      translatek      øŠˆ¨      keyl    êØ÷‡      svTm    ÛIß	      setNoticen      ™¥yß      toneo   @*­M      infop   y„£      datasetq    K"      hiddenr     {sö      showFriendlyErrors      J§‰      toLowerCaset    áÚ†Ë      invalid login credentialsu      ^:h¶      account.invalidCredentialsv     \[¸#      E m a i l   h o ·c   m ­t   k h ©u   c h °a   c h í n h   x á c . w     4Çı¾      email not confirmedx    ròM´      account.emailNotConfirmedy      ®„'      H ã y   x á c   n h ­n   e m a i l   t r °Ûc   k h i   n g   n h ­p . z     Z¸úÈ      session missing{    ×Bš      auth session|   ,ú/      account.recoveryLinkInvalid}    Í’£Ò.      L i ê n   k ¿t   ·t   l ¡i   k h ô n g   h ãp   l Ç  h o ·c   ã   h ¿t   h ¡n . ~   •ê\Ü      user already registered    ì¬}ô      already been registered€    ÎÿN}      account.userExists     Ğ%ßì)      E m a i l   n à y   ã   c ó   t à i   k h o £n .   H ã y   n g   n h ­p . ‚     gÜ      passwordƒ   ß…®„      least„      á$,%
+      characters…     Fg?      account.passwordTooShort†   æY       M ­t   k h ©u   c §n   c ó   í t   n h ¥t   8   k ı   t ñ. ‡   9¢û      auth.genericErrorˆ      M _.      K h ô n g   t h Ã  t h ñc   h i Çn   l ú c   n à y .   V u i   l ò n g   t h í  l ¡i . ‰   ñ{j      clearPasswordsŠ     ¿uÃr      syncPasswordToggleLabels‹   ƒ|‰      englishŒ    5Ìºô      svLang     ß^êT      querySelectorAll   xÉÓ      [data-toggle-password]     \kcÁ      button     iTÅ      togglePassword‘     2v,      account.hidePassword’   /´c`      account.showPassword“   Öf      Hide password”      ©ÖF      ¨n   m ­t   k h ©u •     p~qÅ      Show password–      ˆ@&Á      H i Çn   m ­t   k h ©u —     âí½Ï      setAttribute˜   0Äîn
+      aria-label™      w’†	      switchTabš      ¥§Á	      targetTab›      Äcİ	      classListœ      (À!      toggle     âV6       active     ÔÌ1      aria-selectedŸ      tù•?      renderProfileView       ºz…%      setMode¡     ÿ´
+      keepNotice¢     „Üş¡      nextMode£   øv)'      isLogin¤    ˆéÆd
+      isRegister¥     l»      isForgot¦   Úœ1
+      isRecovery§     1ø      copy¨   ÷ï      account.loginTitle©     ñsı      C h à o   m ën g   t r ß  l ¡i ª     ÉîeK      account.loginSubtitle«      n)      n g   n h ­p   Ã  t i ¿p   t åc   h à n h   t r ì n h   h Íc   t ­p . ¬     r1‡Ù      account.registerTitle­      t(5i      T ¡o   t à i   k h o £n ®     èÏ{      account.registerSubtitle¯   ïó÷C+      B ¯t   §u   s ¯p   x ¿p   v i Çc   h Íc   t h e o   c á c h   c ça   b ¡n . °     ×ÿæ¸      account.forgotTitle±    	2Ãd      ·t   l ¡i   m ­t   k h ©u ²   AXî
+      account.forgotSubtitle³     ÅÂ0q@      N h ­p   e m a i l ,   c h ú n g   t ô i   s ½  g íi   c h o   b ¡n   °İn g   d «n   ·t   l ¡i   m ­t   k h ©u . ´   )8åG      account.recoveryTitleµ      Ï§‹	      T ¡o   m ­t   k h ©u   m Ûi ¶   óQ#û      account.recoverySubtitle·   yğ'7,      C h Ín   m Ùt   m ­t   k h ©u   m Ûi   c h o   t à i   k h o £n   c ça   b ¡n . ¸   ‡æ"      account.submitLogin¹    Ã^w      account.submitRegisterº     ,aĞ}      account.submitForgot»   é+±*      account.submitRecovery¼     ø>øİ	      minLength½      Ç±Ë)      autocomplete¾   |Ï™{      current-password¿   8Ü¼U      new-passwordÀ   -àÍ¯      placeholderÁ    Á÷      account.emailPlaceholderÂ   Pê      you@example.comÃ    ØØ       account.passwordPlaceholderLoginÄ   ÛE[†      M ­t   k h ©u   c ça   b ¡n Å   {1Ø      account.passwordPlaceholderÆ    ¹c      T Ñi   t h i Ãu   8   k ı   t ñÇ     ¦z      account.confirmPlaceholderÈ     òâã      N h ­p   l ¡i   m ­t   k h ©u É     ÔVF      account.passwordHintLoginÊ      ’¯=#      N h ­p   m ­t   k h ©u   c ça   b ¡n   Ã  n g   n h ­p . Ë     ‚ù>      account.passwordHintÌ   ÄM@ª      D ù n g   í t   n h ¥t   8   k ı   t ñ. Í     r«Íq      account.loginPromptÎ    qr/î      ã   c ó   t à i   k h o £n ? Ï   à ú³      account.switchToLoginĞ      ‹&¾‡	      n g   n h ­p Ñ     ]ó(­      account.recoveryHelpÒ   Ñz      K h ô n g   n h ­n   °ãc   e m a i l ? Ó   fgç      account.recoveryBackÔ   æ      Q u a y   l ¡i   n g   n h ­p Õ   Nâ¶h      account.registerPromptÖ     JöGœ      C h °a   c ó   t à i   k h o £n ? ×   CÚS      account.switchToRegisterØ   - p      n g   k ı Ù     Ì&æ.      revealAuthUIÚ   ‘	¡      renderWeekActivityÛ     Nup
+      streakDataÜ     §µ	      innerHTMLİ      ÿP±%      isEnŞ   ä
+      daysOfWeekß      æcÏ      Monà    Ékğµ      Tueá    Ú2      Wedâ    ÏGÇi      Thuã    TQx³      Friä    ZªTÉ      Satå    ãú5”      Sunæ    ™téÃ      todayç      oà–r      currentDayIndexè    ì‘Ãr      getDayé     w¼\      activeDatesSetê     Ò€&      activeDatesë    4õi      activeLabelì    X•G      Studiedí    sè{g
+      ã   h Íc   t ­p î   DÏ
+      todayLabelï     õ+Õ      Todayğ      ’çõ      Hôm nayñ    ŸI›	      restLabelò      )å¢q      Rest dayó   -‚ª'	      N g h É  n g ¡i ô     ™Äˆ³      setDateõ    >üáç      getDateö    EÕŒ      dateStr÷    ª:ëd      svGetLocalDateStrø      @       getMonthù   Õ]ß“      padStartú   ‰üÜa      isTodayû    ‹#ÉØ      isActiveü   ñ¼ŞZ      dayDivı     1Q      createElementş       R*      divÿ    l¥Ì‹	      className      _½PT
+      strip-day     yç÷.      
+                <span class="strip-day-name">    L)k&\      </span>
+                <span class="strip-day-dot">
+                    <i class="fa-solid   	Ïf—      fa-fire-flame-curved  AêÓ	      fa-circle     Zø‹f+      "></i>
+                </span>
+               ê“±      :     @Oá      appendChild   -<áÀ      renderBadges	  ïHü      svGetStreakBadges
+     ¿
++      badges    ‰±'*
+      bestStreak    ƒ_sk      card  Ì,ñJ      badge-card    Úñs      unlocked  gØ9ò      locked    ³ğ{D      titleKey  aŠ:      desc  Q­9A      descKey   ±wkS      statusLabel   œQÚ      account.badgeUnlocked     óş÷s      ã   m ß  k h ó a   <Ø‰ß    aƒù      account.badgeRemaining    i³      còn {n} ngày  EËR¿      {n}   &n•	      remaining     ô—Oè4      
+                <div class="badge-icon-box" style="  $® ´      color:    bæ³™      color     »c ô      ; background:     ,
+‚¸      20;   jéã³*      ">
+                    <i class="fa-solid      ‰?uG      icon!  ,Ã~hI      "></i>
+                </div>
+                <strong class="badge-name">"     òóªb
+      escapeHtml#    ñB»Ê3      </strong>
+                <span class="badge-desc">$   ¦bükJ      </span>
+                <span class="badge-status-tag"><i class="fa-solid %    Vecd      fa-check&  á        fa-lock'   Ş²-V      "></i> (   M,      </span>
+            )  é8í      renderThemeSwatches*   mÅÖx      themes+    CşEë	      SV_CONFIG,     Gj      midnight-  ?]4!      ocean.     Ÿxëß      cyan/  ¸      sunset0    —ÚHŸ      royal1     ¶Ä
+×      forest2    šçÿz      light3     š      pink4  gºr      currentTheme5  z4O      svTheme6   >µ
+ı      btn7   éÃ¨‹      account-swatch-btn sv-sw-8     ¾À®@      theme9     mÅQ      theme.:    ñ{      addEventListener;  ¢ºf      click<     T)‡      svSaveUserProfile=     ¤éÙ      .account-swatch-btn>   °”wy      remove?    ÚØ•W      renderLangButtons@     >]
+8      currentLangA   â~…t
+      .lang-pillB    w+      langC  Haac      onclickD   Š <      userE  ‚p­±      recoveryActiveF    oò†Õ      localProfileG  İ€      svGetUserProfileH  øhÖŠ      user_metadataI     ¨u      display_nameJ  'øZ      displayNameK   H¶¿	      dailyGoalL     ¼›w
+      daily_goalM    ¤¤¦	      interestsN     £Éh	      aiCallingO     ¹Ê	
+      ai_callingP    i4úV
+      B ¡n   -   M ì n h Q  øà      aiStyleR   À'       ai_styleS  t‰;M      N h i Çt   t ì n h   &   t r u y Án   c £m   h én g T  ı,j      aiFocusU   ğñA      ai_focusV  â,À¿%      H °Ûn g   n g h i Çp   &   L ­p   k ¿  h o ¡c h   t °¡n g   l a i W    \S[Ü      notifyStreakX  y~),      notify_streakY     5›w      notifyDeadlineZ    ¯ã¹>      notify_deadline[   Zê      soundEnabled\   ÕÇê      sound_enabled]     Üô»      effectiveDisplayName^  Ñ­Ë7	      full_name_     qì¾ı      email`     ¶+Qì      displayToShowa     (7Z      trimb  y~{Ò      account.guestDefaultNamec  ìLÔW      H Íc   v i ê n   S t u d y v e r s e d    »ÏH      charAte    gâı      toUpperCasef   Èfj      account-mode-pill cloudg   GŠí™      account.cloudBadgeh    P4Ë      ã   Ón g   b Ù  C l o u d i  SÃïT      account.localDataNoticej   + ¾Ë1      D ï  l i Çu   v à   h Ó  s ¡  l °u   a n   t o à n   t r ê n   t r ì n h   d u y Çt   n à y k    |ş~Ş      account-mode-pilll     GxÙÑ      account.localBadgem    ¯¹j1      H Ó  s ¡  m á y   n à y n    é£œi      checkedo   {Ğ      streakp    ]Ö.x      svGetStreakq   jŸ5      currentStreakr     X<t      svGetStreakLevels  é[fh	      levelInfot     Ğ¦ÄÚ      account.streakLevelu   Ä;      C ¥p   Ùv  tI|c      levelw     &™¼£      borderColorx   û¯†W
+      backgroundy    _¬øö      flame-activez  3ˆ[¤      projectsKey{   Dàò      svScopedKey|   Mà      studyverse_projects}   ÛuC…      rawProjects~   &N×î      localStorage  §’ı      getItem€   çéÖa      projects  ÛÛ;Ó      parse‚     ‰¥Rÿ      isArrayƒ   iœï
+      totalTasks„    :W.	      doneTasks…     G1æ      tasks†     Ì_2(      filter‡    ¸Ã>]	      completedˆ     ÷XOC      / ‰    ÛóL½      account.accountReadyŠ  Ø†	n      B ¡n   ã   n g   n h ­p ‹  àpx      account.accountReadyCopyŒ  şã,      T à i   k h o £n   S t u d y v e r s e   c ça   b ¡n   a n g   h o ¡t   Ùn g .   ¯C	      account.profileTitle  xÅ«      H Ó  s ¡  &   T ù y   b i ¿n   A I     Do2ó      account.guestProfileSubtitle  "EHİ.      T ù y   c h Én h   t h ô n g   t i n   Ã  A I   h ×  t r ã  b ¡n   t Ñt   n h ¥t . ‘  Å²ì      saveProfile’   ´S      event“     ØÄ~      preventDefault”    `x –      newName•   Yşî      newGoal–   p§X      newInterests—  –CÚw
+      newCalling˜    Œ"V      newStyle™  [†U      newFocusš  Ì—ß      effectiveName›     I®6J      disabledœ  åC      account.loading   ¸Şp      a n g   x í  l ı &     „«cş      updatesŸ   7ú°J      client     ï¢›      ensureSupabaseClient¡  4jË	      updateRes¢     ş#Ò
+      updateUser£    a˜n      data¤  àâL¹      account.profileSavedCloud¥     
+¥+16      ã   l °u   h Ó  s ¡  v à   Ón g   b Ù  l ê n   S u p a b a s e   C l o u d   t h à n h   c ô n g ! ¦  #Áı7      account.profileSavedLocal§     Ù^X6M      ã   l °u   c ¥u   h ì n h   v à   h Ó  s ¡  t r ê n   m á y   n à y !   A I   s ½  g h i   n h Û  t ê n   v à   t ù y   c h Ín   c ça   b ¡n . ¨    Q[JÏ      success©   9:Ïà      consoleª   ]²JJ      Failed to update profile:«     RÖ£      account.saveProfile¬   º[_      L °u   t h a y   Õi ­  uÒV      setBusy®   MıRä      busy¯  *a	      aria-busy°     \ˆd'      querySelector±     *øã–      fa-solid fa-spinner fa-spin²   Àî•Ï      fa-solid fa-arrow-right³   §è‰8
+      svSupabase´    Bxäi      responseµ  ½Œ©½      fetch¶      -ó(      /api/public-config·    š°e      headers¸   p´É      Accept¹    jòô      application/jsonº  ‡É¦&      Supabase configuration is unavailable.»    ¡ã      config¼    Ü      supabaseUrl½   Âßo      publishableKey¾    ´af      supabasePublishableKey¿    :…õi%      Supabase configuration is incomplete.À     ´®      supabaseÁ  à°fÉ      createClientÂ  7)+      srcÃ   ÕP 4      https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2Ä  œ'æ      onloadÅ    d>è      onerrorÆ   !I#      Could not load the account service.Ç   (pi      headÈ  ^›G)      Could not initialize the account service.É     ÁìJX      detectSessionInUrlÊ    èÅe1      persistSessionË    ®"ñÂ      autoRefreshTokenÌ  ›¢       getSafeNextUrlÍ    <ZÖ	      requestedÎ     PÛcï
+      startsWithÏ    ÷X&e      //Ğ    Ztje      /todo/mylist.htmlÑ     "›ò„      destinationÒ   ã­è      originÓ    é––      pathnameÔ  ­üX
+      submitAuthÕ    6úR      reportValidityÖ    *9	Ó      account.passwordMismatch×  %%¨Œ      H a i   m ­t   k h ©u   c h °a   t r ù n g   k h Ûp . Ø    Bt<Ş      focusÙ     êmÆ)      signInWithPasswordÚ    <.¿Ç      svSetStorageScopeÛ     |[f=      svMigrateGuestDataÜ    ß@R      B ¡n   ã   n g   n h ­p   t h à n h   c ô n g ! İ  QÄÊ      signUpŞ    œ‹¯      optionsß   ½¹éí      emailRedirectToà   ËÑF      /account.html?confirmed=1á     <Á'6
+      identitiesâ    b˜E      sessionã   È&òà      account.signupCheckEmailä  Å²6ò<      T à i   k h o £n   ã   t ¡o .   H ã y   m ß  e m a i l   x á c   n h ­n   Ã  h o à n   t ¥t   n g   k ı . å  ¿Ç}Ç      resetPasswordForEmailæ     ÇœcÇ
+      redirectToç    äøĞ      /account.html?mode=recoveryè   I
+:      account.emailSenté     ¥óÍÙX      N ¿u   Ëa   c h É  e m a i l   h ãp   l Ç,   l i ê n   k ¿t   ·t   l ¡i   m ­t   k h ©u   s ½  s Ûm   °ãc   g íi   ¿n   h Ùp   t h °  c ça   b ¡n . ê  ãã&+      recoverySessionë   'Ò¡F
+      getSessionì    ááG      account.passwordUpdatedí   —¥”<>      M ­t   k h ©u   ã   °ãc   c ­p   n h ­t .   B ¡n   c ó   t h Ã  t i ¿p   t åc   v à o   S t u d y v e r s e . î  İ?Äà!      Studyverse account action failed:ï     6æ†š      signOutğ   AŒX      account.signedOutñ     çaô/       B ¡n   ã   n g   x u ¥t   k h Ïi   t à i   k h o £n . ò  a‡
+›      submitó    ñĞ¿      syncGoalChipsô     )ik      currentõ   Òc      .quick-chipö   õR®…      chip÷  ö-,¡      valø   ,×      goalù  0n      syncInterestChipsú     ıè’7      currentItemsû  ÓÏğ      mapü   1o¬ï      interestı  ø&ŸA      itemsş     _rE      idxÿ   $Yt      item   öÇ"æ      splice    (!íç      push  Ìë¨h      ,     ûŒ¥¨      reveal    pÁ3‚      fa-regular fa-eye-slash   Ò"ï       fa-regular fa-eye     É’i	      authError     	')İ      error_description     z©Øæ      onAuthStateChange	     Ò?       PASSWORD_RECOVERY
+     ç)ª	      confirmed     uõÉ      account.confirmEmail  Á•nÆ?      T à i   k h o £n   ã   °ãc   x á c   n h ­n .   B ¡n   c ó   t h Ã  t i ¿p   t åc   v à o   S t u d y v e r s e .     ~{¢2      T à i   k h o £n   ã   °ãc   x á c   n h ­n .   n g   n h ­p   Ã  t i ¿p   t åc .   7ç      warn  Ö?      Studyverse account service is offline or not configured in .env   (D#”      sv:langchange     y…      syncPasswordToggleLabels/<    éx7      renderBadges/<    ¹‚À      renderThemeSwatches/<     ß°õÑ      renderThemeSwatches/</<   	ègå      renderThemeSwatches/</</<     s£Í      renderLangButtons/<   Ö¥Q      renderLangButtons/</btn.onclick   	‘òƒ      renderProfileView/<   ²f;ì      renderProfileView/</doneTasks<    Ød¨Ç#      ensureSupabaseClient/clientPromise<   %®¬p      ensureSupabaseClient/<     è;R%      ensureSupabaseClient/</script.onerror     2Íà      syncGoalChips/<   ŒŒ      syncInterestChips/currentItems<   åÖm²      syncInterestChips/<    ÕOŸà      items<!    & (¢      idx<     8   Õ  e   8              ï%,‰                                                            D                                                                                                              	                 
+                                             	                                 
+                                                           	                                                                                                                                                                                                                                                       !                                  #                $                $                &   	             '   
+         í®Q   (                 )                 $                                ,                 -   
+             .                /                -   
+                              2                                 4                5                 6                7                 8                 4                                  ;                                  =                 >                =                           !      A                 A                                             "                 #                 $                 %                 &         	            J           '      K                L           (      M                 J          )      O           *      P                    	            R           +      S                T           ,      T           -      V                 R          .      X           /      Y                Z           0      Z           1                2      ]           3      ^                           4      `                 a           5                 6                 7      ³OŒc                                          Ô Š  P­ PÚ  Pï ‰  P‘    PŸ  P  P™  PÙ  ? P PÌ m  P) Pr  PD   	      D   c  Pe  Pb  P_  Pd  PY  Pf  P  P&  PH  P  Pj  P3  P  P@  P+  PM  P8  P  P#  P  P0  P  P(  PJ  P  P5  Pç `   PB  P-  O  P:  P%  P2  PT  P  P  P*  PL  P  P"  PD  P  P/  P<  P  P'  P4  P P
+  P,  PN  P  P[  $  F  P  P1  P  P>  P  P)  PK  P6  !  P  P.  P           ¹  n               {                                                                ‹  P                            Ù   k  †   ô                š             ¢      ¡               £  ¤  ¥  ¦  §                               Û               İ  Ş  æ  ç  é  ë  î  ñ     	         i               d  ö  ú  û  ü               Û               
+              b                                                 * 4 P             t `              6 P                             b                                @ P             6               B P                           D              E F   ] ` o              s    	         } z    
+          €    
+         ƒ P„ P             p               t              _               ’ Pf  `
+   
+       
+   ” • – — ˜ ™ W Y [ š                            Ÿ              ¡             {                ®                               f  `               f  `             ´ » ¼ ½              †   `                                            {                                Í Ñ              ’ Pf  `            ‡  Ÿ _ ê              F             {                  f  `             {               {                k  †                                                                                      	          ó P                              ô P             ö              ÷              ö P                             ø    	          ù P                              ú P             s               ö              ÷              ö P                            ı ü Pu  ş              s               ÿ                P                             Ù                 Ÿ Pf  `             £ {                ’ â              {                   ¯Â0°Iô$KE®úš         ¡                 U  V  W  X           U  V  W  X           8         B                 	   -   J K M N Q T W Y [    
+     q  	   -    J K M N Q T W Y [         £ 	   -     I L M O R U X Z \         U  V  W  X           ·         ¸         `          É Ê Ë    
+   _ ‚                _ ‚  Ş    
+   ß £ 	   -    I L M O R U X Z \         æ         ‚          ¡  ‡&Õª!«!8   8      V(mf8                             o    y  â¥ `F€ ^PPØ  Ô¡ù†˜        	         4      Ñ   ±²  ²  ²  ²  âo   Ï   âo   Ï   âo   Ï   âo   Ï   âo   Ï 	  âo   Ï   âo	   Î  âo
+   Ï   âo   Ï   âo   Ï   âo   Ï 
+  âo   Ï   âo   Î  âo   Ï   âo   Ï   âo   Î  âo   Î   âo   Î  â¼   äL   ç   u ´    âÂ    ›   —    ¤Ò¥—   ¼   äL   ç   u ´  1  â¼   äL   ç   u ´  >  â¼   äL   ç   u ´  (  â¼   äL   ç   u ´  5  â¼   äL   ç   u ´  B  â¼   äL   ç   u ´  .  â¼   äL   ç   u ´    â¼   äL   ç   u ´  :  â¼   äL   ç    u ´    â¼   äL   ç!   u ´    â¼   äL   ç"   u ´  +  â¼   äL   ç#   u ´  8  â¼   äL   ç$   u ´    â¼   äL   ç%   u ´    â¼   äL   ç&   u ´  <  â¼   äL   ç'   u ´  '  â¼   äL   ç(   u ´    â¼   äL   ç)   u ´     â¼   äL   ç*   u ´  A  â¼   äL   ç+   u ´  ,  â¼   äL   ç,   u ´    â¼   äL   ç-   u ²  â¼   äL   ç.   u ´  $  â¼   äL   ç/   u ´    â¼   äL   ç0   u ´  2  â¼   äL   ç1   u ´    â¼   äL   ç2   u ´  ?  â¼   äL   ç3   u ´  )  â¼   äL   ç4   u ´    â¼   äL   ç5   u ´  6  â¼   äL   ç6   u ²  â¼   äL   ç7   u ´  C  â¼   äL   ç8   u ´  /  â¼   äL   ç9   u ´    â¼   äL   ç:   u ´  ;  â¼   äL   ç;   u ´  %  â¼   äL   ç<   u ´    â¼   äL   ç=   u ´  3  â¼   äL   ç>   u ´    â¼   äL   ç?   u ²  â¼   äL   ç@   u ´    â¼   äL   çA   u ´  #  â¼   äL   çB   u ´  0  â¼   äL   çC   u ´  =  â¼   äL   çD   u ´    â¼   äL   çE   u ´  !  â¼   äL   çF   u ´  -  â¼   äL   çG   u ´  9  â¼   äL   çH   u ´    â¼   äL   çI   u ´    â¼   äL   çJ   u ´  @  â¼   äL   çK   u ´  *  â¼   äL   çL   u ´    â¼   äL   çM   u ´  7  â¼   äL   çN   u ´  "  â¼O   ‚¼P   LQ   LR   æ  ƒ ´    âj   S   k    T   k   U   k   V   k   ´  &  âÂ  &  äLW   çÂ    LX   äLY   çZ   u u š)   —Ç   Â    LX   äLY   çZ   u ™   —Ê   S   —Ê   ´  	  â¼[   ‚¼P   LQ   L\   äL]   çu æ  ƒ äLY   ç^   u V   ²  â¿  š   —Õ   V   Ï  	  â—Õ   Â    LX   äL_   çZ   u    —Ù   â¿  —Ù   š   —Ú   `   ™   —Ú   a   —Ú   ´    â´    â´    â´    â´    â´  
+  â¼   äL   çb   u ¼c    ¼d   ‚æ  ƒ  äLe   çu  u Nf   âog   ´    âÂ    äLh   çi   ¿   y â¿  š"   —è   ¿  äLh   çi   ¿  y â—ê   Â  ,  š%   —ë   Â  ,  äLh   çj   ok   y â—î   Â    š%   —ï   Â    äLh   çj   ol   y â—ò   ¿  š#   —ó   ¿  äLh   çj   om   y â—ö   Â  '  š%   —÷   Â  '  äLh   çj   on   y â—ú   Â    š%   —û   Â    äLh   çj   oo   y â—ş   Â    š$   —ÿ   Â    äLh   çj   ¿  y â—  Â  *  œ   —  âÂ  #  —  šh   —  Ñp   oq   ´    âÂ #  äLh   çr   Â    y âÂ *  äLs   çt   u äLu   çov   y âÂ     y  âÒ—  Â    œ   —  âÂ  0  —  šh   —  Ñw   ox   ´    âÂ 0  äLh   çr   Â    y âÂ   äLs   çt   u äLu   çoy   y âÂ     y  âÒ—  ¼   äLs   çz   u äLu   ço{   y â¿   y  â¼[   ‚¼P   LQ   L\   äL]   çu æ  ƒ äLY   ç|   u ´  4  âÂ  4  š    —(  Â    Â  4  }   y â—)  Â    u  äL~   ço   u äL€   ço   y â¼   äLh   ç‚   oƒ   y âÒ¥ ÿæ `‘ 	P*	` `1€ ]H`‘ 	P*`‘ 	P*`‘ 	P*"`‘ 	P*"`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	PJ`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P(`‘ 	PJ `‘ 	P*`‘ 	P* `‘ 	P*`‘ 	P*"`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	PH*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	PJ4`‘ 	P(%`‘ 	P*#`‘ 	P*#`‘ 	P*#`‘ 	P*!`‘ 	P*!`‘ 	P*&`‘ 	P*(`‘ 	P*&`‘ 	P*"`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*`‘ 	P*!`‘ 	PJE`“ ÿÿÿø*`´ `— PÿÿÿæP¤ :P `— Pÿÿÿ×3P.	``‘@L`— PÁ@N`(`(`(`(`HT`‘ 	P	3Z
+PÿÿÿîPIV`L€ Ï`’  ÿÿÿåP$	`` 'ÿÿÿåP 	` `’ (ÿÿÿæP)	` `’ %ÿÿÿæP)	`` (ÿÿÿæP 	` 	`’ +ÿÿÿæPI€ Ş	` 	`’ 'ÿÿÿæPI€ æ	` `’ (ÿÿÿæP 	`¦ $%`L€ ñ	`’ 0ÿÿÿæP 	`’ 
+P
+(ÿÿÿøPD€ ÿ	`‘ 	`¦ (%#`L€ 
+	`’ 0ÿÿÿæP 	`’ P
+(ÿÿÿøPD€ 	`‘ `‘ 	P
+3ÿÿÿøPD€ +` `— Pÿÿÿ×3P*	` `
+ÿÿÿÿP `‘ ÿÿÿûPJ€ SÿÿÿúPD€ X`‘ +ÿÿÿŞP5€ ]PØ          ÿÿÿÿ            p   Q
+  Y       w   Ú
+  Y       `   ¯»&»`   0                         ¼   š   —   ¼    ½  u ™   —   ½ —   ¢ `—  ÿÿÿüP• ¼   ³ü¼   ‰   
+                     ±²   ²  â½  ä š   —   â   —   ²   â½ ä š   —   â   —   ²  âÂ    ¶    ¿   N   âÂ    L   ¿  N   âÂ    ¿   N   â¥Ì 	`– 	`• 	`+P€œ  ‘ÀXï,  |                -      ±²   â¼    ½  œ   —   â½  L   —   š   —   ½  L   ™   —      —   u äL   çu  ²   â¿   äL   ç   u š'   —   Â    ¶        	   u ¤Ó¥—   ¿   äL   ç
+   u š'   —   Â    ¶           u ¤Ó¥—   ¿   äL   ç   u    —   â¿   äL   ç   u —   š'   —   Â    ¶           u ¤Ó¥—   ¿   äL   ç   u    —   â¿   äL   ç   u —   š'   —   Â    ¶           u ¤Ó¥—   ¿   äL   ç   u œ<   —!   â¿   äL   ç   u    —$   â¿   äL   ç   u —&   š'   —'   Â    ¶           u ¤Ó¥—(   ½  œ   —)   â½  L   —*   š   —+   ½  L   ™$   —,   Â    ¶           u —-   ¤Ó¥Ó¥ &`Á ÿÿÿÿP
+.P(` P'`— PCH` P!`— PCH` P 'P’ `— PCH` P /P’ %`— PCH` P !P P’ `— PCH	`Î 0P(T€€€œ         {  ÿÿÿÿ    ˜              ×              9             ›                          y         \   Cd\   /                          Â  (  ¶  (     N   âÂ  5  ¶  5     N   â¥ 	`— 	`— P€¬   \,`œ   X                         Ñ   ¼   œ   —   â¼    u     —   ´    â¼   äL   ç   u äL   ço   y âÒ¥ %`˜  P• 	`‘ 	P
+3ÿÿÿøPEP€€¬         R   ÿÿÿÿ°  ä4t¿   B                      ±²   ²  ²  ²  â¼   äL   ç½  L   L   u ²   â¿   œ   —   â¿   L      —   š   —	      ™   —	   	   —	   ²  â¿     š>   —   Â    ¶    š   —   
+   ™   —      —   ™4   —   Â    ¶    š   —      ™   —      —   ²  âÂ   ¶    ¿  ¿  u ²  â½  äL   ç   ¿  y â½  ¿  N   âÓ¥ 
+’ `ÿÿÿñP(`Ë `”¹´ `
+ÿÿÿúP(`"ÿÿÿåP$`.	P€°         A  ÿÿÿÿ   İ˜—û   H                 '       ½  Â    ¶    âÏ    âÂ  ,  ¶  ,  œ   —   âÂ    ¶    —   šº   —   Â  ,  ¶  ,  L   äL   ç   Â       y âÂ  ,  äL   ç   ¼    Â       u y âÂ    ¶    L   äL   ç   Â       y âÂ    äL   ç   ¼    Â       u y â—   Â       š…   —   Â    ¶    N	   âÂ    ¶    N	   âÂ    ¶    N	   âÂ     ¶     N	   âÂ  $  ¶  $  N	   âÂ    Â    ¶    y â™¸   —   Â  $  ¶  $  N	   âÂ    ¶    N	   âÂ    ¶    N	   âÂ    ¶    Â  	  ¶  	  
+      —!   âÂ  	     —"   N	   âÂ     ¶     N	   âÂ    Â  	  ¶  	  ;   >   y â—'   ¥ 	`— `² ` )ÿÿÿïP$`’ ,ÿÿÿùPÿÿÿâP$` &ÿÿÿïP$`’ )ÿÿÿùPÿÿÿâPI	`– `“ `“ `“ `“ `“ `ÿÿÿÿP `“ `“ `“ `À `“ `ÿÿÿ÷PIP€€€Ì  £sñ"¼  v  
+             j      ±²   ²  â½  ²   â½ ä š   —   â;   —   gäL   ä š   —   â—   ²  ââ±²  ²  ²  ²  ²  âÂ  &  ¶  &  äL   ç¿   u š   —   ¿   ™   —      —   Â  	  ¶  	  âÏ  	  â¿  ›   —   Â       y â—	   Â  	     ²  âÂ  	     ²  âÂ  	     ²  âÂ  	  	   ²  â;
+   j      k       k      k      k   >   j      k       k      k      k   >   j      k       k      k      k   >   j      k       k      k      k   >	   Â  	  M²  âÂ  +  ¶  +  Â    ¶     ¿  M¿  Mu N   âÂ  8  ¶  8  Â     ¿  M¿  Mu N   âÂ    ¶    Â     ;      >      >      >       >	   Â  	  MÂ  	  u N   âÂ  .  ¶  .  ¿  N!   âÂ  B  ¶  B  ¿     —)   â¿  —)   N!   âÂ  >  ¶  >  ¿  N!   âÂ  1  ¶  1  ¿  N"   âÂ  (  ¶  (  ¿  N"   âÂ  (  ¿     —1   â¿  —1   š   —2   ™   —2   —2   N#   âÂ  5  ¶  5  ¿     —4   â¿  —4   N"   âÂ  5  ¿     —6   â¿  —6   š   —7   ™   —7   —7   N#   âÂ  (  ¿  š   —9   $   ™   —9   %   —9   N&   âÂ  5  %   N&   âÂ  1  Â     '   (   u N)   âÂ  (  ¿  š#   —>   Â     *   +   u ™   —?   Â     ,   -   u —@   N)   âÂ  5  Â     .   /   u N)   âÂ    ¶    ¿  š#   —D   Â     0   1   u ™   —E   Â     2   3   u —F   N   âÂ    ¶    ¿  N!   âÂ    ¶    Â  
+  ¶  
+     —K   âÂ    ¶    4   —L   N!   âÂ    ¶    Â  
+  ¶  
+  ;   —O   â¿  ,   —P   â¿     —Q   âÂ    ¶    4   —R   N!   âÂ     ¶     Â  
+  ¶  
+     —U   âÂ    ¶    4   —V   N!   â¿  š[   —X   Â  <  ¶  <  Â     5   6   u N   âÂ  '  ¶  '  Â     7   8   u N   â™  —\   ¿  š[   —]   Â  <  ¶  <  Â     5   6   u N   âÂ  '  ¶  '  Â     7   8   u N   â™º   —a   ¿  š[   —b   Â  <  ¶  <  Â     9   :   u N   âÂ  '  ¶  '  Â     ;   <   u N   â™V   —f   Â  <  ¶  <  Â     =   >   u N   âÂ  '  ¶  '  Â     ?   @   u N   â—j   Ó¥Ğ (– 	`“ ÿÿÿ÷P¹ ``	PI`‘ `‘ `‘ `‘ `%² ² ² ²L	`™ 	ÿÿÿíP)	`“ !	ÿÿÿíP)	`“ $%****M#PI	`– 	`Ÿ 	`– 	`+	`+	`À 	`ª 	`À 	`³ 	`‘ 	`— P)	`” ‘P-‘P.	`— #P)	`š ‘P-‘P.	`+	`µ 	`Ó 	`µ@/`.` P)` P“ `.` P)` P“ `.` P)` P“ ` P)` PO<P€Ì     P   %  ÿÿÿÿ|   ‡Eƒ@|   =                          Â  
+  ¶  
+  š   —    ¢—   Ï  
+  âÂ 	   Â    ¶    y â¥ `– 	`AF	`(	`
+ÿÿÿÿP$P€€  £^=Z¸  ¦                W      $±²   ²  ²  ²  ²  ²  ²  ²  âÂ  3  ¶  3  ›   —    ¤Ó¥—   Â  3     N   â¼   œ   —   â¼    u     —   ²   â¿   šZ   —	   j      k       k      k   	   k   
+   k      k      k   ™U   —
+   j      k       k      k      k      k      k      k   —   ²  â¼   ‚æ  ƒ  ²  â¿  äL   çu  (.²  â¼   ‚½  L      —   âj    —   æ  ƒ ²  â¿   š   —      ™   —      —   ²  â¿   š   —      ™   —      —   ²  â¿   š   —      ™   —      —   ²  â±²  â²  â˜   ¿  šr  —   ±²	  ²
+  ²  ²  ²  â¼   ‚¿  æ  ƒ ²	  â¿	  äL    ç¿  äL!   çu  ¿  ¿  ))y â¼"   š   —&   ¼"    ¿	  u ™{   —(   ¿	  äL#   çu  3$   (¼%    ¿	  äL&   çu  (u äL'   ç(   u 3($   (¼%    ¿	  äL!   çu  u äL'   ç(   u 3(—;   ²
+  â¿  ¿  ²  â¿  äL)   ç¿
+  u ²  â¼*   äL+   ç,   u ²  â¿  -   ¿  š   —B   .   ™   —B      —B   3(/   (¿  š   —E   0   ™   —E      —E   3(N1   â¿  2   ¿  ¿  M3(3   (¿  š   —K   4   ™   —K   5   —K   3(6   (N   â¿  ¿
+  37   (¿  š   —P   ¿  ™*   —P   ¿  š   —Q   ¿  ™   —Q   ¿  —Q   3(N8   âÂ  3  äL9   ç¿  y âÓ¿  2*Î  â™†ıÿÿ—W   ÓÓ¥ ¢ `– `A"H	`‘@`˜  P“ `ÿ¹ `’ "`P. `¡ ÿÿÿøH
+`¬ `¬ `¬@`f‘ – `	ÿÿÿ÷(`
+PÿÿÿÓP$`— <ÿÿÿîPP
+Pÿÿÿ÷P‘ PPÿÿÿ÷P‘ PO`*`ÿÿÿüPH`‘ 	P(`	 ¯ ¯ `)0‘@*µ@`É `ÿÿÿôPE `—@"P€€  ø         ¥  ÿÿÿÿ    ;               ‘         6  X                ô   TîÉÔ   €                       ±²   âÂ    ¶       —   â¼   ‚—   š   —    ¤Ó¥—   Â    ¶       N   â¼    ½  L   u ²   â¿   äL   ço   y âÓ¥ &`˜ – )`AH	`— `ÿÿÿÿPH	`ÿÿÿøPEPô             ÿÿÿÿ    7          È  <ã¸           	       4      ±²   ²  ²  ²  â¼   äL   ç   u ²   â¿      ½  L   š   —      ™   —      —   3(N   âÂ    ¶     ½  L	   ½  L	   u ²  âÂ     ½  L
+   ½  L
+   u ²  â½  L   š#   —   Â           u ™5   —   Â           u äL   ç   ½  L   u —   ²  â¿      ½  L   š4   —      ½  L   3(   (½  L   3(   (™   —      —   3(   (½  L   3(   (¼    ¿  u 3(   (¼    ¿  u 3(   (½  L   š   —+      ™   —+      —+   3(    (¼    ¿  u 3(!   (N"   âÂ    ¶    äL#   ç¿   y âÓ¥ ’ `‘ 	P(`	³@`
+ÿÿÿóP(`
+ÿÿÿôP(!`’ ‘P-‘PCÿÿÿñPM
+`)6—  ¬ *@.ÿÿÿõP+,ÿÿÿõP+E³ -ÿÿÿõP‘@`“ ÿÿÿôP%	PÈ           ÿÿÿÿŒ  =«Kl                         Ñ   ±²   âÂ   ¶   ›   —    ¤Ò¥—   Â      N   â¼   L   œ   —   â¼   L   L   —   `   —	   âj      k       k   	   k   
+   k      k      k      k      k   —
+   ²   â¼   š   —   ¼    u  ™   —      —   ´    â¿   äL   ço   y âÒ¥ +`– `AH	`‘ `ÿ” `—  P@	`ÿÿÿøPEPŒ          ÿÿÿÿ    $          Ü  ÊÚŸÌ  E  
+                    ¾  Ï    âÑ   ¼   äL   ç   u ´    âÂ       N   âÂ       Â   3(   (Â   Â   ¶   š   —      ™   —   	   —   3(N
+   âÂ    L   Â   N   âÂ    Â   ¶       Â   3(Â   u N   âÂ    äL   ç   Â       Â   3(Â   u y âÂ    äL   ç   o   y âÂ   ¶   äL   çÂ    y âÒ¥
+%`‘ 	P*`‘ `,¸ `— `“ 	ÿÿÿèP)`’ 
+	ÿÿÿèPÿÿÿåP$`’ ÿÿÿæPD`“ !ÿÿÿôP%	P€€€Ü        5  ÿÿÿÿÌ   ˜¹<åÌ   }                          ¼   š$   —   ¼    ;   Â   >   y â—   Â   ¶   äL   ç   u äL   ço   y âÂ    ¶    L   äL	   ç
+   y â¥ `‘ `ÿÿÿıPI`˜ P
+0ÿÿÿøP$` P$P€€€D   ƒ«ÈòD                            ½  L   äL   ç   u ¢ `” P€€ğ    gª¤Ğ   €                         Ñ   Â @  ¶ @  ›   —    ¤Ò¥—   ¼   š   —   ¼    u  ™   —      —   ´    âÂ @  äL   ç   u äL   ço   y âÒ¥ %`– `AH`— P 	`’ P
+'ÿÿÿøPEP€€€ğ         z   ÿÿÿÿ              ¤   ñf””   T                        Ñ   ½  L   L   ´    â½  L   äL   ç   Â    Â   ¶   y â½  o   N   âÒ¥ %`” `” 	ÿÿÿæP$`O	P¤         N   ÿÿÿÿp   Ëhû·p   7                          ¼   š*   —   ¼    ;   Â    ¶    >   y â—   ¥ `‘ `‘ ÿÿÿıPIP€€@  *Dœ"À       
+                $±²   â½  ä š   —   â—   ²   â±²  ²  ²  ²  ²  ²  â¿      —   â—   Â    ¶    âÏ    âÂ  	  ¶  	     ²  â¿  š   —   Â 	      y â ¤Ó¥—   ¼   š   —   ¼    u  ™   —
+   ;   —   ²  âÂ    œ   —   âÂ    L   —      —   â;   —   ²  âÂ    œ   —   âÂ    L   —   š\  —   ¿  L   œ   —   â¿  L	   —   š/  —   ¼
+   š  —   ¼
+    ;   ¿  L      —   â   —   >	   ¿  L   $   —!   â¿  L      —#   â   —#   >   ¿  L   $   —&   â¿  L      —(   â   —(   >   ¿  L   $   —+   â¿  L      —-   â   —-   >   ¿  L   $   —0   â¿  L      —2   â   —2   >   ¿  L   $   —5   â¿  L      —7   â   —7   >   ¿  L    š!   —:   ¼    ¿  L   u ™   —=   ¿  L   —>   >   ¿  L    š!   —A   ¼    ¿  L   u ™   —D   ¿  L   —E   >   ¿  L    š!   —H   ¼    ¿  L   u ™   —K   ¿  L   —L   >   y â—N   ¿  L   ‰   —P   â¿  L    u   —R   â¿  L	   a   —T   âÂ    œ   —U   âÂ    L!   —V   š+   —W   Â    L!   äL"   ç#   u M™   —[      —[   ²  â¿  äL$   çu  %   —^   âÂ    ¶     %   &   u —_   ²  âÂ    ¶    š   —`   Â    ¿  N'   â—a   Â  2  ¶  2  šN   —b   Â  2  ¿     —c   â(   —c   äL$   çu  äL)   çu äL*   çu  N'   â—j   Â    š6  —k   Â    ¶    š6   —l   Â    Â    L!      —n   â   —n   N'   â—o   Â  ?  ¶  ?  šW   —p   Â  ?  +   N,   âÂ  )  ¶  )  š0   —r   Â  )  Â    ¶     -   .   u N'   â—t   Â  6  ¶  6  š   —u   Â  6  N/   â—v   Â    ¶    š   —w   Â    N/   â—x   Â  A  ¶  A  š   —y   Â  A  N/   â—z   ™&  —z   Â    ¶    š0   —{   Â    Â    ¶     0   1   u N'   â—}   Â  ?  ¶  ?  šW   —~   Â  ?  2   N,   âÂ  )  ¶  )  š0   —€   Â  )  Â    ¶     3   4   u N'   â—‚   Â  6  ¶  6  š   —ƒ   Â  6  N/   â—„   Â    ¶    š   —…   Â    N/   â—†   Â  A  ¶  A  š   —‡   Â  A  N/   â—ˆ   Â    ¶    šH   —‰   Â    ¿  L   $   —‹   â¿  L	      —   â   —   N5   â—   Â  #  ¶  #  šH   —   Â  #  ¿  L   $   —‘   â¿  L      —“   â   —“   N5   â—”   Â  0  ¶  0  šH   —•   Â  0  ¿  L   $   ——   â¿  L      —™   â   —™   N5   â—š   Â  =  ¶  =  šH   —›   Â  =  ¿  L   $   —   â¿  L      —Ÿ   â   —Ÿ   N5   â—    Â    ¶    šH   —¡   Â    ¿  L   $   —£   â¿  L      —¥   â   —¥   N5   â—¦   Â  !  ¶  !  šH   —§   Â  !  ¿  L   $   —©   â¿  L      —«   â   —«   N5   â—¬   Â  -  ¶  -  šY   —­   Â  -  ¿  L    š!   —¯   ¼    ¿  L   u ™   —²   ¿  L    —³   N6   â—´   Â  9  ¶  9  šY   —µ   Â  9  ¿  L    š!   —·   ¼    ¿  L   u ™   —º   ¿  L    —»   N6   â—¼   Â    ¶    šY   —½   Â    ¿  L    š!   —¿   ¼    ¿  L   u ™   —Â   ¿  L    —Ã   N6   â—Ä   ¼7   š   —Ç   ¼7    u  ™   —É   ;8   >9   >:   —Ì   ²  âÂ  /  ¶  /  š   —Í   Â  /  ¿  L9   N'   â—Ï   Â    ¶    š   —Ğ   Â    ¿  L:   N'   â—Ò   ¼;   œ   —Õ   âÂ  ;  ¶  ;  —Õ   š	  —Ö   ±²  â¼;    ¿  L9   u ²  âÂ  ;  ¶  ;  Â    ¶     =   >   u 3?   (¿  L@   3(A   (¿  LB   3(N'   âÂ  ;  LC   ¿  LD   ND   âÂ  ;  LC   ¿  LD   3E   (NF   âÂ  ;  LC   ¿  LD   3G   (NH   âÂ  C  ¶  C  š%   —í   Â  C  LI   äLJ   çK   y â—ğ   Ó—ğ   Â    ¿  y âÂ    ¿  y âÂ    y  âÂ 
+   y  â¬±²  ²  â¼M   š   —÷   ¼M    N   u ™   —ù   N   —ù   ²  â¼O   äLP   ç¿  u ²  â¿  œ   —ş   â¿  N   —ÿ   š#   —   ¼O   äLP   çN   u Î  â—  ¿  šÖ   —  ±²	  â¼R   äLS   ç¿  u ²	  â¼T   äLU   ç¿	  u š•   —  ÑV   ´    â´    â¿	  äLW   çoX   y âÂ %  ¶ %  š   —  Â %  Â    N'   â—  Â   ¶   š#   —  Â   Y   Â    3(N'   â—  Ò—  Ó—  Ó™   —   ¤®±²  â²  âÓ—  Â    ša   —  Â  +  ¶  +  Â    ¶     [   \   u N'   âÂ  8  ¶  8  Â     ]   ^   u N'   â™\   —  Â  +  ¶  +  Â    ¶     _   `   u N'   âÂ  8  ¶  8  Â     a   b   u N'   â—  Ó¥£ š 	`©  `—@`.`	P$`AyH	`— )Pœ `»@`« `” ™ `‘ `%£ · · · · · œ 9	ÿÿÿøP  œ =	ÿÿÿøP  œ 9	ÿÿÿøP @&PI&`ş |P `P¥ 
+PM"`– `• `– `¦ 3PP
+
+PN%` `– `± `– `‘ `– ` #PN+`– `’ `– `’ `– `œ `– ` P.`– `‘ `– ` #PN4`– `’ `– `’ `– `’@:`– `Ã `– `Ã `– `Ã `– `Ã `– `Ã `– `Ã@A`– `¢ N	ÿÿÿøP© `– `¢ R	ÿÿÿøP© `– `¢ N	ÿÿÿøP©@F`— $P’  `– `š `– `š@J`­ ;&`	ÿÿÿÿP(`!—P
+.‘ ‘ `š `'– `&– `– `— POU	`ÿÿÿÿP$	`ÿÿÿÿP$	`+	`K[+!`œ $Pœ `ÿÿÿøP(`© `‘ PMa`&"`ÿÿÿúP(`ÿÿÿøP%&`(%`(`ÿÿÿøPDl`– `— `– `#­@p‘@r` `£ P)` P“ `£ P)` POyP€€€@  0     #   ò  ÿÿÿÿ              <   y  ÿ       L   ²        Q   a  Ì      V   ¡  †      Z   @                 ²  †  ¼   ›5¥ ¼   z                         ¼   äL   ç½  L   u š]   —   Â    ¶    ½  L   L   (0Ï    âÂ    ¶    ½  L   äL   ço   u L   (0Ï    â—   ¥ `ÿÿÿøP-`¢ `› ÿÿÿùP–@P€P   fá¬&P   '                         ½  L         —   â½  L   —   ¢ `¦ €€Ä	  T¿<	  İ               s      9¾  Ï    âŠÏ    â¬±²   ²  ²  ²  ²  ²  ²  ²  ²  ²	  âÂ    š   —   Â    äL   çy  â—   Â   ¶   š$   —   Â   L   äL   çu  ™   —      —   ²   âÂ #  ¶ #  š$   —   Â #  L   äL   çu  ™   —      —   ²  âÂ 0  ¶ 0  š$   —   Â 0  L   äL   çu  ™   —      —   ²  âÂ =  ¶ =  š   —   Â =  L   ™   —      —   ²  âÂ   ¶   š   —   Â   L   ™   —      —   ²  âÂ !  ¶ !  š   —   Â !  L   ™   —      —   ²  âÂ -  ¶ -  š   —   Â -  L	   ™   —   —   ²  âÂ 9  ¶ 9  š   —   Â 9  L	   ™   —   —   ²  âÂ   ¶   š   —   Â   L	   ™   —   —   ²  â¿   m   —   âÂ   ¶   œ   —   âÂ   L
+   —   š1   —   Â   ¶   L
+   äL   ç   u M™   —#      —#   ²	  âÂ 7  ¶ 7  šS   —$   Â 7  N   âÂ "  ¶ "  š0   —&   Â "  Â   ¶          u N   â—(   ¬±²
+  â;   ¿   >   ¿  >   ¿  >   ¿  >   ¿  >   ¿  >   ¿  >   ¿  >   ¿  >   ²
+  â¼   š   —5   ¼    ¿
+  y â—7   Â   ¶   š²  —8   ±²  âÂ    u  “”›+   —:   Â    Â    ’   Œ:   š   —;   §—;   ²  â¿  šQ  —<   ±²  â¿  L    äL!   ç;"   ;#   ¿   >$   ¿  >%   ¿  >   ¿  >&   ¿  >'   ¿  >(   ¿  >)   ¿  >*   ¿  >+   >,   u “”›+   —L   Â    Â    ’  ŒL   š   —M   §—M   ²  â¿  œ   —N   â¿  L-   —O   š   —P   ¿  L-   §—Q   ¿  œ-   —R   â¿  L,   œ   —T   â¿  L,   L.   —V   š   —W   ¿  L,   L.   Ï   â—Y   ±²  âÓ—Y   ±²  âÓ—Y   Â   ¶   š   —Z   Â   ¿	  N   â—[   Â 2  ¶ 2  šN   —\   Â 2  ¿	     —]   â/   —]   äL   çu  äL0   çu äL1   çu  N   â—d   Â    Â   š)   —e   Â   ¶    2   3   u ™$   —f   Â   ¶    4   5   u —g   6   y â±²
+  âÓ™^   —h    ¤®±²
+  â²
+  â¼8   äL-   ç9   ¿
+  y âÂ    Â    ¿
+  u -   y â±²
+  âÓ™   —m   °£ ¤Â 7  šS   —n   Â 7  N   âÂ "  ¶ "  š0   —p   Â "  Â   ¶    :   ;   u N   â—r   ¤š   —s   ¨™   —s   ââ—s   ±²   ²  ²  ²  ²  ²  ²  ²  ²  ²	  âÓ ¤£Â    ¤Â    ™   —s   ¯Â    ‘¤Â    —s   ¥“ ª ` `PI`¨ 8Pœ `¨ 4Pœ `¨ 4Pœ `º `º `º `¶  `¶ `¶@`İ DP@`– `-`– ` "PN'`%))))))))N!`‘ `ÿÿÿÿPI%`– & `Pº `&'` %%))))))))N(9Pº@5`§ `/`À `²@<`– `• `– `¦ 3PP
+
+PN?`' —P-—PE?P›@E+`‘ +ÿÿÿİP$`
+ÿÿÿîPÿÿÿÿP˜ $` `-`– ` "PÖ@N±P€Ä	  ”	  D	  '  å        ˜  ÿÿÿÿ   _  <         ú  ¨        O  G     7   «  I               _  D         _               ¯  Ì  Í}1©¼  K                      ±²   â½  Â    ¶    âÏ    âÂ  :  ¶  :  ½  N   âÂ  :  äL   ç   ¼    ½  u y âÂ  :  äL   ç   u ²   â¿   š:   —   ¿   ½  š   —	      ™   —	   	   —	   N
+   â—
+   Â    ¶    ½  š)   —   Â    ¶           u ™Z   —   Â    ¶     ;      >      >      >      >   Â  	  ¶  	  MÂ  	  u —   N   âÓ¥ &	`— 	`• 	`’ 'ÿÿÿùPÿÿÿæP$`’ P(``µ 	`™ —P-’ 
+
+$
+ — ,ÿÿÿfP/P€Ì         J  ÿÿÿÿ¸  “Ì®T¤  8                       %ŠÏ    â¬¼   šs   —   Â   ¶   ›L   —   ¼    u  “”›+   —   Â    Â    ’   Œ   š   —   §—   Ï   â—   Â   ¤™…   —   Â   ¶   š   —	   Â   ¤™^   —	   Â   ¶   š   —
+   Â   ¤™7   —
+   o    u  äL   ço   u Ï   âÂ   ¤™    ¤—   £Â    ¤Â    ™   —   ¯Â    ‘¤Â    —   ¥)`‘ `– `PÁ `F)K`– `F)K`– `F)K	`F#P
+	ÿÿÿúPJ(	`&¼P¸  ¨  V           	        Ón‘Íä  #               G       9ŠÏ    â¬±²   ²  ²  ²  â¼       ;   ;      >   >   u “”›+   —   Â    Â    ’   Œ   š   —   §—   ²   â¿   L	   ›   —
+   ¼
+   ‚   æ  ƒ §—   ¿   äL   çu  “”›+   —   Â    Â    ’  Œ   š   —   §—   ²  â¼    ¿  L      —   â   —   u äL   çu  ²  â¼    ¿  L      —   â   —   u äL   çu  ²  â¿     —   â¿  —   š   —    ¼
+   ‚   æ  ƒ §—"   ¼   L   !   —&   â¼   L   L      —+   šO   —,   ¼   ‚o   æ  ƒ “”›+   —0   Â    Â    ’  Œ0   š   —1   §—1   â—1   ¼   L   !   —5   â¼   L   L      —:   š   —;   ¼
+   ‚   æ  ƒ §—=   ¼   L   äL   ç¿  ¿  ;   ;   >   >   >   >   u Â   ¶   âÏ   âÂ   ¤±²   ²  ²  ²  âÓ™   ±²   ²  ²  ²  âÓ ¤—G   £Â    ¤Â    ™   —G   ¯Â    ‘¤Â    —G   ¥	’ `"ÿÿÿ×Pº `“ `P)`Pº !` ÿÿÿÿP
+P($` ÿÿÿÿP
+&P(` ” `PI`– ¥ `	ÿÿÿôP»@`– ¥ `PI`‘ .%K.P—@`&	âP€€€     ğ  _   Ï   û     	   ã  ÿÿÿÿ    Ô                 	   ÿ  Ô   Ã½Ä   z   
+                   ¾ Ï    â±²   â¼   äL   ç   u ²   â¿      N   â¿   N   â¿   ½  N   â¿   o	   N
+   â¼   L   äL   ç¿   y âÓ¥
+&$`‘ 	P(`/`+`-`/`‘ ÿÿÿôP%P€Ô      
+   o   ÿÿÿÿL   "p¢ÇL                             Â     ¼   ‚   æ  ƒ u ¢ `_ÿÿÿÿP1H   i¯H                             Â   ¶   âÏ   â½  §¥ `• `$	P€€€œ  üD›l                         ±²   ²  âÂ    ¶    L   äL   ç   u ²   â¿   =   —   â¿   äL   ç   u    —	   â¿   äL   ç   u —   š   —      ¤Ó¥—   ¼	   ‚¿   ¼
+   L   L   æ  ƒ ²  â¿  L   ¼
+   L   L   š,   —   ¿  L   ¿  L   (¿  L   (™   —      —   ¤Ó¥Ó¥ *` P(`  PŸ P’ `EH`“ ÿÿÿí(	`	£ 0
+ T€€œ         
+  ÿÿÿÿ    ‡                       Ä  ±~4›¸  ÿ               è      9¾  Ï    âŠÏ    â¬Â    äL   çy  âÂ   ¶   š   —    ¤™  —   Â   ¶   äL   çu  ›   —    ¤™b  —   Â 	  ¶ 	        —   âÂ 	     —	   œ.   —
+   âÂ (  ¶ (  L   Â 5  ¶ 5  L   —   šR   —   Â    Â   ¶          u    y âÂ 5  ¶ 5  äL	   çy  â ¤™ª
+  —   Â    y âÂ    
+   y â¬±²   ²  ²  ²  âÂ    u  “”›+   —   Â    Â    ’   Œ   š   —   §—   ²  âÂ 1  ¶ 1  L   äL   çu  ²  â ²   âÂ 	  ¶ 	     šz  —   ¿  L   äL   ç;   ¿  >   Â (  ¶ (  L   >   u “”›+   —$   Â    Â    ’  Œ$   š   —%   §—%   Î   â¿   L   š   —'   ¿   L   §—(   ¿   L   L   Â   ¶   âÏ   â¼   š   —-   ¼    Â   L   y â—0   ¼   š   —3   ¼    Â   L   y â—6   Â    Â   y âÂ 	      y âÂ    Â   ¶          u    y â ¤±²   ²  ²  ²  âÓ™6  —:   Â 	     š8  —<   ±²  â¼   š   —?   ¼    u  ™   —A   ;   —B   ²  â¿  L   äL   ç;    ¿  >   Â (  ¶ (  L   >   ;!   ¼"   L#   L$   3%   (>&   ;'   ¿  L(       —Q   â¿  äL)   ç*   u M—T   >+   ¿  L,      —W   â
+   —W   >-   ¿  L.      —Z   â
+   —Z   >.   ¿  L/      —]   â0   —]   >1   ¿  L2      —`   â3   —`   >4   ¿  L5      —c   â6   —c   >7   ¿  L8    >9   ¿  L:    >;   ¿  L<    >=   >   >>   u “”›+   —n   Â    Â    ’  Œn   š   —o   §—o   Î   â¿   L   š   —q   ¿   L   §—r   ¿   L   œl   —t   â¿   L   L   œS   —w   â¼?   äL@   ç¿   L   L   LA   u œ&   —~   â¿   L   L   LA   LB    —‚   šX   —ƒ   Â    Â   ¶    C   D   u    y â ¤±²  âÓ±²   ²  ²  ²  âÓ™<  —…   ¿   L   LE   šÇ   —ˆ   ¿   L   L   Â   ¶   âÏ   â¼   š   —   ¼    Â   L   y â—   ¼   š   —“   ¼    Â   L   y â—–   Â    Â   y âÂ 	      y â ¤±²  âÓ±²   ²  ²  ²  âÓ™b  —˜   Â    y  âÂ       y âÂ    Â   ¶    F   G   u    y â ¤±²  âÓ±²   ²  ²  ²  âÓ™ô  ±²  âÓ—œ   Â 	  H   šá   —   ¿  L   äLI   ç¿  ;J   ¼"   L#   L$   3K   (>L   u “”›+   —¨   Â    Â    ’  Œ¨   š   —©   §—©   Î   â¿   L   š   —«   ¿   L   §—¬   Â    Â   ¶    M   N   u    y â ¤±²   ²  ²  ²  âÓ™û  —®   ¿  L   äLO   çu  “”›+   —²   Â    Â    ’  Œ²   š   —³   §—³   gäL   ²  ââ¿     —¶   â¿  LE   —¸   šl   —¹   Â    y  âÂ       y âÂ    Â   ¶    P   Q   u    y â ¤±²   ²  ²  ²  âÓ™  —½   ¿  L   äLR   ç;S   Â (  ¶ (  L   >   u “”›+   —Ä   Â    Â    ’  ŒÄ   š   —Å   §—Å   Î   â¿   L   š   —Ç   ¿   L   §—È   Â    y  âÂ       y â¿   L   œ   —Ì   â¿   L   L   —Î   š£   —Ï   ¿   L   L   Â   ¶   âÏ   â¼   š   —Ô   ¼    Â   L   y â—×   ¼   š   —Ú   ¼    Â   L   y â—İ   Â    Â   y âÂ 	      y â—ß   Â    Â   ¶    T   U   u    y â±²   ²  ²  ²  âÓ™^   —á    ¤®±²   â²   â¼W   äL   çX   ¿   y âÂ    Â    ¿   u    y â±²   âÓ™   —æ   °£ ¤Â    y â¤š   —è   ¨™%   —è   â¡           —è   ™   —è    ¤—è   £Â    ¤Â    ™   —è   ¯Â    ‘¤Â    —è   ¥“ 	`P$`– `AlK`“ P`AlK`Ê G¡ `
+—PÿÿÿÿP$`“ P$`AlK	`P$	`	PD“ `Pº `˜ PF`œ ` .	– ÿÿÿäPº `“ `/`¢ `‘ )`ÿÿÿÿP)`‘ *`ÿÿÿÿP)`ÿÿÿÿP$`	P$`
+—PÿÿÿÿP$`Al¡@`– &&`— )Pœ ` "%)– % › %¤ 0P/£ £ £ £ £ ‘ ‘ ›@!,Pº@3`“ `O5`¹ 1“ ÿÿÿøP¸ `
+—PÿÿÿÿP$`Al¨@:`˜ `¢ `‘ )`ÿÿÿÿP)`‘ *`ÿÿÿÿP)`ÿÿÿÿP$`	P$`Al¨@C`+`P$`
+—PÿÿÿÿP$`Al¯@I`– ` 1% ›@J,Pº@M`“ `/`
+—PÿÿÿÿP$`Al¡@R/` PÂ ` ™ `+`P$`
+—PÿÿÿÿP$`Al¡@Z` &– ÿÿÿóPº `“ `/`+`P$`± `¢ `‘ )`ÿÿÿÿP)`‘ *`ÿÿÿÿP)`ÿÿÿÿP$`	PIe`
+—PÿÿÿÿP§ +`‘ 3ÿÿÿÕP$`
+ÿÿÿîPÿÿÿÿP˜ $`Pº@l¶P€Ä  ”  Ô  €  0  8    ¼  ¹	  ¹     G  Õ	  ÿÿÿÿ    D            g  .         +            >                                  s            †                         a	         V   ,  I   ÿÿÿÿ        G  İ	         G  6
+             Ñ  ø  Q”„¤                        9ŠÏ    â¬Â   ¶      —   âÂ   ¶   —   š   —    ¤™š  —   Â   ¶   N   â¬±²   âÂ   ¶   L   äL   çu  “”›+   —   Â    Â    ’   Œ   š   —	   §—	   gäL   ²   ââ¿   š   —   ¿   §—   ¼   š   —   ¼       y â—   Â   ¶   âÏ   âÂ    y âÂ 	      y âÂ    Â   ¶    	   
+   u    y â±²   âÓ™E   —    ¤®±²   â²   âÂ    Â    ¿   u    y â±²   âÓ™   —   °£ ¤Â   N   â¤š   —   ¨™   —   ââ—    ¤—   £Â    ¤Â    ™   —   ¯Â    ‘¤Â    —   ¥)`³ `AK	`“ '`˜ PÂ ``*`‘ )`P)`• `P$`	P$`
+—PÿÿÿÿP› +`
+ÿÿÿîPÿÿÿÿP˜ $`ª@¶P€€ø  È  ¨  š      \   ÿ   ÿÿÿÿ   k  0   ÿÿÿÿ        \            \   G          	   é  <   ×j´]<                             Â 	      u ¢ `	P
+€€€<   r<ãT<                             Â 	      u ¢ `	P€€€<   r<ãT<                             Â 	      u ¢ `	P€€€    ´†    c                          Â    y  âÂ    Â  	  ¶  	     š   —      ™   —      —   y âÂ  1  ¶  1  äL   çy  â¥ `+`µ ÿÿÿÿP$`“ P$	P€€€h   lßeth   3                          Â    y  âÂ       y âÂ  1  ¶  1  äL   çy  â¥ `+`P$`“ P$	P€´   ¦Ä¤   ^                  
+       Ñ   Â #  ¶ #  L   äL   çu  äL   çu  ´    âÂ *  ¶ *  äL   ç   u äL   ço   y âÒ¥ %`˜ P
+P*`˜ 
+P
+(ÿÿÿøPE	P€€´         X   ÿÿÿÿì   xÿ_‚Ü                          ±²   â½  L   L      —   â½  L   —   äL   çu  äL   çu  ²   â½  L   äL   ç	   ¼
+    Â    ¶    œ   —   âÂ    ¿   —   u y âÓ¥ &`¬ 'P
+P(`”   
+ÿÿÿáPÿÿÿïP%P€€€ì             ÿÿÿÿX   ÷YûX   &   
+                     ¾  Ï    âÂ    äL   ç   o   y â¥*`’ ÿÿÿæPD	P€,  ã ‘í  È                        ±²   âÂ    L   L      —   âÂ    L   —   ²   âÂ #  ¶ #  L   äL   çu  äL   çu  ¿   äL   çu  š    —   Â #     N   â™   —   Â #  ¿   N   â—   Â   ¶    y  âÂ #  äL	   çy  âÓ¥ &`° `˜ P
+PP.`› `•@`‘ `P%P€€€,         Ç   ÿÿÿÿØ   ğ„BÈ   w                         Ñ   Â 0  ¶ 0  L   äL   ç   u äL   ço   u äL   ç¼   u ´    âÂ   ¶   äL	   ç
+   u äL   ço   y âÒ¥ %"` P
+ÿÿÿüP
+(ÿÿÿùP*`˜ P
+(ÿÿÿøPE	PØ         q   ÿÿÿÿD   iQD                            ½  äL   çu  äL   çu  ¢ `
+P
+PÔ   $ëËÑÄ   x                       ±²   â½  L   L      —   â½  L   —   äL   çu  äL   çu  ²   â½  L   äL   ç	   Â    ¶    äL
+   ç¿   u y âÓ¥ &`¬ +P
+P(`”  “ ÿÿÿ÷PÿÿÿâP%P€€€Ô          w   ÿÿÿÿX   !|‚X   &   
+                     ¾  Ï    âÂ    äL   ç   o   y â¥*`’ ÿÿÿæPD	P€È  Şş´¸  5                       Ñ   ±²   ²  ²  âÂ   L   L      —   âÂ   L   —   ´    âÂ 0  ¶ 0  L   ²  â¿  äL   ç   u äL   ço	   u äL
+   ç¼   u ²   â¿   äL   ço   u ²  â¿  ÿš#   —   ¿   äL   ç¿  y â™   —   ¿   äL   çÂ    y â—   Â 0  ¿   äL   ç   u N   âÂ   ¶    y  âÂ 0  äL   çy  âÒ¥ “ "`² `– ` P
+ÿÿÿüP
+ÿÿÿùP(`ÿÿÿöP(`‘ `ÿÿÿùP `ÿÿÿûPI
+`– $P)`‘ `P%P€È        /  ÿÿÿÿ8   E…è8                            ½  äL   çu  ¢ `
+P€T   ÄB|T   %                         ½  äL   çu  Â    ¶    äL   çu  ¢ `
+P“ 	PX   ~ÅX   &   
+                     ¾  Ï    âÂ    äL   ç   o   y â¥*	`’ !ÿÿÿæPD	P€L  ÉÖq1,  Ù                        ±²   ²  â¼   äL   çÂ    L   L   u ²   â¿   ›   —    ¤Ó¥—   ¿   L      ²  â¿   ¿  š   —	      ™   —	      —	   N   âÂ    äL	   ç
+   u ¿  š   —      ™   —      —   N   âÂ    y  âÓ¥ *` ÿÿÿñP(``A	H`” `± `’ P° `,	PL         Ø   ÿÿÿÿ    ?          ô  %jÌ|Ğ  
+               6      9¾  Ï    âŠÏ    â¬±²   ²  âÂ    L   äL   ço   y âÂ    L   äL   çu  “”›+   —   Â    Â    ’   Œ   š   —	   §—	   gäL   ²   âäL   ²  ââ¿  š   —   ¿  §—   ¿   L   œ   —   âÂ 	  ¶ 	  	   —   š  —   ¿   L   L
+   Â   ¶   âÏ   â¼   š   —   ¼    Â   L   y â—   ¼   š   —   ¼    Â   L   y â—   Â    Â   y âÂ   ¶   L   äL   ç   u œ   —#   âÂ 4  ¶ 4  —$   š4   —%   Â    Â   ¶          u    y â—'   ™å   —'   Â   ¶   L   äL   ç   u œ   —+   âÂ 4  ¶ 4  —,   š9   —-   Â    Â   ¶          u    y â™j   —/   Â 	  ¶ 	  	   œ   —1   â¿   L   —3   š4   —4   Â    Â   ¶          u    y â—6   ±²   ²  âÓ ¤£Â    ¤Â    ™   —6   ¯Â    ‘¤Â    —6   ¥“ 
+*	`’ ÿÿÿîPD!`’ PÍ ``*`µ `¢ `‘ )`ÿÿÿÿP)`‘ *`ÿÿÿÿP)`ÿÿÿÿP$` Pœ `
+—PÿÿÿÿP“@` Pœ `
+—PÿÿÿÿP.` ™ `
+—PÿÿÿÿP”@"±Pô  ä  Ô  j         Å  ÿÿÿÿ           Ü  ø  lFQ­ø  u                        ½     š5   —      Â 	  ¶ 	  âÏ 	  âÂ 	      y â ¢—   ½ œ   —   âÂ 	  ¶ 	     —   š’   —   ½ L   Â   ¶   âÏ   â¼   š   —
+   ¼    Â   L   y â—   ¼   š   —   ¼    Â   L   y â—   Â    Â   y â™z   —   ½ œ   —   âÂ   ¶   —   šP   —   Â   ¶   âÏ   â¼   š   —   ¼       y â—   Â    y â—   ¥ `“ `™ `	P$`A	F`¯ `œ `‘ )`ÿÿÿÿP)`‘ *`ÿÿÿÿP)`ÿÿÿÿP.`ª `• `‘ )`P)`PI	PL   Š¶ÊL                            ¼   äL   ç   ½  y â¥ 	`‘ Pÿÿÿ¸PDP€€¬   şû›Ğ¬   f                          Â    y  âÂ    Â    ¶    y âÂ    ¶       š,   —   Â    Â  	  ¶  	  ;   >   y â—   ¥ 	`+	`ÿÿÿÿP$`œ `ÿÿÿ÷P)P€3õØ  `o   o  h  p  n  q    `  `!    o   s  Ñ   t  u  v  w  x  y  z  {  |  }  ~    €    ‚  ƒ  „  …  †  ‡  ˆ    `o   í  
+  `  `    p    ×  ¹  ‘  ’  “  ”  •  –  —  ˜      `	  `Œ  —       —     p  `›  œ    a  —    !  `  q  W  X     @¡    `  @¡    `Ñ   U  o   V  W  X    @¨  ©  ª  «  ¬  ­  ®  ¯  °  ±  ²  ³  ´  µ  ¶  ·  h    @¸  ¹  º  »  q  …  ¼  ¾  ¿  ½  Á  Â  À  Ã  Ä  Å  Æ  Ç  È  É  Ê  Ë  Ì  a  Í  Î  Ï  Ğ  Ñ  Ò  Ó  Ô  Õ  Ö  ×  Ø    `  `  `o   Ü  Œ  — ß  à  á  â  ã  ä  å  Â Ã Ä Å Æ Ç ±	   è  C  ê  ì  í  ï  ğ  ò  ó    `  `ô  õ  ÷  i  -  !  ø  ù  0  ¿     ı  ş         æ  ÿ             `  `  ı  ş     ÿ        {         o      ! " # $ % & ' ( Ü     `  `	 o   Ü   —     p  `›  >     `<   @8   = —     p›         `  `  ı    ×  7      o   ÿ  p  8 9   —  ˜  : ;   p   `  `o   Ü  Q  + * , - . / 0 1 2 3 5 —     p"  `<   @B    `!  `p  B ›  œ      pC   `  `Œ  Ò   A —     p*  `®  b   ‡ )  `  ‚ … ú   †   p#  `$  `X  `  G   @H   @I J <   @o   L K M O N P R Q S U T V X   W Z Y \ [ ^ _   @  a b c h  S  d e f ÿ  g h q  i j k l m í  n p 	  @q  r %  `t u    v  -  ²   E w E  x ›     y &  `{ | ~  '  `     ‚ (  `—     pˆ +  `‰ Š ‹ Œ     ,  `-  `“ í  a o   P S V n _   @  c › œ  h  .  `
+  @J K M N Q T W Y [ < /  `0  ``  ¢   @  @I L O R U X Z \ £ {   D S  d e ¤ ¥ ¦ § ¨ 1  `© ª « ¬ 2  `3  `› —  ¯ !  ° i  ± ² ÿ  œ    @¸  U  ¹  V  º  W  »  X  h  9  `#  Æ 7  `8  `  ı    Ã Â    Ä   pÅ Ç  5  `6  `µ ¶   @  @¹ ¸ ·  #  º ò   !  ¼ o   a ¾ ¿ Q  À Á   W    pÈ   @  @É Ê Ë `  :  `4  `³   p*     p;  `<  `Z  £   5  Î /  Ï Ğ P  Q  R  Ò Ó |  ]  =  `“ Õ V  X  í  Ö × {   Ø o   >  `a U  `  Ù   @_ ‚  £ D Ú  Û a  ‰ Ü ¨ ?  `G   @İ   @  @Q  R  Ò à ß   @J   @  I K L M N P O Q S R T V U W X Y Z [ \ Ş   ‚ á ú   €    â ã ä W  å   @ç æ è é ë |  }  ¢   @ì í @  `© î A  `› B  ``  ï {   Ú o   a  ğ ñ ¨ C  `D  `l  E  `a  F  ``  G  ``  H  `U  V  Ø I  `W  Ø M  `N  `p  ø h  a s  ›  œ      K  `L  `í  a s    õ —   (  pP  `Q  `p  ø h  í  a s  o   Ø O  `: ; *  pU  `a s  V  `W  `p  ü h  a s  ›  œ    Ñ   S  `T  `í    ,  û ,  p†     õ —   -  p[  `a \  `s  Y  `Z  `p  ü h  í    ,  û 0  p†      1  p   î    Ø X  `: ; /  p^  `_  `    p    ×  ‚  ¹  ° i    ÿ  ]  `: ; 3  pb  `	 X  `  D Ú  Û o   `  `a  ``   5  pë £ {   â X  D Ú  Û Z  ¿   
+   ¨  |  }  c  `©   d  ``    @¡    `  `  `  p  p  p  p  p	  p
+  p  p  p  p  p  p  p  p  p  p   p!  p          	                                 !  "  #  $  %  &  '  (  )  *  +  ,  -  .  /  0  1  2  3  4  5  7  9  ;  =  ?  A  C  E  G  I  J  K  L  M  N  O  P  Q  R  S  U  V  W  X  Ñ   Z  £   Y  \  ]  ^  ×  ¿   `  a  g  !    i  h    p: ò ; "  p#  p$  p%  p&  pJ  `'  pÙ     õ —   )  pR  `+  p.  p  2  p {   º  4  p*   6  p 7  p   `  pÿX„Ó                O  „            ®     j      !
+        m              r        #      ‰        7   	   Š        &           ! @      ™        N   A                  Ù           :   Ú        î             Ê   $        !      )                 ! ú           ! ö           ! 9     ?       0  	        ! ,          ! L  c   Ÿ        E          ! A          ! ¯  <   ‘        ë     ­       3                         !           !           ! 2          ! 8     Ì       H  Y   Ô        ¡     ï        °             ! ²             ! ´             ! ¶             ! º             ! È  	   ó     !
+ ½          ! Û             ! Ñ  
+           ! í     ù     !
+ ß          ! â          !              ! ş             ! ú           ! ü     !     ! #             !              ! 0             ! '  	           ! G             ! K             ! H©À      d°      d°                €~   _°  f   _°                    \    \  X                u  ı  c  ı  Z                 ´    ´  `               Ñ  &  º  &  j               M    ,    o   &             á    á    q   E            k  U!  Y  U!  ~                k!  0  [!  0  ˜               ×0  41  Â0  41  ×                …1  ~8  j1  ~8  Ş               ¿8  Ì=  ª8  Ì=                –9  Ä=  –9  Ä=               >  €B  ï=  €B    !           €j?  xB  j?  xB  %             ø@  9B  ø@  9B  ,  +             ÛA  üA  ÛA  üA  0  V           ÀB  ºD  ¦B  ºD  8              zC  ²D  zC  ²D  ;  B            
+D  §D  
+D  §D  >               <E  ib  "E  ib  G             b^  q_  b^  q_  ­  &            _  8_  _  8_  °  9          @€æb  r  Ìb  r  Ã              #r  ]t  r  ]t              D€†t  1|  ct  1|    (           D€²u  ±{  ¬u  ±{  &              €:x  òy  :x  òy  /  #            jy  ¨y  jy  ¨y  4  &             »{  
+|  »{  
+|  A              N|  Û}  7|  Û}  I             @€ú}  œ“  á}  œ“  P            @€¸“  V–  ¢“  V–  ¾               3—  M—  3—  M—  Ô  @             ‰—   —  ‰—   —  Õ  :             â—  ù—  â—  ù—  Ö  @             L˜  Ù˜  L˜  Ù˜  Ù  4             *™  ˜™  *™  ˜™  á  0            |š  ã›  |š  ã›  ì               ›  ×›  ›  ×›  î  ?          €hœ  J  hœ  J  õ  ;            œ  >  œ  >  ö  ,            Á  S   Á  S     #             Ÿ  0Ÿ  Ÿ  0Ÿ    M            …Ÿ  G   …Ÿ  G     C          €à   ££  à   ££    ?           ¡  —£  ¡  —£    ,             Ñ¡  Ş¡  Ñ¡  Ş¡    0            ¢  R¢  ¢  R¢    -          €
+¤  Ë¥  
+¤  Ë¥  !  A            ?¤  Ã¥  ?¤  Ã¥  "  *           D€.§  §®  (§  §®  3  '            `§  Sª  `§  Sª  4  '            ¯®  ‡¯  ¯®  ‡¯  U              º¯  [°  º¯  [°  Z  0           5¡İĞ•T<C_£İ      jÎjÎJ	ãIjÎ)Š   Q    O^partitionKey=%28http%2C127.0.0.1%29,:http://127.0.0.1:5888/auth.js?v=20261003-2 strongly-framed 1 request-method GET response-head HTTP/1.0 200 OK
+Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:42:26 GMT
+Content-type: text/javascript
+Content-Length: 45156
+Last-Modified: Mon, 12 Oct 2026 13:02:18 GMT
+ original-response-headers Server: SimpleHTTP/0.6 Python/3.12.3
+Date: Tue, 13 Oct 2026 10:42:26 GMT
+Content-type: text/javascript
+Content-Length: 45156
+Last-Modified: Mon, 12 Oct 2026 13:02:18 GMT
+ ctid 2 net-response-time-onstart 109 net-response-time-onstop 118 alt-data 1;45156,javascript/moz-script-bytecode-20261005135250-8l alt-data-from-child 1     _l

@@ -1,7 +1,8 @@
 .main-career {
-    padding-top: 160px;
-    padding-bottom: 60px;
+    padding-top: calc(160px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
     min-height: 100vh;
+    min-height: 100dvh;
 }
 .container {
     max-width: 1000px;
@@ -56,6 +57,10 @@
     font-weight: 500;
     cursor: pointer;
     transition: 0.2s;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .btn-reset:hover {
     background: #ff4d4d;
@@ -349,7 +354,10 @@
 }
 
 @media (max-width: 768px) {
-    .main-career { padding-top: 100px; padding-bottom: 16px; } /* navbar mobile cao 64px */
+    .main-career {
+        padding-top: calc(76px + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    }
     .container { padding: 0 12px; }
     .chat-card {
         height: calc(100vh - 132px);
@@ -364,9 +372,15 @@
     .chat-messages { padding: 14px 12px; gap: 14px; }
     .message { max-width: 95%; }
     .message .content { font-size: 0.88rem; padding: 10px 14px; }
-    .chat-input-area { padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); }
+    .chat-input-area { padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); }
     /* 16px để iOS Safari không tự zoom khi focus vào ô nhập */
     .chat-input-area textarea { font-size: 16px; padding: 10px 14px; }
     .btn-send { padding: 0 16px; font-size: 0.85rem; }
     .quick-actions { padding: 0 12px 10px; }
+}
+
+@media (max-width: 480px) {
+    .main-career {
+        padding-top: calc(106px + env(safe-area-inset-top, 0px));
+    }
 }
