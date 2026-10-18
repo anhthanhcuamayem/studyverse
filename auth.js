@@ -656,6 +656,21 @@
                     return;
                 }
 
+                // Gửi email chào mừng và xác nhận kích hoạt qua Resend
+                try {
+                    fetch('/api/auth/send-verification', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email,
+                            displayName: localProfile.displayName || email.split('@')[0],
+                            redirectTo: `${window.location.origin}/account.html?confirmed=1`
+                        })
+                    }).catch(err => console.warn('Resend verification dispatch error:', err));
+                } catch (err) {
+                    console.warn('Could not trigger backend verification:', err);
+                }
+
                 clearPasswords();
                 setMode('login');
                 setNotice(translate('account.signupCheckEmail', 'Tài khoản đã tạo. Hãy mở email xác nhận để hoàn tất đăng ký.'), 'success');
@@ -663,12 +678,31 @@
             }
 
             if (mode === 'forgot') {
-                result = await client.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/account.html?mode=recovery`
-                });
-                if (result.error) throw result.error;
-                setNotice(translate('account.emailSent', 'Nếu địa chỉ email hợp lệ, liên kết đặt lại mật khẩu sẽ sớm được gửi đến hộp thư của bạn.'), 'success');
-                return;
+                // Ưu tiên gửi qua Resend Backend (với link an toàn từ Supabase Admin)
+                try {
+                    const resp = await fetch('/api/auth/forgot-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email,
+                            redirectTo: `${window.location.origin}/account.html?mode=recovery`
+                        })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok || !data.ok) {
+                        throw new Error(data.error || 'Lỗi khi gửi email đặt lại mật khẩu.');
+                    }
+                    setNotice(translate('account.emailSent', 'Nếu địa chỉ email hợp lệ, liên kết đặt lại mật khẩu sẽ sớm được gửi đến hộp thư của bạn.'), 'success');
+                    return;
+                } catch (backendErr) {
+                    console.warn('Resend backend forgot-password failed, falling back to client SDK:', backendErr);
+                    result = await client.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}/account.html?mode=recovery`
+                    });
+                    if (result.error) throw result.error;
+                    setNotice(translate('account.emailSent', 'Nếu địa chỉ email hợp lệ, liên kết đặt lại mật khẩu sẽ sớm được gửi đến hộp thư của bạn.'), 'success');
+                    return;
+                }
             }
 
             const { data: recoverySession } = await client.auth.getSession();

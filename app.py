@@ -50,6 +50,7 @@ from flashcard.flashcard_utils import (
     build_ai_prompt,
     parse_ai_cards_response,
 )
+import mailer
 #python -m http.server 8000
 #.venv/bin/python app.py
 # Studyverse gọi AI qua FreeLLMAPI (Freellmapi), không dùng OmniRoute nữa.
@@ -73,11 +74,20 @@ AI_PROVIDERS = {
         'key': os.environ.get('GROQ_API_KEY'),
         'base_url': (os.environ.get('GROQ_BASE_URL') or '').strip() or GROQ_DEFAULT_BASE_URL,
         'model': (os.environ.get('GROQ_MODEL') or '').strip() or 'openai/gpt-oss-120b',
+        'vision_model': (os.environ.get('GROQ_VISION_MODEL') or '').strip() or 'llama-3.2-11b-vision-preview',
+    },
+    'gemini': {
+        'key': os.environ.get('GEMINI_API_KEY'),
+        'base_url': (os.environ.get('GEMINI_BASE_URL') or '').strip() or 'https://generativelanguage.googleapis.com/v1beta/openai/',
+        'model': (os.environ.get('GEMINI_MODEL') or '').strip() or 'gemini-1.5-flash',
     },
 }
 
-# Thứ tự ưu tiên: gateway chính trước, Groq là phương án dự phòng.
-AI_PROVIDER_ORDER = ['freellmapi', 'groq']
+# Thứ tự ưu tiên: gateway chính trước, Groq/Gemini là phương án dự phòng.
+_raw_order = os.environ.get('AI_PROVIDER_ORDER', 'freellmapi,groq,gemini')
+AI_PROVIDER_ORDER = [p.strip() for p in _raw_order.split(',') if p.strip() in AI_PROVIDERS]
+if not AI_PROVIDER_ORDER:
+    AI_PROVIDER_ORDER = ['freellmapi', 'groq', 'gemini']
 
 # Timeout cho mỗi lời gọi AI (giây). Đủ ngắn để phát hiện gateway chính không
 # khả dụng mà chuyển sang Groq, nhưng vẫn đủ dài cho stream bình thường.
@@ -279,12 +289,13 @@ def get_json_body():
 DAYS_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
-def request_ai(messages, max_tokens, provider=None, on_delta=None):
+def request_ai(messages, max_tokens, provider=None, on_delta=None, has_image=False):
     """Gọi AI qua provider được chỉ định (hoặc tự nhận diện nếu không chỉ định).
 
     Trả về (reply, None) khi thành công, hoặc (None, (response_json, http_status)) khi lỗi.
     Nếu `on_delta` được truyền, dùng chế độ stream và gọi lại on_delta(text) cho từng mảnh,
     rồi trả về văn bản đầy đủ đã ghép.
+    Nếu `has_image` là True, tự động ưu tiên model hỗ trợ thị giác (Vision: Gemini / Groq Vision).
     """
     # Lỗi trả về dạng (dict, status) thay vì jsonify để an toàn khi gọi từ thread
     # không có application context (ví dụ worker của endpoint streaming).
@@ -306,6 +317,12 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None):
     # ít nhất một lựa chọn để còn thử và báo lỗi thật cho người dùng.
     active = [name for name in chain if not _provider_cooling_down(name)] or list(chain)
 
+    # Nếu có ảnh và user không chỉ định nhà cung cấp cụ thể, ưu tiên Gemini > Groq Vision > FreeLLMAPI
+    if has_image and not wanted:
+        priority_vision = [p for p in ('gemini', 'groq', 'freellmapi') if p in available and not _provider_cooling_down(p)]
+        if priority_vision:
+            active = priority_vision + [p for p in active if p not in priority_vision]
+
     last_error = None
     streamed_any = False  # Đã gửi ít nhất một mảnh stream cho client chưa?
     for name in active:
@@ -318,6 +335,12 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None):
             finish_reason = None
             chunks = []      # mọi mảnh content đã nhận của lượt hiện tại
             emitting = False  # đã bắt đầu gửi mảnh cho client chưa?
+
+            # Chọn model phù hợp: nếu có ảnh và đang dùng Groq, chuyển sang vision model
+            model_to_use = cfg['model']
+            if has_image and name == 'groq':
+                model_to_use = cfg.get('vision_model', 'llama-3.2-11b-vision-preview')
+
             # Model "suy luận trước" (reasoning, vd gpt-oss trên Groq) tiêu token vào
             # phần suy nghĩ trước khi viết câu trả lời. Hệ quả: content có thể rỗng,
             # bị cắt (finish_reason="length") hoặc chỉ đúng 1-2 token dù request thành
@@ -326,7 +349,7 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None):
             # lời ngắn bất thường hoặc bị cắt sẽ được thử lại khi còn có thể.
             for _attempt in range(3):
                 response = client.chat.completions.create(
-                    model=cfg['model'], messages=messages, temperature=0.7, max_tokens=budget,
+                    model=model_to_use, messages=messages, temperature=0.7, max_tokens=budget,
                     stream=stream,
                 )
                 finish_reason = None
@@ -427,6 +450,107 @@ def public_config():
         ).strip(),
     })
 
+
+# ==================== PHẦN GỬI EMAIL & XÁC THỰC QUA RESEND ====================
+@app.route('/api/auth/forgot-password', methods=['POST'])
+def api_auth_forgot_password():
+    """Gửi email đặt lại mật khẩu bằng Resend với link an toàn từ Supabase Admin."""
+    data, error = get_json_body()
+    if error:
+        return jsonify({'ok': False, 'error': error}), 400
+
+    email = (data.get('email') or '').strip()
+    if not email:
+        return jsonify({'ok': False, 'error': 'Vui lòng cung cấp địa chỉ email.'}), 400
+
+    default_redirect = f"{request.host_url.rstrip('/')}/account.html?mode=recovery"
+    redirect_to = (data.get('redirectTo') or '').strip() or default_redirect
+
+    ok, res = mailer.send_password_reset_email(email=email, redirect_to=redirect_to)
+    if not ok:
+        return jsonify({'ok': False, 'error': res.get('error', 'Lỗi khi gửi email đặt lại mật khẩu.')}), 500
+
+    return jsonify({'ok': True, 'message': 'Đã gửi liên kết đặt lại mật khẩu thành công.'})
+
+
+@app.route('/api/auth/send-verification', methods=['POST'])
+def api_auth_send_verification():
+    """Gửi email chào mừng và xác nhận kích hoạt tài khoản bằng Resend."""
+    data, error = get_json_body()
+    if error:
+        return jsonify({'ok': False, 'error': error}), 400
+
+    email = (data.get('email') or '').strip()
+    if not email:
+        return jsonify({'ok': False, 'error': 'Vui lòng cung cấp địa chỉ email.'}), 400
+
+    default_redirect = f"{request.host_url.rstrip('/')}/account.html?confirmed=1"
+    redirect_to = (data.get('redirectTo') or '').strip() or default_redirect
+    display_name = (data.get('displayName') or '').strip() or None
+
+    ok, res = mailer.send_signup_verification_email(
+        email=email,
+        redirect_to=redirect_to,
+        display_name=display_name
+    )
+    if not ok:
+        return jsonify({'ok': False, 'error': res.get('error', 'Lỗi khi gửi email xác nhận.')}), 500
+
+    return jsonify({'ok': True, 'message': 'Đã gửi email xác nhận tài khoản thành công.'})
+
+
+@app.route('/api/notify/reminder', methods=['POST'])
+def api_notify_reminder():
+    """Gửi email nhắc nhở học tập (Todo deadline, Chuỗi Streak, Lịch học) qua Resend."""
+    data, error = get_json_body()
+    if error:
+        return jsonify({'ok': False, 'error': error}), 400
+
+    to_email = (data.get('to') or data.get('email') or '').strip()
+    if not to_email:
+        return jsonify({'ok': False, 'error': 'Vui lòng cung cấp địa chỉ email nhận.'}), 400
+
+    reminder_type = (data.get('type') or 'todo').strip().lower()
+    payload = data.get('data') or {}
+
+    ok, res = mailer.send_reminder_email(
+        to=to_email,
+        reminder_type=reminder_type,
+        data=payload
+    )
+    if not ok:
+        return jsonify({'ok': False, 'error': res.get('error', 'Lỗi khi gửi email nhắc việc.')}), 500
+
+    return jsonify({'ok': True, 'message': 'Đã gửi email nhắc việc thành công.'})
+
+
+@app.route('/api/send-email', methods=['POST'])
+def api_send_email():
+    """Endpoint gửi email tùy chỉnh chung qua Resend."""
+    data, error = get_json_body()
+    if error:
+        return jsonify({'ok': False, 'error': error}), 400
+
+    to_email = (data.get('to') or '').strip()
+    subject = (data.get('subject') or 'Thông báo từ Studyverse').strip()
+    html_content = data.get('html') or '<p>Thông báo từ Studyverse</p>'
+    text_content = data.get('text')
+
+    if not to_email:
+        return jsonify({'ok': False, 'error': 'Thiếu email người nhận (to).'}), 400
+
+    ok, res = mailer.send_email(
+        to=to_email,
+        subject=subject,
+        html=html_content,
+        text=text_content
+    )
+    if not ok:
+        return jsonify({'ok': False, 'error': res.get('error', 'Lỗi gửi email.')}), 500
+
+    return jsonify({'ok': True, 'id': res.get('id')})
+
+
 @app.route('/<path:path>')
 def serve_static(path):
     # Hỗ trợ URL ngắn (ví dụ /flashcard, /todo, /schedule, /career, /account)
@@ -446,22 +570,26 @@ def career_chat():
         if error:
             return error
         user_message = data.get('message', '')
+        user_image = data.get('image')
         history = data.get('history', [])
         provider = data.get('provider')  # tùy chọn: 'freellmapi', 'groq', ...
         
-        if not isinstance(user_message, str) or not user_message.strip():
-            return jsonify({'success': False, 'error': 'Vui lòng nhập nội dung cần tư vấn'}), 400
-        if len(user_message) > 2000 or not isinstance(history, list):
+        has_text = bool(isinstance(user_message, str) and user_message.strip())
+        has_image = bool(user_image and isinstance(user_image, str) and (user_image.startswith('data:image/') or user_image.startswith('http')))
+
+        if not has_text and not has_image:
+            return jsonify({'success': False, 'error': 'Vui lòng nhập câu hỏi hoặc đính kèm ảnh.'}), 400
+        if len(user_message or '') > 2000 or not isinstance(history, list):
             return jsonify({'success': False, 'error': 'Nội dung gửi lên không hợp lệ'}), 400
 
         # Ngữ cảnh người dùng (todo/schedule/hồ sơ cá nhân) để AI tư vấn sát thực tế hơn
         user_context = _summarize_projects(data.get('projects'))
         schedule_ctx = _summarize_schedule(data.get('schedule'))
         user_profile = data.get('user_profile')
-        messages = _build_career_messages(user_message, history, user_context, schedule_ctx, user_profile=user_profile)
+        messages = _build_career_messages(user_message, history, user_context, schedule_ctx, user_profile=user_profile, user_image=user_image if has_image else None)
 
         # Gọi AI (tự nhận diện provider nếu không chỉ định)
-        ai_reply, error = request_ai(messages, AI_MAX_TOKENS, provider=provider)
+        ai_reply, error = request_ai(messages, AI_MAX_TOKENS, provider=provider, has_image=has_image)
         if error:
             return error
         return jsonify({'success': True, 'reply': ai_reply})
@@ -541,8 +669,8 @@ mà không gây áp lực "phải hoàn hảo".
 ) + ACTION_PROMPT
 
 
-def _build_career_messages(user_message, history, user_context, schedule_ctx, user_profile=None):
-    """Dựng mảng messages dùng chung cho các endpoint career-ai."""
+def _build_career_messages(user_message, history, user_context, schedule_ctx, user_profile=None, user_image=None):
+    """Dựng mảng messages dùng chung cho các endpoint career-ai, hỗ trợ đa phương thức (hình ảnh)."""
     system = CAREER_SYSTEM_PROMPT
 
     context_sections = []
@@ -587,7 +715,8 @@ def _build_career_messages(user_message, history, user_context, schedule_ctx, us
         + "\n\nQUY TẮC:\n"
         "- Nếu người dùng hỏi về công việc, tiến độ, môn học, deadline, lịch rảnh, kế hoạch học tập, hoặc hỏi về khả năng đọc dữ liệu của AI: BẮT BUỘC xác nhận bạn đọc được và sử dụng chính xác thông tin trên để giải đáp cụ thể theo từng dự án/môn học.\n"
         "- Nếu người dùng hỏi về tên họ, danh tính, thông tin hồ sơ, sở thích, mục tiêu học tập hoặc chuỗi ngày học tập (streak): BẮT BUỘC nhận diện và trả lời chính xác theo THÔNG TIN HỒ SƠ & TÙY CHỌN CỦA NGƯỜI DÙNG ở trên.\n"
-        "- Nếu người dùng yêu cầu lập kế hoạch tuần, hãy đối chiếu các công việc còn dở trong Todo với các khung giờ trống trong Thời khóa biểu để gợi ý khung thời gian học tối ưu."
+        "- Nếu người dùng yêu cầu lập kế hoạch tuần, hãy đối chiếu các công việc còn dở trong Todo với các khung giờ trống trong Thời khóa biểu để gợi ý khung thời gian học tối ưu.\n"
+        "- Nếu người dùng gửi kèm hình ảnh (ảnh bài tập, bảng điểm, CV, sơ đồ, thời khóa biểu...): Hãy phân tích kỹ nội dung trong ảnh và kết hợp ngữ cảnh để đưa ra phản hồi hoặc lời khuyên chi tiết, thực tế nhất."
     )
 
     if user_profile and isinstance(user_profile, dict):
@@ -624,7 +753,25 @@ def _build_career_messages(user_message, history, user_context, schedule_ctx, us
         content = msg.get('content')
         if msg.get('role') in ('user', 'assistant') and isinstance(content, str) and content.strip():
             messages.append({'role': msg['role'], 'content': content[:2000]})
-    messages.append({'role': 'user', 'content': user_message.strip()})
+
+    # Xây dựng nội dung tin nhắn cuối của user (hỗ trợ văn bản + hình ảnh)
+    text_str = (user_message or '').strip()
+    if user_image:
+        user_content = []
+        if text_str:
+            user_content.append({'type': 'text', 'text': text_str})
+        else:
+            user_content.append({'type': 'text', 'text': 'Hãy quan sát và phân tích bức ảnh này giúp tôi.'})
+        user_content.append({
+            'type': 'image_url',
+            'image_url': {
+                'url': user_image
+            }
+        })
+        messages.append({'role': 'user', 'content': user_content})
+    else:
+        messages.append({'role': 'user', 'content': text_str})
+
     return messages
 
 
@@ -632,7 +779,7 @@ def _build_career_messages(user_message, history, user_context, schedule_ctx, us
 def career_chat_stream():
     """Phiên bản streaming (Server-Sent Events) của /api/career-ai.
 
-    Body JSON: message, history, projects, schedule, provider (tùy chọn).
+    Body JSON: message, image (tùy chọn), history, projects, schedule, provider (tùy chọn).
     Trả về text/event-stream: mỗi mảnh text là 'data: {"delta": "..."}\n\n',
     kết thúc bằng 'data: {"success": true}\n\n' rồi 'data: [DONE]\n\n'.
     Nếu lỗi xảy ra trước/khi stream, gửi 'data: {"error": "..."}\n\n' rồi [DONE].
@@ -641,17 +788,22 @@ def career_chat_stream():
     if error:
         return error
     user_message = data.get('message', '')
+    user_image = data.get('image')
     history = data.get('history', [])
     provider = data.get('provider')
 
-    if (not isinstance(user_message, str) or not user_message.strip()
-            or len(user_message) > 2000 or not isinstance(history, list)):
+    has_text = bool(isinstance(user_message, str) and user_message.strip())
+    has_image = bool(user_image and isinstance(user_image, str) and (user_image.startswith('data:image/') or user_image.startswith('http')))
+
+    if not has_text and not has_image:
+        return jsonify({'success': False, 'error': 'Vui lòng nhập câu hỏi hoặc đính kèm ảnh.'}), 400
+    if len(user_message or '') > 2000 or not isinstance(history, list):
         return jsonify({'success': False, 'error': 'Nội dung gửi lên không hợp lệ'}), 400
 
     user_context = _summarize_projects(data.get('projects'))
     schedule_ctx = _summarize_schedule(data.get('schedule'))
     user_profile = data.get('user_profile')
-    messages = _build_career_messages(user_message, history, user_context, schedule_ctx, user_profile=user_profile)
+    messages = _build_career_messages(user_message, history, user_context, schedule_ctx, user_profile=user_profile, user_image=user_image if has_image else None)
 
     def generate():
         queue = Queue()
@@ -661,7 +813,7 @@ def career_chat_stream():
 
         def worker():
             try:
-                reply, err = request_ai(messages, AI_MAX_TOKENS, provider=provider, on_delta=on_delta)
+                reply, err = request_ai(messages, AI_MAX_TOKENS, provider=provider, on_delta=on_delta, has_image=has_image)
                 queue.put(('done', (reply, err)))
             except Exception as exc:  # phòng hờ: lỗi ngoài request_ai
                 app.logger.exception('career stream worker failed')

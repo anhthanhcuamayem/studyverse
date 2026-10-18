@@ -2395,3 +2395,18 @@ function svPlayCompletionSound() {
         document.documentElement.classList.remove('sv-theme-loading');
     }
 })();
+
+// Helper gửi email thông báo học tập qua Resend backend API (Todo, Streak, Schedule)
+window.svSendReminderEmail = async function({ to, type = 'todo', data = {} } = {}) {
+    try {
+        const resp = await fetch('/api/notify/reminder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, type, data })
+        });
+        return await resp.json();
+    } catch (err) {
+        console.error('svSendReminderEmail failed:', err);
+        return { ok: false, error: String(err) };
+    }
+};
