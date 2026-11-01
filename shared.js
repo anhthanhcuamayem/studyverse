@@ -316,7 +316,7 @@ const SV_I18N = {
     'home.cta': { vi: 'Bắt đầu ngay', en: 'Get Started' },
     'home.login': { vi: 'Đăng nhập', en: 'Log in' },
     'home.register': { vi: 'Đăng ký', en: 'Sign up' },
-    'home.guest': { vi: 'Dùng ngay với Guest', en: 'Continue as Guest' },
+    'home.guest': { vi: 'Dùng thử', en: 'Try out' },
     'home.enterApp': { vi: 'Vào ứng dụng', en: 'Go to App' },
     'home.myAccount': { vi: 'Tài khoản', en: 'My Account' },
     'home.heroBadge': { vi: 'Không gian học tập & quản lý thông minh', en: 'Smart Learning & Management Workspace' },
