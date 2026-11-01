@@ -56,7 +56,7 @@
     <div class="project-wrapper">
         <aside class="project-sidebar">
             <div class="sidebar-header">
-                <h2 data-i18n="todo.sidebar">My Projects</h2>
+                <h2 data-i18n="todo.sidebar">Dự án của tôi</h2>
                 <button class="btn-new-project" data-i18n="todo.newProject">+ New Project</button>
             </div>
             <div class="sidebar-list">
@@ -67,13 +67,13 @@
             <div class="detail-card">
                 <div class="detail-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <h2 id="mainProjectName" style="margin: 0;">My Projects</h2>
-                        <i class="fa-solid fa-pen btn-edit-name" style="cursor: pointer; font-size: 14px; color: rgba(255,255,255,0.3); display: none;" data-i18n-title="todo.editName" data-i18n-aria="todo.editName"></i>
+                        <h2 id="mainProjectName" data-i18n="todo.sidebar" style="margin: 0;">Dự án của tôi</h2>
+                        
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: rgba(255,255,255,0.5); font-weight: 500;">
                         <span id="mainProjectDeadline"></span>
-                        <i class="fa-solid fa-pen btn-edit-deadline" style="cursor: pointer; font-size: 13px; color: rgba(255,255,255,0.3); display: none;" data-i18n-title="todo.editDeadline" data-i18n-aria="todo.editDeadline"></i>
+                        
                     </div>
                 </div>
                 
@@ -88,35 +88,14 @@
                     </div>
                 </div>
 
-                <div class="todo-toolbar" id="todoToolbar">
+                <div class="todo-toolbar" id="todoToolbar" style="display: none;">
                     <div class="todo-views" role="tablist" aria-label="Task views">
                         <button type="button" class="todo-view-btn active" data-view="all" data-i18n="todo.allTasks">All</button>
                         <button type="button" class="todo-view-btn" data-view="today" data-i18n="todo.today">Today</button>
                         <button type="button" class="todo-view-btn" data-view="upcoming" data-i18n="todo.upcoming">Upcoming</button>
                         <button type="button" class="todo-view-btn" data-view="overdue" data-i18n="todo.overdue">Overdue</button>
                     </div>
-                    <div class="todo-filter-row">
-                        <label class="todo-search-wrap">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <input id="taskSearchInput" type="search" data-i18n-ph="todo.search" placeholder="Tìm việc..." autocomplete="off">
-                        </label>
-                        <select id="taskStatusFilter" aria-label="Task status">
-                            <option value="all" data-i18n="todo.allStatuses">Mọi trạng thái</option>
-                            <option value="todo" data-i18n="todo.todoStatus">Chưa làm</option>
-                            <option value="doing" data-i18n="todo.doingStatus">Đang làm</option>
-                            <option value="done" data-i18n="todo.doneStatus">Hoàn thành</option>
-                        </select>
-                        <select id="taskPriorityFilter" aria-label="Task priority">
-                            <option value="all" data-i18n="todo.allPriorities">Mọi mức ưu tiên</option>
-                            <option value="high" data-i18n="todo.highPriority">Cao</option>
-                            <option value="medium" data-i18n="todo.mediumPriority">Trung bình</option>
-                            <option value="low" data-i18n="todo.lowPriority">Thấp</option>
-                        </select>
-                        <button type="button" class="todo-data-btn" id="btnExportTodo" data-i18n="todo.export">Export data</button>
-                        <button type="button" class="todo-data-btn" id="btnImportTodo" data-i18n="todo.import">Import data</button>
-                        <input id="todoImportInput" type="file" accept="application/json,.json" hidden>
-                    </div>
-                    <small class="todo-shortcut-hint" data-i18n="todo.shortcutSearch">Ctrl/⌘ K để tìm nhanh</small>
+                    
                 </div>
                 
                 <div id="taskAreaContainer" style="display: none;">

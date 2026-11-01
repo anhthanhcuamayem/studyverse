@@ -13,6 +13,18 @@ const TASK_REPEATS = ['none', 'daily', 'weekly'];
 
 let todoView = 'all';
 
+function setTaskToolbarVisibility(visible) {
+    const toolbar = document.getElementById('todoToolbar');
+    if (toolbar) toolbar.style.display = visible ? 'block' : 'none';
+
+    if (!visible) {
+        const btnShowInput = document.getElementById('btnShowInput');
+        const taskInputCard = document.getElementById('taskInputCard');
+        if (btnShowInput) btnShowInput.style.display = 'none';
+        if (taskInputCard) taskInputCard.style.display = 'none';
+    }
+}
+
 function normalizeTask(task, index = 0) {
     const rawStatus = TASK_STATUSES.includes(task && task.status)
         ? task.status
@@ -124,6 +136,7 @@ function initPage() {
 
             if (taskAreaContainer) {
                 taskAreaContainer.style.display = 'block';
+                setTaskToolbarVisibility(true);
                 document.getElementById('btnShowInput')?.style.setProperty('display', 'flex', 'important');
                 renderTasks(project.name);
                 updateProgressBar(project.name);
@@ -131,7 +144,9 @@ function initPage() {
         }
     } else {
         // NẾU TRỐNG: Hiện danh sách dashboard chính
-        document.getElementById('taskAreaContainer').style.display = 'block';
+        const taskAreaContainer = document.getElementById('taskAreaContainer');
+        if (taskAreaContainer) taskAreaContainer.style.display = 'block';
+        setTaskToolbarVisibility(false);
         renderProjectListMain();
     }
     pageI18nReady = true;
@@ -192,6 +207,7 @@ document.addEventListener('sv:langchange', () => {
         renderTasks(current);
         updateProgressBar(current);
     } else {
+        if (mainTitle) mainTitle.innerText = svT('todo.sidebar');
         renderProjectListMain();
     }
 });
@@ -697,7 +713,9 @@ document.addEventListener('click', async function (event) {
             mainTitle.removeAttribute('data-old-name');
             
             if (mainDeadlineDisp) mainDeadlineDisp.innerText = "";
+            const taskAreaContainer = document.getElementById('taskAreaContainer');
             if (taskAreaContainer) taskAreaContainer.style.display = 'block';
+            setTaskToolbarVisibility(false);
 
             document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active-item'));
             localStorage.removeItem(LAST_PROJECT_KEY);
@@ -715,7 +733,7 @@ document.addEventListener('click', async function (event) {
 
         if (btnShowInput) btnShowInput.style.display = 'flex';
         if (taskInputCard) taskInputCard.style.display = 'none';
-        if (taskAreaContainer) taskAreaContainer.style.display = 'block';
+        setTaskToolbarVisibility(true);
 
         renderTasks(name);
         updateProgressBar(name);
@@ -856,7 +874,7 @@ document.addEventListener('click', async function (event) {
             localStorage.setItem(PROJECTS_KEY, JSON.stringify(saved));
             localStorage.removeItem(LAST_PROJECT_KEY);
             renderSidebar();
-            mainTitle.innerText = "My Projects";
+            mainTitle.innerText = svT('todo.sidebar');
             mainDeadlineDisp.innerText = "";
             if (taskAreaContainer) taskAreaContainer.style.display = 'none';
         }
@@ -938,7 +956,7 @@ document.addEventListener('click', async function (event) {
                 renderSidebar();
 
                 const mainTitle = document.getElementById('mainProjectName');
-                if (mainTitle && (mainTitle.innerText === "My Projects" || !mainTitle.hasAttribute('data-old-name'))) {
+                if (mainTitle && (mainTitle.innerText === svT('todo.sidebar') || !mainTitle.hasAttribute('data-old-name'))) {
                     renderProjectListMain(); 
                 }
             }
@@ -1113,6 +1131,11 @@ document.addEventListener('click', async function (event) {
 function renderProjectListMain() {
     const progressBar = document.getElementById('progressBarContainer');
     if (progressBar) progressBar.style.display = 'none';
+    const mainTitle = document.getElementById('mainProjectName');
+    if (mainTitle && !mainTitle.hasAttribute('data-old-name')) {
+        mainTitle.innerText = svT('todo.sidebar');
+    }
+    setTaskToolbarVisibility(false);
 
     const listToHide = ['taskInputBox', 'btnShowInput', 'editTaskBox', 'taskInputCard'];
     listToHide.forEach(id => {
@@ -1216,13 +1239,16 @@ function renderProjectListMain() {
 function showMainDashboard() {
     const mainTitle = document.getElementById('mainProjectName');
     const mainDeadlineDisp = document.getElementById('mainProjectDeadline');
+    const taskAreaContainer = document.getElementById('taskAreaContainer');
     
     if (mainTitle) {
         mainTitle.innerText = svT('todo.sidebar');
         mainTitle.removeAttribute('data-old-name');
     }
     if (mainDeadlineDisp) mainDeadlineDisp.innerText = "";
+    if (taskAreaContainer) taskAreaContainer.style.display = 'block';
 
+    setTaskToolbarVisibility(false);
     localStorage.removeItem(LAST_PROJECT_KEY);
     renderSidebar(); 
     renderProjectListMain();
@@ -1244,6 +1270,7 @@ function showMyProjectsTab() {
 function openProject(name) {
     const taskAreaContainer = document.getElementById('taskAreaContainer');
     if (taskAreaContainer) taskAreaContainer.style.display = 'block';
+    setTaskToolbarVisibility(true);
     const btnShowInput = document.getElementById('btnShowInput');
     const taskInputCard = document.getElementById('taskInputCard');
     if (btnShowInput) btnShowInput.style.setProperty('display', 'flex', 'important');
