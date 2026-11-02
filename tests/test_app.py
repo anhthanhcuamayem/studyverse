@@ -74,6 +74,8 @@ def test_ai_providers_shape(client):
     assert set(['available', 'default', 'supported']).issubset(data)
     assert 'freellmapi' in data['supported']
     assert 'groq' in data['supported']
+    assert 'gemini1' in data['supported']
+    assert 'groq10' in data['supported']
     assert isinstance(data['available'], list)
 
 
@@ -680,6 +682,40 @@ def test_request_ai_unknown_provider(monkeypatch):
     assert err[1] == 400
 
 
+def test_numbered_provider_keys_accept_lowercase_env(monkeypatch):
+    monkeypatch.setenv('gemini2', 'gemini-key-2')
+    monkeypatch.setenv('GROQ3', 'groq-key-3')
+    assert app_module._numbered_provider_key('gemini', 2) == 'gemini-key-2'
+    assert app_module._numbered_provider_key('groq', 3) == 'groq-key-3'
+
+
+def test_detect_available_numbered_providers_in_configured_order(monkeypatch):
+    monkeypatch.setattr(app_module, 'AI_PROVIDER_ORDER', ['gemini2', 'groq1', 'gemini1'])
+    monkeypatch.setitem(app_module.AI_PROVIDERS['gemini2'], 'key', 'gemini-key-2')
+    monkeypatch.setitem(app_module.AI_PROVIDERS['groq1'], 'key', 'groq-key-1')
+    assert app_module.detect_available_providers() == ['gemini2', 'groq1']
+
+
+def test_request_ai_fails_over_between_numbered_keys(monkeypatch):
+    monkeypatch.setattr(app_module, 'detect_available_providers', lambda: ['groq1', 'groq2'])
+    monkeypatch.setattr(app_module, 'AI_FAILOVER_COOLDOWN', 0.0)
+    called = []
+
+    def fake_client(name):
+        called.append(name)
+        if name == 'groq1':
+            raise AuthenticationError(401)
+        return _fake_client('Từ Groq key 2')
+
+    monkeypatch.setattr(app_module, '_get_provider_client', fake_client)
+    reply, err = app_module.request_ai(
+        [{'role': 'user', 'content': 'hi'}], 10, provider='groq',
+    )
+    assert err is None
+    assert reply == 'Từ Groq key 2'
+    assert called == ['groq1', 'groq2']
+
+
 def test_request_ai_falls_back_to_groq(monkeypatch):
     """Gateway chính (freellmapi/ai.studyverse.cloud) lỗi → tự chuyển sang Groq."""
     monkeypatch.setattr(app_module, 'detect_available_providers', lambda: ['freellmapi', 'groq'])
@@ -1206,7 +1242,5 @@ def test_shared_js_streak_and_helpers_execution():
     '''
     result = subprocess.run(['node', '-e', js_code], capture_output=True, text=True)
     assert result.returncode == 0, f"Node test failed: {result.stderr}"
-
-
 
 

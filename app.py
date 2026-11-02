@@ -53,16 +53,40 @@ from flashcard.flashcard_utils import (
 import mailer
 #python -m http.server 8000
 #.venv/bin/python app.py
-# Studyverse gọi AI qua FreeLLMAPI (Freellmapi), không dùng OmniRoute nữa.
-# FreeLLMAPI chạy ở http://localhost:3001/v1 và được expose qua cloudflared
-# tunnel dưới domain ai.studyverse.cloud.
-#
-# Provider chính là `freellmapi` (ai.studyverse.cloud). Khi gateway này không
-# khả dụng (không kết nối được, timeout, lỗi 5xx...), request_ai tự chuyển sang
-# provider dự phòng `groq` — dùng endpoint OpenAI-compatible có sẵn của Groq
-# (https://api.groq.com/openai/v1) nên vẫn đi qua thư viện openai, không cần
-# SDK riêng.
+# Gemini and Groq use their OpenAI-compatible APIs. Numbered keys are tried
+# in order so requests can fail over when an individual key is unavailable.
 GROQ_DEFAULT_BASE_URL = 'https://api.groq.com/openai/v1'
+GEMINI_DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/'
+_PROVIDER_KEY_COUNT = 10
+
+
+def _numbered_provider_key(family, number):
+    """Read the requested lowercase env name and common uppercase variants."""
+    for env_name in (f'{family}{number}', f'{family.upper()}{number}',
+                     f'{family.upper()}{number}_API_KEY'):
+        value = (os.environ.get(env_name) or '').strip()
+        if value:
+            return value
+    return None
+
+
+def _provider_config(family, key):
+    if family == 'groq':
+        return {
+            'key': key,
+            'base_url': (os.environ.get('GROQ_BASE_URL') or '').strip() or GROQ_DEFAULT_BASE_URL,
+            'model': (os.environ.get('GROQ_MODEL') or '').strip() or 'openai/gpt-oss-120b',
+            'vision_model': (os.environ.get('GROQ_VISION_MODEL') or '').strip() or 'llama-3.2-11b-vision-preview',
+        }
+    return {
+        'key': key,
+        'base_url': (os.environ.get('GEMINI_BASE_URL') or '').strip() or GEMINI_DEFAULT_BASE_URL,
+        'model': (os.environ.get('GEMINI_MODEL') or '').strip() or 'gemini-1.5-flash',
+    }
+
+
+_groq_numbered_keys = [_numbered_provider_key('groq', n) for n in range(1, _PROVIDER_KEY_COUNT + 1)]
+_gemini_numbered_keys = [_numbered_provider_key('gemini', n) for n in range(1, _PROVIDER_KEY_COUNT + 1)]
 
 AI_PROVIDERS = {
     'freellmapi': {
@@ -70,27 +94,44 @@ AI_PROVIDERS = {
         'base_url': (os.environ.get('FREELLM_BASE_URL') or '').strip() or 'http://localhost:3001/v1',
         'model': (os.environ.get('FREELLM_MODEL') or '').strip(),
     },
-    'groq': {
-        'key': os.environ.get('GROQ_API_KEY'),
-        'base_url': (os.environ.get('GROQ_BASE_URL') or '').strip() or GROQ_DEFAULT_BASE_URL,
-        'model': (os.environ.get('GROQ_MODEL') or '').strip() or 'openai/gpt-oss-120b',
-        'vision_model': (os.environ.get('GROQ_VISION_MODEL') or '').strip() or 'llama-3.2-11b-vision-preview',
-    },
-    'gemini': {
-        'key': os.environ.get('GEMINI_API_KEY'),
-        'base_url': (os.environ.get('GEMINI_BASE_URL') or '').strip() or 'https://generativelanguage.googleapis.com/v1beta/openai/',
-        'model': (os.environ.get('GEMINI_MODEL') or '').strip() or 'gemini-1.5-flash',
-    },
 }
 
-# Thứ tự ưu tiên: gateway chính trước, Groq/Gemini là phương án dự phòng.
-_raw_order = os.environ.get('AI_PROVIDER_ORDER', 'freellmapi,groq,gemini')
-AI_PROVIDER_ORDER = [p.strip() for p in _raw_order.split(',') if p.strip() in AI_PROVIDERS]
-if not AI_PROVIDER_ORDER:
-    AI_PROVIDER_ORDER = ['freellmapi', 'groq', 'gemini']
+for _family, _keys in (('gemini', _gemini_numbered_keys), ('groq', _groq_numbered_keys)):
+    for _number, _key in enumerate(_keys, start=1):
+        AI_PROVIDERS[f'{_family}{_number}'] = _provider_config(_family, _key)
 
-# Timeout cho mỗi lời gọi AI (giây). Đủ ngắn để phát hiện gateway chính không
-# khả dụng mà chuyển sang Groq, nhưng vẫn đủ dài cho stream bình thường.
+# Keep the previous single-key variables working when no numbered keys exist.
+AI_PROVIDERS['gemini'] = _provider_config(
+    'gemini',
+    (os.environ.get('GEMINI_API_KEY') or '').strip() if not any(_gemini_numbered_keys) else None,
+)
+AI_PROVIDERS['groq'] = _provider_config(
+    'groq',
+    (os.environ.get('GROQ_API_KEY') or '').strip() if not any(_groq_numbered_keys) else None,
+)
+
+_PROVIDER_FAMILIES = {
+    'gemini': [f'gemini{n}' for n in range(1, _PROVIDER_KEY_COUNT + 1)] + ['gemini'],
+    'groq': [f'groq{n}' for n in range(1, _PROVIDER_KEY_COUNT + 1)] + ['groq'],
+}
+
+
+def _expand_provider_order(raw_order):
+    order = []
+    for item in raw_order:
+        name = item.strip().lower()
+        names = _PROVIDER_FAMILIES.get(name, [name])
+        order.extend(provider for provider in names if provider in AI_PROVIDERS and provider not in order)
+    return order
+
+
+# Numbered Gemini keys are tried first, followed by Groq keys.
+_raw_order = os.environ.get('AI_PROVIDER_ORDER', 'gemini,groq')
+AI_PROVIDER_ORDER = _expand_provider_order(_raw_order.split(','))
+if not AI_PROVIDER_ORDER:
+    AI_PROVIDER_ORDER = _expand_provider_order(['gemini', 'groq'])
+
+# Timeout cho mỗi lời gọi AI (giây), vẫn đủ dài cho stream bình thường.
 def _env_float(name, default):
     try:
         value = float((os.environ.get(name) or '').strip())
@@ -107,10 +148,8 @@ AI_REQUEST_TIMEOUT = _env_float('AI_REQUEST_TIMEOUT', 30.0)
 # chuyển sang Groq nhanh; tăng lên nếu muốn chịu lỗi tạm thời tốt hơn.
 AI_MAX_RETRIES = int(_env_float('AI_MAX_RETRIES', 0.0))
 
-# Sau khi một provider lỗi kiểu "không khả dụng" (timeout, mất kết nối, 5xx),
-# tạm bỏ qua provider đó trong bấy nhiêu giây. Nhờ vậy khi ai.studyverse.cloud
-# chết, các request sau đi thẳng Groq thay vì chờ hết timeout lần nào nữa.
-# Đặt 0 để tắt (luôn thử gateway chính trước mỗi request).
+# Sau khi một key lỗi kiểu "không khả dụng" (timeout, mất kết nối, 5xx),
+# tạm bỏ qua key đó trong bấy nhiêu giây để failover nhanh hơn. Đặt 0 để tắt.
 AI_FAILOVER_COOLDOWN = _env_float('AI_FAILOVER_COOLDOWN', 60.0)
 
 # Giới hạn token tối đa cho mỗi lời gọi AI (max_tokens). Model "suy luận trước"
@@ -180,11 +219,13 @@ def _build_provider_chain(wanted, available):
     """Dựng chuỗi provider để thử lần lượt.
 
     Provider `wanted` (nếu có) đứng đầu, sau đó tới các provider còn key theo
-    thứ tự ưu tiên — nhờ vậy khi gateway chính (freellmapi / ai.studyverse.cloud)
-    không khả dụng, request_ai tự chuyển sang Groq.
+    thứ tự ưu tiên. Tên family như `groq` sẽ ưu tiên toàn bộ các key Groq.
     """
-    if wanted and wanted in available:
-        return [wanted] + [name for name in available if name != wanted]
+    if wanted:
+        wanted_providers = _PROVIDER_FAMILIES.get(wanted, [wanted])
+        matches = [name for name in available if name in wanted_providers]
+        if matches:
+            return matches + [name for name in available if name not in matches]
     return list(available)
 
 
@@ -308,18 +349,21 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None, has_image=Fal
     # timeout/5xx...) thì vẫn tự động chuyển sang các provider dự phòng còn key.
     wanted = (provider or DEFAULT_PROVIDER or '').strip().lower() or None
     if wanted:
-        if wanted not in AI_PROVIDERS:
+        if wanted not in AI_PROVIDERS and wanted not in _PROVIDER_FAMILIES:
             return None, ({'error': f'Không hỗ trợ provider "{wanted}". Các provider khả dụng: {", ".join(available)}.'}, 400)
-        if wanted not in available:
+        if wanted not in available and not any(name in available for name in _PROVIDER_FAMILIES.get(wanted, [])):
             return None, ({'error': f'Provider "{wanted}" chưa được cấu hình API key.'}, 503)
     chain = _build_provider_chain(wanted, available)
     # Provider vừa lỗi khả dụng bị tạm bỏ qua để failover tức thì. Luôn giữ lại
     # ít nhất một lựa chọn để còn thử và báo lỗi thật cho người dùng.
     active = [name for name in chain if not _provider_cooling_down(name)] or list(chain)
 
-    # Nếu có ảnh và user không chỉ định nhà cung cấp cụ thể, ưu tiên Gemini > Groq Vision > FreeLLMAPI
+    # Nếu có ảnh và user không chỉ định nhà cung cấp cụ thể, ưu tiên Gemini > Groq Vision.
     if has_image and not wanted:
-        priority_vision = [p for p in ('gemini', 'groq', 'freellmapi') if p in available and not _provider_cooling_down(p)]
+        priority_vision = [
+            p for p in available
+            if (p.startswith('gemini') or p.startswith('groq')) and not _provider_cooling_down(p)
+        ]
         if priority_vision:
             active = priority_vision + [p for p in active if p not in priority_vision]
 
@@ -338,7 +382,7 @@ def request_ai(messages, max_tokens, provider=None, on_delta=None, has_image=Fal
 
             # Chọn model phù hợp: nếu có ảnh và đang dùng Groq, chuyển sang vision model
             model_to_use = cfg['model']
-            if has_image and name == 'groq':
+            if has_image and name.startswith('groq'):
                 model_to_use = cfg.get('vision_model', 'llama-3.2-11b-vision-preview')
 
             # Model "suy luận trước" (reasoning, vd gpt-oss trên Groq) tiêu token vào
@@ -572,7 +616,7 @@ def career_chat():
         user_message = data.get('message', '')
         user_image = data.get('image')
         history = data.get('history', [])
-        provider = data.get('provider')  # tùy chọn: 'freellmapi', 'groq', ...
+        provider = data.get('provider')  # tùy chọn: tên provider hoặc family như 'groq'
         
         has_text = bool(isinstance(user_message, str) and user_message.strip())
         has_image = bool(user_image and isinstance(user_image, str) and (user_image.startswith('data:image/') or user_image.startswith('http')))

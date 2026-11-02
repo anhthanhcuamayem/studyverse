@@ -37,53 +37,42 @@ Yêu cầu: Python 3.10+.
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 pip install -r requirements.txt
-# Cấu hình FreeLLMAPI từ .env (copy .env.example thành .env rồi điền key/model).
+# Cấu hình Gemini/Groq trong .env (copy .env.example thành .env rồi điền key).
 # File .env không được commit.
 cp .env.example .env
-# Điền FREELLM_API_KEY và FREELLM_MODEL trong .env.
-# FREELLM_BASE_URL mặc định là http://localhost:3001/v1.
-# Tùy chọn: điền GROQ_API_KEY để bật provider dự phòng khi gateway chính lỗi.
+# Điền một hoặc nhiều key gemini1..gemini10 và/hoặc groq1..groq10.
 python app.py
 ```
 
 Mở `http://localhost:5000`. Nếu chưa cấu hình API key nào, các tính năng AI sẽ trả về thông báo cấu hình thay vì gọi dịch vụ bên ngoài.
 
-## FreeLLMAPI (Freellmapi) gateway + Groq dự phòng
+## Gemini và Groq
 
-Studyverse gọi AI qua endpoint OpenAI-compatible của FreeLLMAPI. FreeLLMAPI chạy ở `http://localhost:3001/v1` và được expose qua cloudflared tunnel dưới domain `ai.studyverse.cloud`.
+AI Career gọi Gemini và Groq qua các API tương thích OpenAI. Khai báo key bằng các biến `gemini1` đến `gemini10` và `groq1` đến `groq10`; chỉ cần điền các key muốn sử dụng. Tên biến viết hoa tương ứng (`GEMINI1`, `GROQ1`,...) cũng được chấp nhận.
 
-Khi gateway chính **không khả dụng** (không kết nối được, timeout, lỗi 5xx...), app tự động chuyển sang **Groq** — provider dự phòng dùng endpoint OpenAI-compatible của Groq (`https://api.groq.com/openai/v1`) nên vẫn đi qua cùng thư viện `openai`. Thứ tự ưu tiên là `freellmapi` → `groq`; nếu `freellmapi` chưa có key thì Groq được dùng ngay.
+Mặc định app thử các key Gemini theo thứ tự số, sau đó lần lượt thử các key Groq. Nếu một key lỗi, app chuyển sang key tiếp theo; lỗi khả dụng (timeout, mất kết nối, lỗi 5xx) còn được tạm bỏ qua trong thời gian circuit breaker. Với ảnh, các key Gemini rồi Groq được ưu tiên để dùng khả năng thị giác.
 
-Hai điểm cần biết để failover diễn ra **nhanh**:
+`GEMINI_MODEL` và `GROQ_MODEL` cấu hình model dùng chung cho từng provider; endpoint mặc định lần lượt là Gemini OpenAI-compatible và `https://api.groq.com/openai/v1`. Tùy chỉnh endpoint qua `GEMINI_BASE_URL` hoặc `GROQ_BASE_URL` nếu cần.
 
-1. **Tắt retry mặc định của SDK** (`AI_MAX_RETRIES=0`). SDK `openai` mặc định tự thử lại 2 lần, nên một gateway treo bị gọi 3 lần liên tiếp — phải chờ gần `3 × AI_REQUEST_TIMEOUT` mới chuyển provider. Đặt 0 để chỉ thử một lần rồi failover ngay.
-2. **Circuit breaker** (`AI_FAILOVER_COOLDOWN`, mặc định 60 giây). Sau khi một provider lỗi kiểu *không khả dụng* (`timeout`, `connection`, `provider_down` 5xx), provider đó bị tạm bỏ qua; các request sau đi thẳng Groq thay vì chờ hết timeout lần nào nữa. Hết thời gian cooldown, app thử lại gateway chính như bình thường. Lỗi cấu hình (`invalid_key`, `permission`, `model_not_found`...) **không** mở circuit breaker và vẫn báo lỗi rõ ràng.
-
-Ví dụ với cấu hình mặc định (timeout 30s, cooldown 60s): request đầu tiên sau khi gateway chết tốn ~30s rồi trả lời bằng Groq; các request tiếp theo trong 60 giây đó gần như tức thì. Nếu chỉ cấu hình **một** provider duy nhất, provider đó vẫn luôn được thử dù đang cooldown — để còn trả về thông báo lỗi thật thay vì báo "không có provider".
-
-Timeout mỗi lời gọi AI chỉnh qua `AI_REQUEST_TIMEOUT` (giây, mặc định 30); giới hạn token mỗi lời gọi chỉnh qua `AI_MAX_TOKENS` (mặc định 4096). Trạng thái circuit breaker xem ở `GET /api/ai-providers` (trường `cooling_down`) và trong log (`Provider "freellmapi" tạm bỏ qua 60s...`).
+Timeout mỗi lời gọi AI chỉnh qua `AI_REQUEST_TIMEOUT` (giây, mặc định 30); giới hạn token mỗi lời gọi chỉnh qua `AI_MAX_TOKENS` (mặc định 4096). Trạng thái từng key xem ở `GET /api/ai-providers` (trường `cooling_down`).
 
 | Biến | Ý nghĩa | Mặc định |
 |------|---------|----------|
-| `FREELLM_BASE_URL` | Base URL của FreeLLMAPI, thường kết thúc bằng `/v1` | `http://localhost:3001/v1` |
-| `FREELLM_API_KEY` | API key từ FreeLLMAPI | Chưa cấu hình |
-| `FREELLM_MODEL` | Model hoặc alias/combo hiện tại | `auto:fast` |
-| `GROQ_API_KEY` | API key Groq (provider dự phòng, key dạng `gsk_...`) | Chưa cấu hình |
+| `gemini1`..`gemini10` | API keys Gemini | Chưa cấu hình |
+| `groq1`..`groq10` | API keys Groq | Chưa cấu hình |
+| `GEMINI_MODEL` | Model Gemini | `gemini-1.5-flash` |
+| `GEMINI_BASE_URL` | Endpoint Gemini OpenAI-compatible | Gemini OpenAI-compatible |
 | `GROQ_MODEL` | Model Groq | `openai/gpt-oss-120b` |
 | `GROQ_BASE_URL` | Endpoint OpenAI-compatible của Groq | `https://api.groq.com/openai/v1` |
 | `AI_REQUEST_TIMEOUT` | Timeout mỗi lời gọi AI (giây) | `30` |
 | `AI_MAX_TOKENS` | Giới hạn token tối đa mỗi lời gọi AI (`max_tokens`) | `4096` |
-| `AI_MAX_RETRIES` | Số lần SDK tự thử lại trước khi chuyển provider (`0` = failover nhanh) | `0` |
-| `AI_FAILOVER_COOLDOWN` | Giây tạm bỏ qua provider vừa lỗi khả dụng (`0` = tắt circuit breaker) | `60` |
-
-Điền key và model/alias phù hợp với FreeLLMAPI (và tùy chọn `GROQ_API_KEY` cho dự phòng) vào `.env`.
-
-Lưu ý: model GPT-OSS của Groq là model *reasoning* — tiêu một phần token vào phần suy luận trước khi viết câu trả lời. Backend đã tự xử lý: nếu câu trả lời trả về rỗng do hết budget token, hoặc bị cắt cụt giữa câu (`finish_reason=length`) nó tự thử lại với budget lớn hơn (tối đa `AI_MAX_TOKENS`, mặc định 4096). Với streaming, server **giữ mảnh lại cho tới khi đủ 40 ký tự** (`_STREAM_FLUSH_CHARS`) nên chat không bao giờ hiện đúng một chữ; câu trả lời dưới 6 ký tự (`_MIN_REPLY_CHARS`) bị coi là bất thường và được thử lại — nếu vẫn thế thì trả phần đã có kèm cảnh báo trong log thay vì báo lỗi. Endpoint `/api/ai-providers` sẽ báo các provider đã có key; thêm `?probe=1` để thử một completion thật.
+| `AI_MAX_RETRIES` | Số lần SDK tự thử lại trước khi chuyển key (`0` = failover nhanh) | `0` |
+| `AI_FAILOVER_COOLDOWN` | Giây tạm bỏ qua key vừa lỗi khả dụng (`0` = tắt circuit breaker) | `60` |
 
 - `GET /api/ai-providers` — xem danh sách provider đã nhận diện được, kèm `cooling_down` (provider đang bị tạm bỏ qua sau lỗi khả dụng).
 - `GET /api/ai-providers?probe=1` — kiểm tra thật từng provider (gọi 1 completion tối thiểu) và trả về `health` kèm `code`/`message` cho từng provider.
 - `GET /api/health` — kiểm tra nhanh server còn sống và AI đã cấu hình chưa.
-- Các endpoint AI ưu tiên `freellmapi` và tự chuyển sang `groq` khi gateway chính không khả dụng; cấu hình model/agent được quản lý tại FreeLLMAPI.
+- Các endpoint AI mặc định ưu tiên Gemini, sau đó Groq; `AI_PROVIDER_ORDER` có thể dùng để tùy chỉnh thứ tự.
 - `POST /api/career-ai-stream` — phiên bản streaming (SSE) của career chat: AI trả lời từng mảnh thay vì chờ cả câu. Body chấp nhận thêm `projects` và `schedule` (đọc từ LocalStorage của Todo/Schedule) để AI tư vấn dựa trên dữ liệu học tập thật của người dùng.
 - `POST /api/ai-context` — rút gọn dữ liệu projects/schedule gửi lên thành ngữ cảnh gọn nhẹ cho AI (server không lưu dữ liệu).
 - `POST /api/ai-actions` — đọc khối hành động trong câu trả lời AI (`reply`, kèm `projects`/`schedule` hiện tại) và trả về thay đổi đã kiểm tra cho Todo/Thời khóa biểu; server **không** lưu và không tự áp dụng.
