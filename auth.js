@@ -452,6 +452,9 @@
 
         if (signedInUser) {
             if (accountEmail) accountEmail.textContent = signedInUser.email || '';
+            if (signedInUser.email && typeof svSaveUserProfile === 'function') {
+                svSaveUserProfile({ email: signedInUser.email });
+            }
             if (accountModePill) {
                 accountModePill.className = 'account-mode-pill cloud';
                 if (accountModePillLabel) accountModePillLabel.textContent = translate('account.cloudBadge', 'Đã đồng bộ Cloud');

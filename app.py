@@ -4,6 +4,7 @@ import re
 import threading
 import time
 from pathlib import Path
+from datetime import datetime, timedelta
 from queue import Empty, Queue
 
 from dotenv import load_dotenv
@@ -552,6 +553,116 @@ def api_auth_send_verification():
         return jsonify({'ok': False, 'error': res.get('error', 'Lỗi khi gửi email xác nhận.')}), 500
 
     return jsonify({'ok': True, 'message': 'Đã gửi email xác nhận tài khoản thành công.'})
+
+
+def _parse_task_deadline(value: str):
+    """Phân tích chuỗi hạn chót nhiệm vụ thành đối tượng datetime cục bộ."""
+    if not value or not isinstance(value, str):
+        return None
+    val = value.strip()
+    if not val or val.lower() in ('chưa đặt', 'not set'):
+        return None
+
+    now = datetime.now()
+
+    # Nhận diện giờ HH:MM
+    time_match = re.search(r'\b([01]?\d|2[0-3]):([0-5]\d)\b', val)
+    h, m = (int(time_match.group(1)), int(time_match.group(2))) if time_match else (23, 59)
+
+    # Nhận diện định dạng YYYY-MM-DD
+    iso_match = re.search(r'\b(\d{4})-(\d{1,2})-(\d{1,2})\b', val)
+    if iso_match:
+        try:
+            return datetime(int(iso_match.group(1)), int(iso_match.group(2)), int(iso_match.group(3)), h, m)
+        except ValueError:
+            return None
+
+    # Nhận diện định dạng DD/MM/YYYY hoặc DD/MM
+    vn_match = re.search(r'\b(\d{1,2})/(\d{1,2})(?:/(\d{4}))?\b', val)
+    if vn_match:
+        try:
+            year = int(vn_match.group(3)) if vn_match.group(3) else now.year
+            return datetime(year, int(vn_match.group(2)), int(vn_match.group(1)), h, m)
+        except ValueError:
+            return None
+
+    # Nếu chỉ nhập mỗi giờ phút (VD: 18:30) -> mặc định hôm nay
+    if time_match:
+        return datetime(now.year, now.month, now.day, h, m)
+
+    return None
+
+
+@app.route('/api/notify/check-deadlines', methods=['POST'])
+def api_notify_check_deadlines():
+    """Quét danh sách nhiệm vụ chưa làm đến hạn trong vòng 5 phút và tự động gửi email qua Resend."""
+    data, error = get_json_body()
+    if error:
+        return jsonify({'ok': False, 'error': error}), 400
+
+    to_email = (data.get('to') or data.get('email') or '').strip()
+    if not to_email:
+        return jsonify({'ok': False, 'error': 'Vui lòng cung cấp địa chỉ email nhận.'}), 400
+
+    tasks_to_check = []
+    projects = data.get('projects') or []
+    if isinstance(projects, list):
+        for proj in projects:
+            p_name = proj.get('name') if isinstance(proj, dict) else 'Dự án'
+            for t in (proj.get('tasks') if isinstance(proj, dict) else []) or []:
+                if isinstance(t, dict):
+                    t_copy = dict(t)
+                    t_copy.setdefault('projectName', p_name)
+                    tasks_to_check.append(t_copy)
+
+    raw_tasks = data.get('tasks') or []
+    if isinstance(raw_tasks, list):
+        tasks_to_check.extend([t for t in raw_tasks if isinstance(t, dict)])
+
+    now = datetime.now()
+    reminded = []
+    errors = []
+
+    for task in tasks_to_check:
+        # Điều kiện: chưa hoàn thành ("chưa làm")
+        if task.get('status') == 'done' or task.get('completed'):
+            continue
+
+        raw_deadline = task.get('deadline')
+        dt = _parse_task_deadline(str(raw_deadline or ''))
+        if not dt:
+            continue
+
+        diff_sec = (dt - now).total_seconds()
+        diff_minutes = diff_sec / 60.0
+
+        # Điều kiện: tới trước 5 phút (khoảng 0 đến 5.5 phút)
+        if 0 < diff_minutes <= 5.5:
+            title = task.get('name') or task.get('title') or 'Nhiệm vụ học tập'
+            p_name = task.get('projectName') or 'Mục tiêu'
+            ok, res = mailer.send_reminder_email(
+                to=to_email,
+                reminder_type='todo',
+                data={
+                    'taskTitle': title,
+                    'projectName': p_name,
+                    'deadline': raw_deadline,
+                    'minutesLeft': max(1, round(diff_minutes)),
+                    'taskId': task.get('id')
+                }
+            )
+            if ok:
+                reminded.append(title)
+            else:
+                errors.append(res.get('error', 'Lỗi gửi email'))
+
+    return jsonify({
+        'ok': True,
+        'checked': len(tasks_to_check),
+        'remindedCount': len(reminded),
+        'reminded': reminded,
+        'errors': errors
+    })
 
 
 @app.route('/api/notify/reminder', methods=['POST'])

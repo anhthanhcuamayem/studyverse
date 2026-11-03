@@ -224,17 +224,29 @@ document.addEventListener('sv:langchange', () => {
 function formatDate(dateString) {
     if (!dateString || dateString === svT('todo.notSet') || dateString === "Chưa đặt") return svT('todo.notSet');
     if (dateString.includes('/')) return dateString;
-    const parts = dateString.split('-');
-    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateString;
+    const [datePart, ...timeParts] = dateString.trim().split(/\s+/);
+    const parts = datePart.split('-');
+    if (parts.length === 3) {
+        const timeSuffix = timeParts.length ? ` ${timeParts.join(' ')}` : '';
+        return `${parts[2]}/${parts[1]}/${parts[0]}${timeSuffix}`;
+    }
+    return dateString;
 }
 
 function dateOnly(value) {
     if (!value || value === svT('todo.notSet') || value === 'Chưa đặt') return null;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-    const localDate = value.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/);
+    const isoMatch = value.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+    if (isoMatch) {
+        return `${isoMatch[1]}-${String(isoMatch[2]).padStart(2, '0')}-${String(isoMatch[3]).padStart(2, '0')}`;
+    }
+    const localDate = value.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?\b/);
     if (localDate) {
         const year = localDate[3] || new Date().getFullYear();
         return `${year}-${String(localDate[2]).padStart(2, '0')}-${String(localDate[1]).padStart(2, '0')}`;
+    }
+    // Nếu chỉ nhập giờ phút (VD: 18:00) thì coi là hôm nay
+    if (/^\s*([01]?\d|2[0-3]):[0-5]\d\s*$/.test(value)) {
+        return todayString();
     }
     return null;
 }

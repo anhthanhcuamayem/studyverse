@@ -64,3 +64,75 @@ def test_send_email_validation(client):
     assert resp.status_code == 400
     data = json.loads(resp.data)
     assert data['ok'] is False
+
+
+def test_send_reminder_email_5min_urgent(monkeypatch):
+    """Kiểm tra nội dung email cảnh báo gấp 5 phút trước deadline khi chưa làm."""
+    captured = {}
+
+    def fake_send(to, subject, html, text=None, sender=None):
+        captured['to'] = to
+        captured['subject'] = subject
+        captured['html'] = html
+        return True, {'id': 'msg_test_123'}
+
+    monkeypatch.setattr(mailer, 'send_email', fake_send)
+
+    ok, res = mailer.send_reminder_email(
+        to='student@studyverse.cloud',
+        reminder_type='todo',
+        data={
+            'taskTitle': 'Ôn tập Giải tích 1',
+            'projectName': 'Kỳ thi giữa kỳ',
+            'deadline': '18:00',
+            'minutesLeft': 5
+        }
+    )
+    assert ok is True
+    assert '5 phút' in captured['subject']
+    assert 'Chưa hoàn thành' in captured['subject']
+    assert 'Cảnh báo khẩn cấp' in captured['html']
+    assert '5 phút' in captured['html']
+    assert 'Chưa hoàn thành' in captured['html']
+    assert 'Ôn tập Giải tích 1' in captured['html']
+
+
+def test_api_notify_check_deadlines_5min(client, monkeypatch):
+    """Kiểm tra endpoint /api/notify/check-deadlines tự lọc task chưa làm tới trước 5 phút."""
+    from datetime import datetime, timedelta
+
+    captured = []
+
+    def fake_send(to, reminder_type, data=None):
+        captured.append(data)
+        return True, {'id': 'msg_mock'}
+
+    monkeypatch.setattr(mailer, 'send_reminder_email', fake_send)
+
+    now = datetime.now()
+    due_in_4min = (now + timedelta(minutes=4)).strftime('%Y-%m-%d %H:%M')
+    due_in_60min = (now + timedelta(minutes=60)).strftime('%Y-%m-%d %H:%M')
+
+    payload = {
+        'to': 'student@studyverse.cloud',
+        'projects': [
+            {
+                'name': 'Dự án A',
+                'tasks': [
+                    {'id': 't1', 'name': 'Task gấp 4 phút', 'deadline': due_in_4min, 'status': 'todo'},
+                    {'id': 't2', 'name': 'Task đã làm xong', 'deadline': due_in_4min, 'status': 'done'},
+                    {'id': 't3', 'name': 'Task còn lâu', 'deadline': due_in_60min, 'status': 'todo'}
+                ]
+            }
+        ]
+    }
+
+    res = client.post('/api/notify/check-deadlines', json=payload)
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data['ok'] is True
+    assert data['remindedCount'] == 1
+    assert data['reminded'] == ['Task gấp 4 phút']
+    assert len(captured) == 1
+    assert captured[0]['taskTitle'] == 'Task gấp 4 phút'
+    assert 1 <= captured[0]['minutesLeft'] <= 5

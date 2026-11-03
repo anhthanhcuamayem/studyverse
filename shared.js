@@ -2368,3 +2368,199 @@ window.svSendReminderEmail = async function({ to, type = 'todo', data = {} } = {
         return { ok: false, error: String(err) };
     }
 };
+
+// ===== GIÁM SÁT HẠN CHÓT & GỬI EMAIL CẢNH BÁO RESEND TRƯỚC 5 PHÚT =====
+
+// Phân tích chuỗi hạn chót linh hoạt (hỗ trợ ngày, ngày + giờ, hoặc chỉ giờ)
+function svParseDeadline(value) {
+    if (!value || typeof value !== 'string') return null;
+    const str = value.trim();
+    if (!str || str === 'Chưa đặt' || str === 'Not set') return null;
+
+    const now = new Date();
+
+    // 1. Nhận diện giờ phút (HH:mm)
+    let timeHours = null;
+    let timeMinutes = null;
+    const timeMatch = str.match(/\b([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\b/);
+    if (timeMatch) {
+        timeHours = parseInt(timeMatch[1], 10);
+        timeMinutes = parseInt(timeMatch[2], 10);
+    }
+
+    // 2. Nhận diện YYYY-MM-DD
+    const isoDateMatch = str.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+    if (isoDateMatch) {
+        const year = parseInt(isoDateMatch[1], 10);
+        const month = parseInt(isoDateMatch[2], 10) - 1;
+        const day = parseInt(isoDateMatch[3], 10);
+        const h = timeHours !== null ? timeHours : 23;
+        const m = timeMinutes !== null ? timeMinutes : 59;
+        return new Date(year, month, day, h, m, 0);
+    }
+
+    // 3. Nhận diện DD/MM/YYYY hoặc DD/MM
+    const vnDateMatch = str.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?\b/);
+    if (vnDateMatch) {
+        const day = parseInt(vnDateMatch[1], 10);
+        const month = parseInt(vnDateMatch[2], 10) - 1;
+        const year = vnDateMatch[3] ? parseInt(vnDateMatch[3], 10) : now.getFullYear();
+        const h = timeHours !== null ? timeHours : 23;
+        const m = timeMinutes !== null ? timeMinutes : 59;
+        return new Date(year, month, day, h, m, 0);
+    }
+
+    // 4. Nếu chỉ nhập giờ phút (VD: "18:30") -> mặc định hôm nay
+    if (timeHours !== null && timeMinutes !== null) {
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate(), timeHours, timeMinutes, 0);
+    }
+
+    // 5. Thử native Date.parse
+    const ts = Date.parse(str);
+    if (!isNaN(ts)) {
+        return new Date(ts);
+    }
+
+    return null;
+}
+
+// Lấy địa chỉ email người dùng hiện tại để nhận cảnh báo Resend
+function svGetNotificationEmail() {
+    if (typeof localStorage === 'undefined') return '';
+    try {
+        const profile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
+        if (profile.email && typeof profile.email === 'string' && profile.email.includes('@')) {
+            return profile.email.trim();
+        }
+        // Kiểm tra phiên đăng nhập Supabase trong localStorage
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                const sessionData = JSON.parse(localStorage.getItem(key));
+                if (sessionData && sessionData.user && sessionData.user.email) {
+                    return sessionData.user.email.trim();
+                }
+            }
+        }
+    } catch (_) {}
+    return '';
+}
+
+// Tự động quét và gửi email qua Resend khi deadline tới trước 5 phút mà chưa làm
+function svCheckUpcomingDeadlines() {
+    if (typeof localStorage === 'undefined' || typeof fetch === 'undefined') return;
+
+    try {
+        const profile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
+        // Kiểm tra nếu người dùng đã tắt thông báo deadline
+        if (profile.notifyDeadline === false) return;
+
+        const email = svGetNotificationEmail();
+        if (!email || !email.includes('@')) return;
+
+        const projectsKey = typeof svScopedKey === 'function' ? svScopedKey('studyverse_projects') : 'studyverse_projects';
+        let rawProjects = localStorage.getItem(projectsKey);
+        if (!rawProjects && projectsKey !== 'studyverse_projects') {
+            rawProjects = localStorage.getItem('studyverse_projects');
+        }
+        if (!rawProjects) return;
+
+        let projects = [];
+        try {
+            projects = JSON.parse(rawProjects);
+        } catch (_) { return; }
+        if (!Array.isArray(projects)) return;
+
+        const sentKey = 'sv_deadline_5min_reminders_sent';
+        let sentMap = {};
+        try {
+            sentMap = JSON.parse(localStorage.getItem(sentKey) || '{}');
+        } catch (_) { sentMap = {}; }
+
+        const now = Date.now();
+        let sentAny = false;
+
+        projects.forEach(project => {
+            const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+            tasks.forEach(task => {
+                // Điều kiện then chốt: nhiệm vụ CHƯA LÀM
+                if (task.status === 'done' || task.completed) return;
+                if (!task.deadline) return;
+
+                const deadlineDate = svParseDeadline(task.deadline);
+                if (!deadlineDate) return;
+
+                const diffMs = deadlineDate.getTime() - now;
+                const diffMinutes = diffMs / 60000;
+
+                // Điều kiện: tới trước 5 phút (khoảng 0 đến 5 phút trước hạn chót)
+                if (diffMinutes > 0 && diffMinutes <= 5.0) {
+                    const reminderId = `${task.id}_${deadlineDate.getTime()}`;
+                    if (sentMap[reminderId]) return; // Đã gửi cho hạn chót này rồi
+
+                    // Đánh dấu đã gửi ngay để tránh gửi trùng lặp
+                    sentMap[reminderId] = now;
+                    sentAny = true;
+
+                    const payload = {
+                        to: email,
+                        type: 'todo',
+                        data: {
+                            taskId: task.id,
+                            taskTitle: task.name,
+                            projectName: project.name || 'Dự án',
+                            deadline: task.deadline,
+                            minutesLeft: Math.max(1, Math.round(diffMinutes))
+                        }
+                    };
+
+                    fetch('/api/notify/reminder', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    }).then(res => res.json()).then(result => {
+                        if (result && result.ok) {
+                            if (typeof svToast === 'function') {
+                                svToast(`🚨 Đã gửi email cảnh báo 5 phút cho: "${task.name}" qua Resend!`, 'warning');
+                            }
+                        }
+                    }).catch(err => {
+                        console.error('Lỗi khi gửi email nhắc nhở deadline 5 phút:', err);
+                    });
+                }
+            });
+        });
+
+        if (sentAny) {
+            try {
+                // Xóa bớt lịch sử đã gửi quá 48 tiếng để giải phóng bộ nhớ
+                const cleaned = {};
+                const cutoff = now - 48 * 3600 * 1000;
+                for (const [k, v] of Object.entries(sentMap)) {
+                    if (v > cutoff) cleaned[k] = v;
+                }
+                localStorage.setItem(sentKey, JSON.stringify(cleaned));
+            } catch (_) {}
+        }
+    } catch (err) {
+        console.error('Lỗi khi quét hạn chót 5 phút:', err);
+    }
+}
+
+// Khởi tạo tiến trình nền giám sát hạn chót
+function svStartDeadlineMonitor() {
+    if (typeof window === 'undefined') return;
+    if (window._svDeadlineMonitorStarted) return;
+    window._svDeadlineMonitorStarted = true;
+
+    setTimeout(svCheckUpcomingDeadlines, 3000);
+    setInterval(svCheckUpcomingDeadlines, 30000);
+}
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', svStartDeadlineMonitor);
+    } else {
+        svStartDeadlineMonitor();
+    }
+}

@@ -324,20 +324,50 @@ def send_reminder_email(
         deadline = html_lib.escape(str(data.get('deadline') or 'Hôm nay'))
         project_name = html_lib.escape(str(data.get('projectName') or 'Mục tiêu'))
 
+        minutes_left = data.get('minutesLeft') or data.get('minutes_left')
+        is_5min_alert = False
+        try:
+            if minutes_left is not None and float(minutes_left) <= 5.5:
+                is_5min_alert = True
+        except (ValueError, TypeError):
+            is_5min_alert = False
+
+        if is_5min_alert:
+            subject = f"[Studyverse] 🚨 GẤP: Còn 5 phút đến hạn nhiệm vụ '{task_title}' (Chưa hoàn thành)!"
+            preheader = f"Hạn chót chỉ còn 5 phút! '{task_title}' chưa được hoàn thành."
+            urgent_banner = """
+              <div style="background: rgba(239, 68, 68, 0.15); border: 1.5px solid #ef4444; border-radius: 10px; padding: 14px 16px; margin: 14px 0; text-align: left;">
+                <p style="margin: 0; font-size: 15px; font-weight: 700; color: #fca5a5;">
+                  🚨 Cảnh báo khẩn cấp: Chỉ còn 5 phút trước hạn chót!
+                </p>
+                <p style="margin: 6px 0 0; font-size: 13.5px; color: #fecaca; line-height: 1.5;">
+                  Nhiệm vụ của bạn hiện tại <strong>chưa được đánh dấu hoàn thành</strong>. Hãy vào Studyverse để hoàn tất ngay kẻo trễ hạn nhé!
+                </p>
+              </div>
+            """
+            button_style = "background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);"
+            button_label = "Mở Todo & Hoàn thành ngay"
+        else:
+            subject = f"[Studyverse] ⏰ Sắp đến hạn: {task_title}"
+            preheader = f"Hạn chót cho '{task_title}' là {deadline}."
+            urgent_banner = ""
+            button_style = ""
+            button_label = "Mở Danh sách Todo"
+
         content = f"""
           <h2 style="font-size: 22px; color: #ffffff;">⏰ Nhắc nhở Deadline: {task_title}</h2>
+          {urgent_banner}
           <p>Bạn có một công việc sắp đến hạn cần hoàn thành:</p>
           <div style="background: #1e293b; border-radius: 12px; padding: 18px; margin: 18px 0;">
             <p style="margin: 0; font-size: 17px; font-weight: 700; color: #f8fafc;">📝 {task_title}</p>
             <p style="margin: 6px 0; font-size: 14px; color: #cbd5e1;">📁 Dự án: <strong style="color: #38bdf8;">{project_name}</strong></p>
             <p style="margin: 6px 0; font-size: 14px; color: #fca5a5;">⏳ Hạn chót: <strong>{deadline}</strong></p>
+            <p style="margin: 6px 0 0; font-size: 13px; color: #fbbf24;">⚡ Trạng thái: <strong>Chưa hoàn thành</strong></p>
           </div>
           <div style="text-align: center;">
-            <a href="{base_url}/todo/mylist.html" class="btn">Mở Danh sách Todo</a>
+            <a href="{base_url}/todo/mylist.html" class="btn" style="{button_style}">{button_label}</a>
           </div>
         """
-        subject = f"[Studyverse] ⏰ Sắp đến hạn: {task_title}"
-        preheader = f"Hạn chót cho '{task_title}' là {deadline}."
 
     elif reminder_type == 'streak':
         streak_count = data.get('streak') or data.get('count') or 1
