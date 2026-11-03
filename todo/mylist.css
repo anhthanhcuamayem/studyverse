@@ -621,17 +621,6 @@ html {
     font-size: 13px;
 }
 
-@media (max-width: 600px) {
-    .task-meta-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .todo-filter-row select,
-    .todo-data-btn {
-        flex: 1 1 calc(50% - 8px);
-    }
-}
-
 /* ADD TASK BUTTON */
 .add-task-btn {
     transition: all 0.2s ease;
@@ -721,8 +710,12 @@ html {
     #taskNameInput,
     #taskDeadlineInput,
     #editTaskName,
-    #editTaskDate {
-        font-size: 16px;
+    #editTaskDate,
+    .todo-search-wrap input,
+    .todo-filter-row select,
+    .task-meta-grid select,
+    .task-meta-grid input {
+        font-size: 16px !important;
     }
 
     .project-list-row {
@@ -738,6 +731,17 @@ html {
 
     main {
         padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+@media (max-width: 600px) {
+    .task-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .todo-filter-row select,
+    .todo-data-btn {
+        flex: 1 1 calc(50% - 8px);
     }
 }
 

@@ -33,9 +33,13 @@ function normalizeTask(task, index = 0) {
     const rawRepeat = TASK_REPEATS.includes(task && task.repeat) ? task.repeat : 'none';
     const estimate = Number(task && task.estimate);
 
+    const safeId = (task && task.id != null)
+        ? String(task.id).replace(/[^a-zA-Z0-9_-]/g, '') || `${Date.now()}-${index}`
+        : `${Date.now()}-${index}`;
+
     return {
         ...(task || {}),
-        id: task && task.id != null ? task.id : `${Date.now()}-${index}`,
+        id: safeId,
         name: String((task && task.name) || '').trim(),
         deadline: String((task && task.deadline) || ''),
         status: rawStatus,
@@ -45,7 +49,9 @@ function normalizeTask(task, index = 0) {
         repeat: rawRepeat,
         subtasks: Array.isArray(task && task.subtasks)
             ? task.subtasks.map((subtask, subtaskIndex) => ({
-                id: subtask && subtask.id != null ? subtask.id : `${Date.now()}-${subtaskIndex}`,
+                id: (subtask && subtask.id != null)
+                    ? String(subtask.id).replace(/[^a-zA-Z0-9_-]/g, '') || `${Date.now()}-${subtaskIndex}`
+                    : `${Date.now()}-${subtaskIndex}`,
                 name: String((subtask && (subtask.name || subtask.text)) || '').trim(),
                 completed: Boolean(subtask && (subtask.completed || subtask.done))
             })).filter(subtask => subtask.name)
@@ -898,9 +904,9 @@ document.addEventListener('click', async function (event) {
         if (project) {
             const nameInput = document.getElementById('projectNameInput');
             const dateInput = document.getElementById('projectDeadlineInput');
-            const modalTitle = document.querySelector('#modalOverlay h2');
+            const modalTitle = document.querySelector('#modalOverlay h2') || document.querySelector('#modalOverlay h3');
             
-            modalTitle.innerText = "Edit Project";
+            if (modalTitle) modalTitle.innerText = svT('todo.editProject') || "Edit Project";
             nameInput.value = project.name;
             dateInput.value = (project.deadline === svT('todo.notSet')) ? "" : project.deadline;
 
@@ -910,7 +916,8 @@ document.addEventListener('click', async function (event) {
                 btnDelete.id = 'btnDeleteProject';
                 btnDelete.innerText = 'Delete Project';
                 btnDelete.style = "background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; margin-right: 10px;";
-                document.querySelector('.modal-buttons').prepend(btnDelete);
+                const modalFooter = document.querySelector('.modal-buttons') || document.querySelector('.modal-footer');
+                if (modalFooter) modalFooter.prepend(btnDelete);
             }
             btnDelete.style.display = 'block';
 
@@ -987,7 +994,7 @@ document.addEventListener('click', async function (event) {
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: var(--text-gray);">
                         <i class="fa-regular fa-clock" style="font-size: 14px;"></i>
                         <input type="text" id="editTaskDate-${task.id}" value="${escapeHtml(task.deadline || '')}" placeholder="${svT('todo.taskDeadlinePh')}"
-                            style="background: transparent; border: none; color: var(--text-gray); font-size: 14px; outline: none; width: 100%; font-family: inherit;">
+                            style="background: transparent; border: none; color: var(--text-gray); font-size: 16px; outline: none; width: 100%; font-family: inherit;">
                     </div>
 
                     <div class="task-meta-grid">

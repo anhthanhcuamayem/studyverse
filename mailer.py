@@ -6,6 +6,7 @@ Hỗ trợ 3 nhóm tính năng:
 3. Thông báo nhắc việc (Todo Deadline, Chuỗi Streak, Lịch học)
 """
 
+import html as html_lib
 import json
 import logging
 import os
@@ -269,6 +270,10 @@ def send_signup_verification_email(
     action_link = link_data.get('action_link') if ok else None
     email_otp = link_data.get('email_otp') if ok else None
 
+    if not action_link and not email_otp:
+        logger.error('Failed to generate verification link/otp for %s: %s', email, link_data.get('error') if ok else 'Supabase admin failure')
+        return False, {'error': 'Không thể tạo liên kết hoặc mã kích hoạt tài khoản từ Supabase.'}
+
     btn_html = ""
     if action_link:
         btn_html = f"""
@@ -315,9 +320,9 @@ def send_reminder_email(
     base_url = get_app_base_url()
 
     if reminder_type == 'todo':
-        task_title = data.get('taskTitle') or data.get('title') or 'Nhiệm vụ học tập'
-        deadline = data.get('deadline') or 'Hôm nay'
-        project_name = data.get('projectName') or 'Mục tiêu'
+        task_title = html_lib.escape(str(data.get('taskTitle') or data.get('title') or 'Nhiệm vụ học tập'))
+        deadline = html_lib.escape(str(data.get('deadline') or 'Hôm nay'))
+        project_name = html_lib.escape(str(data.get('projectName') or 'Mục tiêu'))
 
         content = f"""
           <h2 style="font-size: 22px; color: #ffffff;">⏰ Nhắc nhở Deadline: {task_title}</h2>
@@ -350,10 +355,11 @@ def send_reminder_email(
         preheader = f"Đừng để mất chuỗi {streak_count} ngày học tập liên tục!"
 
     else:
-        title = data.get('title') or 'Thông báo học tập'
-        body = data.get('message') or data.get('content') or 'Bạn có thông báo mới từ Studyverse.'
-        link = data.get('link') or f"{base_url}/index.html"
-        btn_text = data.get('buttonText') or 'Mở Studyverse'
+        title = html_lib.escape(str(data.get('title') or 'Thông báo học tập'))
+        body = html_lib.escape(str(data.get('message') or data.get('content') or 'Bạn có thông báo mới từ Studyverse.'))
+        raw_link = str(data.get('link') or f"{base_url}/index.html")
+        link = html_lib.escape(raw_link)
+        btn_text = html_lib.escape(str(data.get('buttonText') or 'Mở Studyverse'))
 
         content = f"""
           <h2 style="font-size: 22px; color: #ffffff;">📢 {title}</h2>

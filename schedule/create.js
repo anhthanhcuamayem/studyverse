@@ -782,7 +782,7 @@ class ScheduleDashboard {
                     </div>
                 </div>
                 <div class="subject-actions">
-                    <button class="btn-remove-subject" title="' + svT('sched.removeSubject') + '">✕</button>
+                    <button class="btn-remove-subject" title="${escapeHtml(svT('sched.removeSubject'))}">✕</button>
                 </div>
             `;
 

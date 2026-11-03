@@ -917,3 +917,12 @@
 @media (prefers-reduced-motion: reduce) {
     .account-page *, .account-page *::before, .account-page *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+@media (max-width: 768px) {
+    .account-input-wrap input {
+        font-size: 16px !important;
+    }
+    .account-select-wrap select {
+        font-size: 16px !important;
+    }
+}

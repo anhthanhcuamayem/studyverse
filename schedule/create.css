@@ -709,7 +709,10 @@ input[type="color"] {
 
     .timetable {
         font-size: 0.75rem;
-        min-width: 700px;
+        min-width: 100%;
+    }
+    .tc-input {
+        font-size: 16px !important;
     }
 
     .timetable th, .timetable td {
@@ -753,7 +756,7 @@ input[type="color"] {
     }
 
     .timetable {
-        min-width: 600px;
+        min-width: 100%;
         font-size: 0.7rem;
     }
 

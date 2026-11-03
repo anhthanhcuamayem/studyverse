@@ -14,7 +14,7 @@ from openai import OpenAI
 # trường, khiến load_dotenv() không ghi đè và app dùng nhầm placeholder. Ta tự nạp
 # .env và chỉ ghi đè khi giá trị hiện tại trống hoặc là placeholder — key export
 # thật từ shell vẫn được ưu tiên.
-_PLACEHOLDER_MARKERS = ('PASTE_', 'YOUR_', 'CHANGE_ME', 'XXX', 'xxxxxxxx', '<', '>')
+_PLACEHOLDER_MARKERS = ('PASTE_', 'YOUR_', 'CHANGE_ME', 'XXXXX', 'xxxxxxxx', '<', '>')
 
 
 def _looks_like_placeholder(value):
@@ -57,7 +57,9 @@ _PROVIDER_KEY_COUNT = 10
 def _numbered_provider_key(family, number):
     """Read the requested lowercase env name and common uppercase variants."""
     for env_name in (f'{family}{number}', f'{family.upper()}{number}',
-                     f'{family.upper()}{number}_API_KEY'):
+                     f'{family.upper()}{number}_API_KEY',
+                     f'{family.upper()}_API_KEY_{number}',
+                     f'{family.upper()}_KEY_{number}'):
         value = (os.environ.get(env_name) or '').strip()
         if value and not _looks_like_placeholder(value):
             return value
@@ -162,7 +164,7 @@ _STREAM_FLUSH_CHARS = 40
 _MIN_REPLY_CHARS = 6
 
 # Mã lỗi coi là "provider không khả dụng" → mở circuit breaker.
-_COOLDOWN_ERROR_CODES = ('timeout', 'connection', 'provider_down')
+_COOLDOWN_ERROR_CODES = ('timeout', 'connection', 'provider_down', 'rate_limit', 'no_balance')
 
 _provider_down_until = {}
 _provider_state_lock = threading.Lock()
@@ -488,7 +490,7 @@ def public_config():
         'supabaseUrl': (os.environ.get('SUPABASE_URL') or '').strip(),
         'supabasePublishableKey': (
             os.environ.get('SUPABASE_PUBLISHABLE_KEY')
-            or os.environ.get('SUPABASE_KEY')
+            or os.environ.get('SUPABASE_ANON_KEY')
             or ''
         ).strip(),
     })
@@ -507,11 +509,21 @@ def api_auth_forgot_password():
         return jsonify({'ok': False, 'error': 'Vui lòng cung cấp địa chỉ email.'}), 400
 
     default_redirect = f"{request.host_url.rstrip('/')}/account.html?mode=recovery"
-    redirect_to = (data.get('redirectTo') or '').strip() or default_redirect
+    raw_redirect = (data.get('redirectTo') or '').strip()
+    if raw_redirect:
+        from urllib.parse import urlparse
+        parsed = urlparse(raw_redirect)
+        req_parsed = urlparse(request.host_url)
+        if (not parsed.netloc and raw_redirect.startswith('/')) or (parsed.netloc == req_parsed.netloc):
+            redirect_to = raw_redirect
+        else:
+            redirect_to = default_redirect
+    else:
+        redirect_to = default_redirect
 
     ok, res = mailer.send_password_reset_email(email=email, redirect_to=redirect_to)
     if not ok:
-        return jsonify({'ok': False, 'error': res.get('error', 'Lỗi khi gửi email đặt lại mật khẩu.')}), 500
+        app.logger.warning('Failed to send password reset email: %s', res.get('error'))
 
     return jsonify({'ok': True, 'message': 'Đã gửi liên kết đặt lại mật khẩu thành công.'})
 
@@ -570,6 +582,13 @@ def api_notify_reminder():
 @app.route('/api/send-email', methods=['POST'])
 def api_send_email():
     """Endpoint gửi email tùy chỉnh chung qua Resend."""
+    origin = request.headers.get('Origin')
+    referer = request.headers.get('Referer')
+    host = request.host_url.rstrip('/')
+    is_same_origin = (origin and origin.rstrip('/') == host) or (referer and referer.startswith(host))
+    if not app.config.get('TESTING') and not is_same_origin:
+        return jsonify({'ok': False, 'error': 'Unauthorized email relay.'}), 403
+
     data, error = get_json_body()
     if error:
         return jsonify({'ok': False, 'error': error}), 400

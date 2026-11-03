@@ -1,43 +1,35 @@
 # Original User Request
 
-## 2026-10-13T05:32:02Z
+## Initial Request — 2026-11-03T09:57:33Z
 
-Optimize the full Studyverse web application UI and UX for iPhone 11 Pro (375x812 viewport, Notch, Home Indicator) and iOS Safari mobile browsers across all core pages (Home, Account, Flashcards, Schedule, Todo, AI Chat).
+Rà soát toàn diện codebase Studyverse (backend app.py, test suite pytest, frontend JS/HTML/CSS của các trang Todo, Schedule, AI Career, Account, logic xác thực, email, đồng bộ dữ liệu) để phát hiện mọi lỗi phát sinh sau các thay đổi gần đây và lập báo cáo chi tiết kèm hướng xử lý mà không sửa đổi mã nguồn.
 
-Working directory: /home/thanh/LÀM VIỆC/project/studyverse
+Working directory: c:\Users\Administrator\Downloads\studyverse
 Integrity mode: development
 
 ## Requirements
 
-### R1. Safe Area & Viewport Geometry
-All core pages and fixed elements must respect iPhone 11 Pro display geometry (safe area top notch ~44px and bottom home indicator ~34px) with `viewport-fit=cover` and dynamic viewport units (`100dvh`), preventing content clipping and gesture interference.
+### R1. Rà soát codebase và chạy kiểm thử (Comprehensive Codebase Audit & Test Execution)
+Thực thi toàn bộ test suite pytest trong môi trường ảo .venv (Python 3.11) và rà soát backend (app.py, mailer.py), logic xác thực, email, đồng bộ dữ liệu cùng frontend JS/HTML/CSS của các trang Todo (todo/mylist.html), Schedule, AI Career, và Account để phát hiện toàn bộ các lỗi cú pháp, test fail, import gãy, link chết, vấn đề bảo mật hoặc hồi quy logic.
 
-### R2. Responsive Header & Navigation on 375px Viewport
-The top navigation and action icons must cleanly fit on screens 375px wide without horizontal overflow, text clipping, or uncomfortably small tap targets.
-
-### R3. iOS Safari Form Input Zoom Prevention
-All text inputs, selects, and textareas across all pages must maintain at least 16px font-size on mobile viewports to prevent Safari from automatically zooming into the page on focus.
-
-### R4. Horizontal Scroll & Content Collision Elimination
-All page content, hero titles, buttons, and floating cards must reflow naturally within 375px without forcing horizontal scrolling or overlapping.
+### R2. Báo cáo kiểm tra chi tiết (Comprehensive Audit Report)
+Lập báo cáo kiểm tra chi tiết ghi nhận tất cả lỗi được tìm thấy, phân loại theo mức độ nghiêm trọng, chỉ rõ vị trí tệp và dòng mã cụ thể, phân tích nguyên nhân gốc và đưa ra phương án xử lý cụ thể cho từng lỗi. Giữ nguyên trạng thái mã nguồn ứng dụng, không trực tiếp chỉnh sửa code.
 
 ## Verification Resources
-- Existing test suite runnable via `.venv/bin/pytest` covering core app and flashcards.
-- HTML and CSS source files in the working directory: `index.html`, `account.html`, `account.css`, `shared.css`, `style.css`, `career/`, `flashcard/`, `schedule/`, `todo/`.
+- Môi trường Python 3.11 với virtual environment .venv và các dependencies trong requirements.txt.
+- Bộ kiểm thử pytest hiện có (tests/test_app.py, tests/test_mobile_viewport.py, v.v.).
 
 ## Acceptance Criteria
 
-### Safe Area & Viewport
-- [ ] Viewport meta tags in all core HTML pages include `viewport-fit=cover`.
-- [ ] Fixed header bars and bottom toolbars include safe area padding (`env(safe-area-inset-top)` and `env(safe-area-inset-bottom)`).
-- [ ] Full-height layouts utilize dynamic viewport height (`100dvh`) with fallbacks.
+### Audit Coverage & Test Verification
+- [ ] Lệnh pytest được thực thi đầy đủ trong môi trường .venv và mọi trường hợp fail/error hoặc warning được ghi nhận lại trong báo cáo.
+- [ ] Toàn bộ mã nguồn liên quan đến các thay đổi gần đây (xóa Flashcard trong backend và frontend, nâng cấp 10 slot Gemini/Groq trong AI Career, khôi phục UI trong todo/mylist.html) được rà soát và xác nhận không còn import gãy hay tham chiếu mồ côi.
+- [ ] Các trang Todo, Schedule, AI Career, Account cùng các luồng logic (xác thực, gửi email, đồng bộ dữ liệu) được rà soát đầy đủ về cú pháp, link chết, tính toàn vẹn logic và bảo mật.
 
-### Navigation & Layout
-- [ ] At 375px width, the header bar displays all navigation items cleanly without clipping or wrapping awkwardly.
-- [ ] Hero titles and floating cards reflow without overflowing the 375px boundary (`scrollWidth <= clientWidth`).
+### Audit Deliverable & Remediation Plan
+- [ ] Báo cáo kiểm tra chi tiết được tạo lập đầy đủ, liệt kê từng lỗi phát hiện kèm mức độ nghiêm trọng, vị trí tệp/dòng mã cụ thể, nguyên nhân gốc và phương án khắc phục tương ứng.
+- [ ] Mã nguồn của ứng dụng không bị sửa đổi trong quá trình thực hiện kiểm tra.
 
-### Forms & Interactions
-- [ ] On mobile viewports (<= 768px), all `input`, `select`, and `textarea` elements have computed `font-size >= 16px`.
+## Follow-up — 2026-11-03T10:26:01Z
 
-### Regression
-- [ ] All existing automated tests run and pass via `.venv/bin/pytest`.
+Người dùng đang hỏi tiến độ ("lâu quá"). Bạn có thể cập nhật trạng thái hiện tại của quá trình rà soát và kiểm tra được không?

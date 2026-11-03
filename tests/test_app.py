@@ -139,7 +139,7 @@ def test_ai_endpoints_use_full_token_budget(client, monkeypatch):
     """Mọi endpoint phải cho AI tối đa AI_MAX_TOKENS token, không cắt ngắn budget."""
     seen = []
 
-    def fake_request_ai(messages, max_tokens, provider=None, on_delta=None):
+    def fake_request_ai(messages, max_tokens, provider=None, on_delta=None, **kwargs):
         seen.append(max_tokens)
         if on_delta:
             on_delta('ok')
@@ -156,7 +156,7 @@ def test_ai_endpoints_use_full_token_budget(client, monkeypatch):
 
 # ===================== STREAMING =====================
 def test_career_stream_success(client, monkeypatch):
-    def fake_stream(messages, max_tokens, provider=None, on_delta=None):
+    def fake_stream(messages, max_tokens, provider=None, on_delta=None, **kwargs):
         if on_delta:
             for piece in ['Xin ', 'chào ', 'bạn']:
                 on_delta(piece)
@@ -173,7 +173,7 @@ def test_career_stream_success(client, monkeypatch):
 
 
 def test_career_stream_error_is_reported(client, monkeypatch):
-    def fake_error(messages, max_tokens, provider=None, on_delta=None):
+    def fake_error(messages, max_tokens, provider=None, on_delta=None, **kwargs):
         return None, ({'error': 'Tài khoản hết số dư', 'code': 'no_balance'}, 502)
 
     monkeypatch.setattr(app_module, 'request_ai', fake_error)
@@ -502,7 +502,7 @@ def test_career_prompt_documents_action_block(client, monkeypatch):
     """AI phải được dạy đúng định dạng khối hành động, nếu không tính năng không chạy."""
     captured = {}
 
-    def fake_request_ai(messages, max_tokens, provider=None, on_delta=None):
+    def fake_request_ai(messages, max_tokens, provider=None, on_delta=None, **kwargs):
         captured['system'] = messages[0]['content']
         return 'ok', None
 
@@ -691,6 +691,9 @@ def test_numbered_provider_keys_accept_lowercase_env(monkeypatch):
 
 def test_detect_available_numbered_providers_in_configured_order(monkeypatch):
     monkeypatch.setattr(app_module, 'AI_PROVIDER_ORDER', ['gemini2', 'groq1', 'gemini1'])
+    monkeypatch.setattr(app_module, '_numbered_provider_key', lambda family, number: None)
+    for name in app_module.AI_PROVIDERS:
+        monkeypatch.setitem(app_module.AI_PROVIDERS[name], 'key', None)
     monkeypatch.setitem(app_module.AI_PROVIDERS['gemini2'], 'key', 'gemini-key-2')
     monkeypatch.setitem(app_module.AI_PROVIDERS['groq1'], 'key', 'groq-key-1')
     assert app_module.detect_available_providers() == ['gemini2', 'groq1']
@@ -1093,7 +1096,7 @@ def test_career_ai_accepts_user_profile_payload(client, monkeypatch):
     """Endpoint /api/career-ai và /api/career-ai-stream nhận payload chứa user_profile hợp lệ."""
     called_messages = []
 
-    def mock_request_ai(messages, max_tokens, provider=None, on_delta=None):
+    def mock_request_ai(messages, max_tokens, provider=None, on_delta=None, **kwargs):
         called_messages.extend(messages)
         if on_delta:
             on_delta("Chào bạn, mình là kumalala")
@@ -1240,7 +1243,12 @@ def test_shared_js_streak_and_helpers_execution():
 
     process.exit(0);
     '''
-    result = subprocess.run(['node', '-e', js_code], capture_output=True, text=True)
+    import os
+    import shutil
+    node_cmd = shutil.which('node') or r'C:\Program Files\nodejs\node.exe'
+    if not os.path.exists(node_cmd) and not shutil.which('node'):
+        pytest.skip('Node.js not available')
+    result = subprocess.run([node_cmd, '-e', js_code], capture_output=True, text=True, encoding='utf-8')
     assert result.returncode == 0, f"Node test failed: {result.stderr}"
 
 

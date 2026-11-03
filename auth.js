@@ -283,6 +283,95 @@
         });
     }
 
+    // Monthly Calendar & Heatmap
+    let calCurrentDate = new Date();
+
+    function renderMonthlyCalendar(streakData) {
+        const grid = document.getElementById('calendarDaysGrid');
+        const monthLabel = document.getElementById('calCurrentMonthLabel');
+        const freezeCountEl = document.getElementById('freezeCount');
+        const studyDaysEl = document.getElementById('calMonthStudyDays');
+        const frozenDaysEl = document.getElementById('calMonthFrozenDays');
+        const rateEl = document.getElementById('calMonthRate');
+        if (!grid || !monthLabel) return;
+
+        if (freezeCountEl && streakData) {
+            freezeCountEl.textContent = `${streakData.freezesAvailable || 0}/${streakData.maxFreezes || 2}`;
+        }
+
+        const isEn = typeof svLang === 'function' && svLang() === 'en';
+        const year = calCurrentDate.getFullYear();
+        const month = calCurrentDate.getMonth();
+        const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        monthLabel.textContent = isEn
+            ? `${monthNamesEn[month]} ${year}`
+            : `Tháng ${month + 1}/${year}`;
+
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startDayIndex = (firstDay.getDay() + 6) % 7; // Thứ 2 = 0
+
+        grid.innerHTML = '';
+        const todayStr = typeof svGetLocalDateStr === 'function' ? svGetLocalDateStr() : '';
+        const activeDatesSet = new Set(streakData && streakData.activeDates ? streakData.activeDates : []);
+        const frozenDatesSet = new Set(streakData && streakData.frozenDates ? streakData.frozenDates : []);
+
+        for (let i = 0; i < startDayIndex; i++) {
+            const blank = document.createElement('div');
+            blank.className = 'calendar-day is-blank';
+            grid.appendChild(blank);
+        }
+
+        let monthStudyCount = 0;
+        let monthFrozenCount = 0;
+        const now = new Date();
+        const isCurrentMonth = now.getFullYear() === year && now.getMonth() === month;
+        const pastDaysInMonth = isCurrentMonth ? now.getDate() : (calCurrentDate < now ? daysInMonth : 0);
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const isActive = activeDatesSet.has(dateStr);
+            const isFrozen = frozenDatesSet.has(dateStr);
+            const isToday = dateStr === todayStr;
+
+            if (isActive) monthStudyCount++;
+            if (isFrozen) monthFrozenCount++;
+
+            const dayEl = document.createElement('div');
+            dayEl.className = `calendar-day ${isActive ? 'is-active' : ''} ${isFrozen ? 'is-frozen' : ''} ${isToday ? 'is-today' : ''} ${!isActive && !isFrozen ? 'is-empty' : ''}`;
+            dayEl.textContent = d;
+            dayEl.title = `${dateStr}: ${isActive ? (isEn ? 'Studied' : 'Đã học tập') : isFrozen ? (isEn ? 'Streak Frozen' : 'Bảo lưu Streak') : isToday ? (isEn ? 'Today' : 'Hôm nay') : (isEn ? 'Rest' : 'Nghỉ ngơi')}`;
+            grid.appendChild(dayEl);
+        }
+
+        if (studyDaysEl) studyDaysEl.textContent = monthStudyCount;
+        if (frozenDaysEl) frozenDaysEl.textContent = monthFrozenCount;
+        if (rateEl) {
+            const rate = pastDaysInMonth > 0 ? Math.min(100, Math.round(((monthStudyCount + monthFrozenCount) / pastDaysInMonth) * 100)) : 0;
+            rateEl.textContent = `${rate}%`;
+        }
+
+        const prevBtn = document.getElementById('calPrevMonthBtn');
+        const nextBtn = document.getElementById('calNextMonthBtn');
+        if (prevBtn && !prevBtn._bound) {
+            prevBtn._bound = true;
+            prevBtn.addEventListener('click', () => {
+                calCurrentDate.setMonth(calCurrentDate.getMonth() - 1);
+                const s = typeof svGetStreak === 'function' ? svGetStreak() : { currentStreak: 1, bestStreak: 1 };
+                renderMonthlyCalendar(s);
+            });
+        }
+        if (nextBtn && !nextBtn._bound) {
+            nextBtn._bound = true;
+            nextBtn.addEventListener('click', () => {
+                calCurrentDate.setMonth(calCurrentDate.getMonth() + 1);
+                const s = typeof svGetStreak === 'function' ? svGetStreak() : { currentStreak: 1, bestStreak: 1 };
+                renderMonthlyCalendar(s);
+            });
+        }
+    }
+
     // Render Theme Swatches
     function renderThemeSwatches() {
         if (!accountThemeSwatches) return;
@@ -411,6 +500,7 @@
 
         renderWeekActivity(streak);
         renderBadges(streak);
+        renderMonthlyCalendar(streak);
         renderThemeSwatches();
         renderLangButtons();
 

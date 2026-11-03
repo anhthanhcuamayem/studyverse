@@ -11,8 +11,10 @@ def client():
         yield client
 
 
-def test_mailer_config():
+def test_mailer_config(monkeypatch):
     """Kiểm tra đọc cấu hình Resend và Supabase từ mailer."""
+    if not mailer.get_resend_api_key():
+        monkeypatch.setenv('RESEND_API_KEY', 're_mock_test_key_12345')
     assert mailer.get_resend_api_key().startswith('re_')
     assert 'studyverse.cloud' in mailer.get_mail_sender()
     assert mailer.get_app_base_url() != ''

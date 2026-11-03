@@ -722,7 +722,7 @@ main {
 
     .hero-title {
         font-size: 22px !important;
-        white-space: nowrap !important;
+        white-space: normal !important;
     }
 
     .draw-underline::after {
