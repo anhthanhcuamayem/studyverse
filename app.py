@@ -78,7 +78,7 @@ def _provider_config(family, key):
     return {
         'key': key,
         'base_url': (os.environ.get('GEMINI_BASE_URL') or '').strip() or GEMINI_DEFAULT_BASE_URL,
-        'model': (os.environ.get('GEMINI_MODEL') or '').strip() or 'gemini-1.5-flash',
+        'model': (os.environ.get('GEMINI_MODEL') or '').strip() or 'gemini-3.8-flash',
     }
 
 

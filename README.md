@@ -60,7 +60,7 @@ Timeout mỗi lời gọi AI chỉnh qua `AI_REQUEST_TIMEOUT` (giây, mặc đ�
 |------|---------|----------|
 | `gemini1`..`gemini10` | API keys Gemini | Chưa cấu hình |
 | `groq1`..`groq10` | API keys Groq | Chưa cấu hình |
-| `GEMINI_MODEL` | Model Gemini | `gemini-1.5-flash` |
+| `GEMINI_MODEL` | Model Gemini | `gemini-3.8-flash` |
 | `GEMINI_BASE_URL` | Endpoint Gemini OpenAI-compatible | Gemini OpenAI-compatible |
 | `GROQ_MODEL` | Model Groq | `openai/gpt-oss-120b` |
 | `GROQ_BASE_URL` | Endpoint OpenAI-compatible của Groq | `https://api.groq.com/openai/v1` |
