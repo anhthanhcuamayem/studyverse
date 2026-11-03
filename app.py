@@ -529,6 +529,52 @@ def api_auth_forgot_password():
     return jsonify({'ok': True, 'message': 'Đã gửi liên kết đặt lại mật khẩu thành công.'})
 
 
+@app.route('/api/auth/register', methods=['POST'])
+def api_auth_register():
+    """Đăng ký tài khoản người dùng: Supabase lưu tài khoản/mật khẩu, Resend chịu trách nhiệm gửi email xác thực."""
+    data, error = get_json_body()
+    if error:
+        return jsonify({'ok': False, 'error': error}), 400
+
+    email = (data.get('email') or '').strip()
+    password = (data.get('password') or '').strip()
+    if not email:
+        return jsonify({'ok': False, 'error': 'Vui lòng cung cấp địa chỉ email.'}), 400
+    if not password or len(password) < 8:
+        return jsonify({'ok': False, 'error': 'Mật khẩu phải có tối thiểu 8 ký tự.'}), 400
+
+    default_redirect = f"{request.host_url.rstrip('/')}/account.html?confirmed=1"
+    raw_redirect = (data.get('redirectTo') or '').strip()
+    if raw_redirect:
+        from urllib.parse import urlparse
+        parsed = urlparse(raw_redirect)
+        req_parsed = urlparse(request.host_url)
+        if (not parsed.netloc and raw_redirect.startswith('/')) or (parsed.netloc == req_parsed.netloc):
+            redirect_to = raw_redirect
+        else:
+            redirect_to = default_redirect
+    else:
+        redirect_to = default_redirect
+
+    display_name = (data.get('displayName') or '').strip() or None
+    user_metadata = data.get('metadata') or {}
+
+    ok, res = mailer.send_signup_verification_email(
+        email=email,
+        redirect_to=redirect_to,
+        display_name=display_name,
+        password=password,
+        user_metadata=user_metadata
+    )
+    if not ok:
+        return jsonify({'ok': False, 'error': res.get('error', 'Lỗi khi tạo tài khoản và gửi email xác nhận qua Resend.')}), 500
+
+    return jsonify({
+        'ok': True,
+        'message': 'Đã tạo tài khoản và gửi email xác nhận kích hoạt qua Resend thành công.'
+    })
+
+
 @app.route('/api/auth/send-verification', methods=['POST'])
 def api_auth_send_verification():
     """Gửi email chào mừng và xác nhận kích hoạt tài khoản bằng Resend."""

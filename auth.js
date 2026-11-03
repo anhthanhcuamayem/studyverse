@@ -715,87 +715,105 @@
 
             if (mode === 'register') {
                 const localProfile = typeof svGetUserProfile === 'function' ? svGetUserProfile() : {};
-                result = await client.auth.signUp({
-                    email,
-                    password: passwordInput.value,
-                    options: {
-                        emailRedirectTo: `${window.location.origin}/account.html?confirmed=1`,
-                        data: {
-                            display_name: localProfile.displayName || email.split('@')[0],
-                            daily_goal: localProfile.dailyGoal || '',
-                            interests: localProfile.interests || '',
-                            ai_calling: localProfile.aiCalling || 'Bạn - Mình',
-                            ai_style: localProfile.aiStyle || 'Nhiệt tình & truyền cảm hứng',
-                            ai_focus: localProfile.aiFocus || 'Hướng nghiệp & Lập kế hoạch tương lai',
-                            notify_streak: localProfile.notifyStreak !== false,
-                            notify_deadline: localProfile.notifyDeadline !== false,
-                            sound_enabled: localProfile.soundEnabled !== false
-                        }
-                    }
-                });
-                if (result.error) throw result.error;
+                const displayName = localProfile.displayName || email.split('@')[0];
+                const metaData = {
+                    display_name: displayName,
+                    daily_goal: localProfile.dailyGoal || '',
+                    interests: localProfile.interests || '',
+                    ai_calling: localProfile.aiCalling || 'Bạn - Mình',
+                    ai_style: localProfile.aiStyle || 'Nhiệt tình & truyền cảm hứng',
+                    ai_focus: localProfile.aiFocus || 'Hướng nghiệp & Lập kế hoạch tương lai',
+                    notify_streak: localProfile.notifyStreak !== false,
+                    notify_deadline: localProfile.notifyDeadline !== false,
+                    sound_enabled: localProfile.soundEnabled !== false
+                };
 
-                if (result.data && result.data.user && Array.isArray(result.data.user.identities) && result.data.user.identities.length === 0) {
-                    setNotice(translate('account.userExists', 'Email này đã có tài khoản. Hãy đăng nhập.'), 'error');
-                    return;
-                }
-
-                if (result.data.session) {
-                    signedInUser = result.data.user;
-                    if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
-                    if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
-                    renderProfileView(signedInUser);
-                    switchTab('profile');
-                    return;
-                }
-
-                // Gửi email chào mừng và xác nhận kích hoạt qua Resend
+                // Đăng ký: Supabase chỉ lưu tài khoản/mật khẩu, Resend chịu trách nhiệm gửi toàn bộ email
+                let backendOk = false;
                 try {
+                    const regResp = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email,
+                            password: passwordInput.value,
+                            displayName,
+                            metadata: metaData,
+                            redirectTo: `${window.location.origin}/account.html?confirmed=1`
+                        })
+                    });
+                    const regData = await regResp.json();
+                    if (regResp.ok && regData.ok) {
+                        backendOk = true;
+                    } else if (regResp.status === 400 && regData.error && regData.error.toLowerCase().includes('email')) {
+                        throw new Error(regData.error);
+                    }
+                } catch (regErr) {
+                    if (regErr.message && !regErr.message.includes('fetch')) {
+                        throw regErr;
+                    }
+                }
+
+                if (!backendOk) {
+                    // Fallback sang client SDK nhưng vẫn kích hoạt gửi email qua Resend backend
+                    result = await client.auth.signUp({
+                        email,
+                        password: passwordInput.value,
+                        options: {
+                            emailRedirectTo: `${window.location.origin}/account.html?confirmed=1`,
+                            data: metaData
+                        }
+                    });
+                    if (result.error) throw result.error;
+
+                    if (result.data && result.data.user && Array.isArray(result.data.user.identities) && result.data.user.identities.length === 0) {
+                        setNotice(translate('account.userExists', 'Email này đã có tài khoản. Hãy đăng nhập.'), 'error');
+                        return;
+                    }
+
+                    if (result.data && result.data.session) {
+                        signedInUser = result.data.user;
+                        if (typeof svSetStorageScope === 'function') svSetStorageScope(signedInUser.id);
+                        if (typeof svMigrateGuestData === 'function') svMigrateGuestData(signedInUser.id);
+                        renderProfileView(signedInUser);
+                        switchTab('profile');
+                        return;
+                    }
+
                     fetch('/api/auth/send-verification', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             email,
-                            displayName: localProfile.displayName || email.split('@')[0],
+                            displayName,
                             redirectTo: `${window.location.origin}/account.html?confirmed=1`
                         })
-                    }).catch(err => console.warn('Resend verification dispatch error:', err));
-                } catch (err) {
-                    console.warn('Could not trigger backend verification:', err);
+                    }).catch(() => {});
                 }
 
                 clearPasswords();
                 setMode('login');
-                setNotice(translate('account.signupCheckEmail', 'Tài khoản đã tạo. Hãy mở email xác nhận để hoàn tất đăng ký.'), 'success');
+                setNotice(translate('account.signupCheckEmail', 'Tài khoản đã tạo. Hãy kiểm tra email do Resend gửi để hoàn tất kích hoạt!'), 'success');
                 return;
             }
 
             if (mode === 'forgot') {
-                // Ưu tiên gửi qua Resend Backend (với link an toàn từ Supabase Admin)
-                try {
-                    const resp = await fetch('/api/auth/forgot-password', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            email,
-                            redirectTo: `${window.location.origin}/account.html?mode=recovery`
-                        })
-                    });
-                    const data = await resp.json();
-                    if (!resp.ok || !data.ok) {
-                        throw new Error(data.error || 'Lỗi khi gửi email đặt lại mật khẩu.');
-                    }
-                    setNotice(translate('account.emailSent', 'Nếu địa chỉ email hợp lệ, liên kết đặt lại mật khẩu sẽ sớm được gửi đến hộp thư của bạn.'), 'success');
-                    return;
-                } catch (backendErr) {
-                    console.warn('Resend backend forgot-password failed, falling back to client SDK:', backendErr);
-                    result = await client.auth.resetPasswordForEmail(email, {
+                // Toàn bộ email quên mật khẩu gửi độc quyền qua Resend
+                // Supabase tuyệt đối KHÔNG gửi email
+                const resp = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
                         redirectTo: `${window.location.origin}/account.html?mode=recovery`
-                    });
-                    if (result.error) throw result.error;
-                    setNotice(translate('account.emailSent', 'Nếu địa chỉ email hợp lệ, liên kết đặt lại mật khẩu sẽ sớm được gửi đến hộp thư của bạn.'), 'success');
-                    return;
+                    })
+                });
+                const data = await resp.json();
+                if (!resp.ok || !data.ok) {
+                    throw new Error(data.error || 'Lỗi khi gửi email đặt lại mật khẩu.');
                 }
+                setNotice(translate('account.emailSent', 'Nếu địa chỉ email hợp lệ, hướng dẫn đặt lại mật khẩu sẽ sớm được gửi đến hộp thư của bạn qua Resend.'), 'success');
+                return;
             }
 
             const { data: recoverySession } = await client.auth.getSession();

@@ -136,3 +136,58 @@ def test_api_notify_check_deadlines_5min(client, monkeypatch):
     assert len(captured) == 1
     assert captured[0]['taskTitle'] == 'Task gấp 4 phút'
     assert 1 <= captured[0]['minutesLeft'] <= 5
+
+
+def test_api_auth_register_validation(client):
+    """Kiểm tra validation đăng ký tài khoản (thiếu email hoặc mật khẩu quá ngắn)."""
+    resp = client.post('/api/auth/register', json={})
+    assert resp.status_code == 400
+    assert resp.get_json()['ok'] is False
+
+    resp = client.post('/api/auth/register', json={'email': 'test@studyverse.cloud', 'password': '123'})
+    assert resp.status_code == 400
+    assert 'tối thiểu 8' in resp.get_json()['error']
+
+
+def test_api_auth_register_success(client, monkeypatch):
+    """Kiểm tra đăng ký tài khoản gửi email xác nhận qua Resend thành công."""
+    called = []
+
+    def fake_send_signup(email, redirect_to=None, display_name=None, password=None, user_metadata=None):
+        called.append({'email': email, 'password': password, 'metadata': user_metadata})
+        return True, {'id': 'msg_mock'}
+
+    monkeypatch.setattr(mailer, 'send_signup_verification_email', fake_send_signup)
+
+    payload = {
+        'email': 'student@studyverse.cloud',
+        'password': 'password12345',
+        'displayName': 'Nam Khánh',
+        'metadata': {'interests': 'AI & Tech'}
+    }
+    resp = client.post('/api/auth/register', json=payload)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data['ok'] is True
+    assert len(called) == 1
+    assert called[0]['email'] == 'student@studyverse.cloud'
+    assert called[0]['password'] == 'password12345'
+    assert called[0]['metadata']['interests'] == 'AI & Tech'
+
+
+def test_send_streak_reminder_email(monkeypatch):
+    """Kiểm tra hàm gửi email nhắc nhở Streak qua Resend."""
+    captured = {}
+
+    def fake_send(to, reminder_type, data=None):
+        captured['to'] = to
+        captured['type'] = reminder_type
+        captured['data'] = data
+        return True, {'id': 'msg_streak'}
+
+    monkeypatch.setattr(mailer, 'send_reminder_email', fake_send)
+
+    ok, res = mailer.send_streak_reminder_email('user@studyverse.cloud', 7, 'Thanh')
+    assert ok is True
+    assert captured['type'] == 'streak'
+    assert captured['data']['streak'] == 7

@@ -116,7 +116,8 @@ def generate_supabase_link(
     email: str,
     link_type: str = 'recovery',
     redirect_to: Optional[str] = None,
-    password: Optional[str] = None
+    password: Optional[str] = None,
+    user_metadata: Optional[Dict[str, Any]] = None
 ) -> Tuple[bool, Dict[str, Any]]:
     sb_url, sb_key = get_supabase_credentials()
     if not sb_url or not sb_key:
@@ -131,6 +132,8 @@ def generate_supabase_link(
         body['redirect_to'] = redirect_to
     if password and link_type == 'signup':
         body['password'] = password
+    if user_metadata and isinstance(user_metadata, dict):
+        body['data'] = user_metadata
 
     headers = {
         'apikey': sb_key,
@@ -255,17 +258,32 @@ def send_password_reset_email(email: str, redirect_to: Optional[str] = None) -> 
 def send_signup_verification_email(
     email: str,
     redirect_to: Optional[str] = None,
-    display_name: Optional[str] = None
+    display_name: Optional[str] = None,
+    password: Optional[str] = None,
+    user_metadata: Optional[Dict[str, Any]] = None
 ) -> Tuple[bool, Dict[str, Any]]:
     base_url = get_app_base_url()
     target_redirect = redirect_to or f"{base_url}/account.html?confirmed=1"
     name = display_name or email.split('@')[0]
 
+    meta = dict(user_metadata or {})
+    if 'display_name' not in meta:
+        meta['display_name'] = name
+
     ok, link_data = generate_supabase_link(
         email=email,
         link_type='signup',
-        redirect_to=target_redirect
+        redirect_to=target_redirect,
+        password=password,
+        user_metadata=meta
     )
+    if not ok:
+        # Nếu user đã tồn tại, lấy magiclink xác thực
+        ok, link_data = generate_supabase_link(
+            email=email,
+            link_type='magiclink',
+            redirect_to=target_redirect
+        )
 
     action_link = link_data.get('action_link') if ok else None
     email_otp = link_data.get('email_otp') if ok else None
@@ -403,3 +421,16 @@ def send_reminder_email(
 
     html = _build_html_wrapper(title=subject, preheader=preheader, body_content=content)
     return send_email(to=to, subject=subject, html=html)
+
+
+def send_streak_reminder_email(
+    to: str,
+    streak_count: int,
+    display_name: Optional[str] = None
+) -> Tuple[bool, Dict[str, Any]]:
+    """Gửi email nhắc nhở duy trì chuỗi ngày học tập (Streak) qua Resend."""
+    return send_reminder_email(
+        to=to,
+        reminder_type='streak',
+        data={'streak': streak_count, 'displayName': display_name}
+    )

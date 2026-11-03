@@ -2564,3 +2564,16 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         svStartDeadlineMonitor();
     }
 }
+
+
+// Gửi email nhắc nhở chuỗi học tập (Streak) qua Resend backend API
+window.svSendStreakReminderEmail = async function(email, streakCount = 1) {
+    if (typeof window.svSendReminderEmail === 'function') {
+        return window.svSendReminderEmail({
+            to: email,
+            type: 'streak',
+            data: { streak: streakCount }
+        });
+    }
+    return { ok: false, error: 'svSendReminderEmail unavailable' };
+};
