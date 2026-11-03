@@ -22,7 +22,6 @@ CORE_PAGES = [
     'index.html',
     'account.html',
     'career/chat.html',
-    'flashcard/flashcard.html',
     'schedule/create.html',
     'todo/mylist.html',
     'config-preview.html',
@@ -34,7 +33,6 @@ ROUTE_ALIASES = [
     '/career',
     '/schedule',
     '/todo',
-    '/flashcard',
 ]
 
 
@@ -321,16 +319,6 @@ def test_tier2_safe_area_top_offset_todo():
     )
 
 
-def test_tier2_safe_area_top_offset_flashcards():
-    """R1: Flashcards container (.fc-main) in flashcard/flashcard.css must adjust for safe-area-inset-top."""
-    css = (BASE_DIR / 'flashcard/flashcard.css').read_text(encoding='utf-8')
-    decls = _extract_rule_declarations(css, r'\.fc-main')
-    assert len(decls) > 0, "flashcard/flashcard.css must define .fc-main rule"
-    assert any('safe-area-inset-top' in decl for decl in decls), (
-        "flashcard/flashcard.css .fc-main must account for safe-area-inset-top in top padding"
-    )
-
-
 def test_tier2_safe_area_bottom_shared_guest_notice():
     """R1: Guest notice (.sv-guest-notice) in shared.css must include safe-area-inset-bottom to avoid iOS Home Indicator."""
     css = (BASE_DIR / 'shared.css').read_text(encoding='utf-8')
@@ -381,19 +369,9 @@ def test_tier2_safe_area_bottom_todo_page():
     )
 
 
-def test_tier2_safe_area_bottom_flashcard_page():
-    """R1: Flashcards container/actions in flashcard/flashcard.css must include safe-area-inset-bottom."""
-    css = (BASE_DIR / 'flashcard/flashcard.css').read_text(encoding='utf-8')
-    decls = _extract_rule_declarations(css, r'\.fc-main|\.fc-review-actions')
-    assert len(decls) > 0, "flashcard/flashcard.css must define .fc-main or .fc-review-actions rule"
-    assert any('safe-area-inset-bottom' in decl for decl in decls), (
-        "flashcard/flashcard.css (.fc-main or .fc-review-actions) must include safe-area-inset-bottom"
-    )
-
-
 def test_tier2_safe_area_syntax_standard_webkit_env():
     """R1: All safe-area-inset declarations must follow standard CSS env() syntax."""
-    css_files = ['shared.css', 'style.css', 'account.css', 'career/chat.css', 'schedule/create.css', 'todo/mylist.css', 'flashcard/flashcard.css']
+    css_files = ['shared.css', 'style.css', 'account.css', 'career/chat.css', 'schedule/create.css', 'todo/mylist.css']
     for filename in css_files:
         css = (BASE_DIR / filename).read_text(encoding='utf-8')
         insets = re.findall(r'env\((safe-area-inset-[^)]+)\)', css)
@@ -427,16 +405,6 @@ def test_tier3_dynamic_viewport_height_career_chat():
     )
 
 
-def test_tier3_dynamic_viewport_height_flashcard():
-    """R1: Flashcards full-height view must use 100dvh."""
-    css = (BASE_DIR / 'flashcard/flashcard.css').read_text(encoding='utf-8')
-    decls = _extract_rule_declarations(css, r'\.fc-main')
-    assert len(decls) > 0, "flashcard/flashcard.css must define .fc-main rule"
-    assert any('100dvh' in decl for decl in decls), (
-        "flashcard/flashcard.css must use 100dvh for dynamic mobile viewport height"
-    )
-
-
 def test_tier3_dynamic_viewport_height_schedule():
     """R1: Schedule full-height container must use 100dvh."""
     css = (BASE_DIR / 'schedule/create.css').read_text(encoding='utf-8')
@@ -467,12 +435,6 @@ def test_tier3_fallback_order_career_chat_css():
     """R1: career/chat.css must include 100vh fallback preceding 100dvh."""
     css = (BASE_DIR / 'career/chat.css').read_text(encoding='utf-8')
     assert_viewport_fallback_order(css, r'\.main-career')
-
-
-def test_tier3_fallback_order_flashcard_css():
-    """R1: flashcard/flashcard.css must include 100vh fallback preceding 100dvh."""
-    css = (BASE_DIR / 'flashcard/flashcard.css').read_text(encoding='utf-8')
-    assert_viewport_fallback_order(css, r'\.fc-main')
 
 
 def test_tier3_fallback_order_schedule_css():
@@ -588,26 +550,6 @@ def test_tier4_input_font_size_todo_task_inputs():
     )
 
 
-def test_tier4_input_font_size_flashcard_controls():
-    """R3: flashcard/flashcard.css .fc-select, .fc-input, .fc-textarea must maintain font-size >= 16px on mobile."""
-    css = (BASE_DIR / 'flashcard/flashcard.css').read_text(encoding='utf-8')
-    eff_sel = _get_effective_mobile_font_size(css, r'\.fc-select', max_width_limit=768)
-    eff_inp = _get_effective_mobile_font_size(css, r'\.fc-input', max_width_limit=768)
-    eff_txt = _get_effective_mobile_font_size(css, r'\.fc-textarea', max_width_limit=768)
-    eff_prev = _get_effective_mobile_font_size(css, r'\.fc-preview-input', max_width_limit=768)
-
-    for name, eff in [
-        ('.fc-select', eff_sel),
-        ('.fc-input', eff_inp),
-        ('.fc-textarea', eff_txt),
-        ('.fc-preview-input', eff_prev),
-    ]:
-        assert eff is not None, f"flashcard.css must declare font-size for {name}"
-        assert _is_font_size_ge_16(eff), (
-            f"flashcard.css {name} must have font-size >= 16px (or >= 1rem) on mobile, got '{eff}'"
-        )
-
-
 def test_tier4_no_sub16px_inline_font_sizes_in_mylist_js():
     """R3: todo/mylist.js and todo/mylist.html must not hardcode input font-size < 16px in inline styles."""
     js = (BASE_DIR / 'todo/mylist.js').read_text(encoding='utf-8')
@@ -696,23 +638,6 @@ def test_tier5_card_ai_and_task_microcards_fit_mobile():
     assert hidden_secondary, "Secondary micro-cards (.card-schedule, .card-streak) must be hidden on mobile viewports"
 
 
-def test_tier5_flashcard_scene_no_rigid_min_width_overflow():
-    """R4: flashcard/flashcard.css must not impose rigid min-width > 375px on mobile viewports."""
-    css = (BASE_DIR / 'flashcard/flashcard.css').read_text(encoding='utf-8')
-    mobile_blocks = _extract_media_blocks(css, max_width_threshold=768)
-    assert len(mobile_blocks) > 0, "flashcard/flashcard.css must contain mobile media queries"
-
-    violations = []
-    for query, body, _ in mobile_blocks:
-        for m in re.finditer(r'([^{]+)\{([^}]+)\}', body):
-            sel, decl = m.group(1).strip(), m.group(2).strip()
-            mw_match = re.search(r'\bmin-width:\s*([4-9]\d\d+px|[1-9]\d{3,}px)', decl, re.IGNORECASE)
-            if mw_match:
-                violations.append((query.strip(), sel, mw_match.group(1)))
-
-    assert len(violations) == 0, f"Found rigid min-widths > 375px in mobile flashcards css: {violations}"
-
-
 def test_tier5_schedule_container_no_rigid_min_width_overflow():
     """R4: schedule/create.css must not impose rigid min-width > 375px on mobile viewports."""
     css = (BASE_DIR / 'schedule/create.css').read_text(encoding='utf-8')
@@ -762,7 +687,6 @@ def test_tier5_todo_media_query_cascade_order():
     'index.html',
     'account.html',
     'career/chat.html',
-    'flashcard/flashcard.html',
     'schedule/create.html',
     'todo/mylist.html',
 ])
@@ -776,7 +700,6 @@ def test_tier5_navbar_structure_preserved(client, page):
         assert 'class="navigation"' in html or 'class="nav-container"' in html, (
             f"Page {page} must preserve navigation container class"
         )
-        assert '/flashcard/flashcard.html' in html, f"Page {page} must retain flashcards navigation link"
     else:
         assert 'class="account-topbar"' in html or 'account-brand' in html, (
             "account.html must preserve account topbar structure"

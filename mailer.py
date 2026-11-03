@@ -339,10 +339,10 @@ def send_reminder_email(
         content = f"""
           <h2 style="font-size: 22px; color: #f97316;">🔥 Giữ vững chuỗi Streak {streak_count} ngày!</h2>
           <p>Bạn đang có chuỗi học tập liên tục <strong style="color: #f97316;">{streak_count} ngày</strong> rất tuyệt vời!</p>
-          <p>Hãy dành 5 phút vào ôn Flashcard hoặc hoàn thành 1 việc Todo hôm nay để không bị gián đoạn chuỗi ngày học tập nhé.</p>
+          <p>Hãy dành 5 phút vào hoàn thành 1 việc Todo hoặc cập nhật lịch học hôm nay để không bị gián đoạn chuỗi ngày học tập nhé.</p>
           <div style="text-align: center;">
-            <a href="{base_url}/flashcard/flashcard.html" class="btn" style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);">
-              Ôn bài 5 phút để giữ Streak ngay
+            <a href="{base_url}/todo/mylist.html" class="btn" style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);">
+              Mở Todo để giữ Streak ngay
             </a>
           </div>
         """

@@ -204,8 +204,7 @@ const SV_FALLBACK_CONFIG = {
     storage: {
         lang: 'sv-lang', theme: 'sv-theme', projects: 'studyverse_projects',
         schedule: 'studyverse_schedule_dashboard_data', lastProject: 'lastSelectedProject',
-        careerChat: 'studyverse_career_chat', flashcards: 'studyverse_flashcards',
-        lastFlashcardDeck: 'studyverse_last_flashcard_deck'
+        careerChat: 'studyverse_career_chat'
     },
     schedule: {
         lessonDuration: 45,
@@ -241,47 +240,8 @@ const SV_I18N = {
     'nav.project': { vi: 'Dự án', en: 'My Project' },
     'nav.schedule': { vi: 'Thời khóa biểu', en: 'Schedule' },
     'nav.career': { vi: 'Hướng nghiệp', en: 'AI Career' },
-    'nav.flashcard': { vi: 'Flashcard', en: 'Flashcards' },
     'nav.account': { vi: 'Tài khoản', en: 'Account' },
     'nav.settings': { vi: 'Cài đặt', en: 'Settings' },
-    // Flashcard page
-    'fc.pageTitle': { vi: 'Flashcards - Studyverse', en: 'Flashcards - Studyverse' },
-    'fc.badge': { vi: 'Ôn tập & Ghi nhớ thông minh', en: 'Smart Spaced Repetition' },
-    'fc.title': { vi: 'Học bằng Flashcard', en: 'Flashcard Study' },
-    'fc.subtitle': { vi: 'Nhập tài liệu, tự động phân tích và ôn tập thẻ ghi nhớ trực quan', en: 'Import documents, automatically extract and review interactive flashcards' },
-    'fc.deck': { vi: 'Bộ thẻ', en: 'Deck' },
-    'fc.newDeck': { vi: '+ Bộ thẻ mới', en: '+ New Deck' },
-    'fc.tabStudy': { vi: 'Lật thẻ ghi nhớ', en: 'Flip Cards' },
-    'fc.tabQuiz': { vi: 'Trắc nghiệm', en: 'Quiz Mode' },
-    'fc.tabCreate': { vi: 'Nhập file / Tạo thẻ', en: 'Import / Create' },
-    'fc.tabList': { vi: 'Quản lý thẻ', en: 'Card List' },
-    'fc.flipHint': { vi: 'Nhấn vào thẻ hoặc bấm phím Space để lật', en: 'Click card or press Space to flip' },
-    'fc.again': { vi: 'Chưa thuộc (1)', en: 'Again (1)' },
-    'fc.good': { vi: 'Đang nhớ (2)', en: 'Good (2)' },
-    'fc.mastered': { vi: 'Đã thuộc (3)', en: 'Mastered (3)' },
-    'fc.prev': { vi: 'Trước', en: 'Previous' },
-    'fc.next': { vi: 'Tiếp theo', en: 'Next' },
-    'fc.shuffle': { vi: 'Xáo trộn', en: 'Shuffle' },
-    'fc.reset': { vi: 'Học lại từ đầu', en: 'Restart' },
-    'fc.uploadTitle': { vi: 'Nhập tài liệu học tập', en: 'Upload Study Material' },
-    'fc.uploadDesc': { vi: 'Kéo thả file vào đây hoặc bấm để chọn tệp (.txt, .md, .pdf, .docx, .csv, .json)', en: 'Drag and drop file here or click to select (.txt, .md, .pdf, .docx, .csv, .json)' },
-    'fc.pasteTitle': { vi: 'Hoặc dán văn bản trực tiếp', en: 'Or Paste Text Directly' },
-    'fc.generateAi': { vi: 'Tạo thẻ với AI', en: 'Generate with AI' },
-    'fc.generateFast': { vi: 'Phân tích nhanh (Offline)', en: 'Fast Heuristic (Offline)' },
-    'fc.numCards': { vi: 'Số lượng thẻ:', en: 'Number of cards:' },
-    'fc.style': { vi: 'Kiểu thẻ:', en: 'Card style:' },
-    'fc.styleConcept': { vi: 'Khái niệm & Định nghĩa', en: 'Concepts & Definitions' },
-    'fc.styleQa': { vi: 'Câu hỏi & Trả lời', en: 'Question & Answer' },
-    'fc.styleQuiz': { vi: 'Trắc nghiệm kèm giải thích', en: 'Multiple Choice & Notes' },
-    'fc.addCard': { vi: '+ Thêm thẻ', en: '+ Add Card' },
-    'fc.saveDeck': { vi: 'Lưu bộ thẻ', en: 'Save Deck' },
-    'fc.exportDeck': { vi: 'Xuất JSON', en: 'Export JSON' },
-    'fc.deleteDeck': { vi: 'Xóa bộ thẻ', en: 'Delete Deck' },
-    'fc.renameDeck': { vi: 'Đổi tên bộ thẻ', en: 'Rename Deck' },
-    'fc.statTotal': { vi: 'Tổng thẻ', en: 'Total' },
-    'fc.statMastered': { vi: 'Đã thuộc', en: 'Mastered' },
-    'fc.statLearning': { vi: 'Đang học', en: 'Learning' },
-    'fc.statNew': { vi: 'Chưa học', en: 'New' },
     // Nhắc khách đăng nhập (góc dưới trái)
     'guestNotice.title': { vi: 'Bạn chưa đăng nhập', en: 'You are not signed in' },
     'guestNotice.message': { vi: 'Đăng nhập để lưu dữ liệu theo tài khoản và đồng bộ trên mọi thiết bị.', en: 'Sign in to keep your data with your account and sync across devices.' },
@@ -499,8 +459,6 @@ const SV_I18N = {
     'home.f2.desc': { vi: '"Chế độ tối giảm mỏi mắt và tăng tập trung cho những buổi học dài."', en: '"Dark Mode reduces eye strain and boosts focus for long study sessions."' },
     'home.f3.title': { vi: 'Bảo mật & Tốc độ', en: 'Security & Speed' },
     'home.f3.desc': { vi: 'Dữ liệu được lưu an toàn ngay trên trình duyệt, truy cập tức thì.', en: 'Data is stored securely right on the browser, ensuring instant access.' },
-    'home.f4.title': { vi: 'Flashcards Ghi nhớ', en: 'Flashcard Study' },
-    'home.f4.desc': { vi: 'Nhập tài liệu tự động tạo flashcard 3D và ôn tập theo ngắt quãng hiệu quả.', en: 'Import study materials, auto-generate 3D cards, and boost recall with spaced review.' },
     'todo.pageTitle': { vi: 'Dự án của tôi', en: 'My Project' },
     'todo.sidebar': { vi: 'Dự án của tôi', en: 'My Projects' },
     'todo.newProject': { vi: '+ Dự án mới', en: '+ New Project' },
@@ -1129,7 +1087,7 @@ function svUpdateNavStreak(streakData) {
                     <strong>${isLit ? svT('streak.todayCompleted') : svT('streak.todayPending')}</strong>
                     <p>${isLit
                         ? (svLang() === 'en' ? 'Awesome! Flame is burning bright. Keep it up tomorrow!' : 'Xuất sắc! Ngọn lửa đang cháy rực rỡ. Tiếp tục giữ lửa ngày mai nhé!')
-                        : (svLang() === 'en' ? 'Complete 1 task in Todo, Flashcards, Schedule or AI Chat to light up today!' : 'Hoàn thành 1 việc (Todo, Flashcard, Lịch hoặc AI) để thắp sáng ngọn lửa hôm nay!')}
+                        : (svLang() === 'en' ? 'Complete 1 task in Todo, Schedule or AI Chat to light up today!' : 'Hoàn thành 1 việc (Todo, Lịch hoặc AI) để thắp sáng ngọn lửa hôm nay!')}
                     </p>
                 </div>
             </div>
@@ -1339,7 +1297,7 @@ function svMigrateGuestData(userId) {
         SV_STORAGE_SCOPE = userId;
     }
     const storage = SV_CFG.storage || {};
-    const dataKeys = [storage.projects, storage.schedule, storage.lastProject, storage.careerChat, storage.userProfile, storage.streak, storage.flashcards, storage.lastFlashcardDeck].filter(Boolean);
+    const dataKeys = [storage.projects, storage.schedule, storage.lastProject, storage.careerChat, storage.userProfile, storage.streak].filter(Boolean);
     if (!dataKeys.length) return false;
 
     try {

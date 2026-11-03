@@ -44,12 +44,6 @@ def _load_env_file(path='.env'):
 _load_env_file()
 
 from schedule.schedule_utils import create_timetable_with_preferences
-from flashcard.flashcard_utils import (
-    extract_file_content,
-    generate_flashcards_heuristic,
-    build_ai_prompt,
-    parse_ai_cards_response,
-)
 import mailer
 #python -m http.server 8000
 #.venv/bin/python app.py
@@ -65,7 +59,7 @@ def _numbered_provider_key(family, number):
     for env_name in (f'{family}{number}', f'{family.upper()}{number}',
                      f'{family.upper()}{number}_API_KEY'):
         value = (os.environ.get(env_name) or '').strip()
-        if value:
+        if value and not _looks_like_placeholder(value):
             return value
     return None
 
@@ -212,7 +206,14 @@ def _reset_provider_health():
 
 def detect_available_providers():
     """Nhận diện các provider đã cấu hình API key, sắp theo thứ tự ưu tiên."""
-    return [name for name in AI_PROVIDER_ORDER if (AI_PROVIDERS[name].get('key') or '').strip()]
+    for family in ('gemini', 'groq'):
+        for number in range(1, _PROVIDER_KEY_COUNT + 1):
+            slot_name = f'{family}{number}'
+            if slot_name in AI_PROVIDERS and not AI_PROVIDERS[slot_name].get('key'):
+                env_key = _numbered_provider_key(family, number)
+                if env_key:
+                    AI_PROVIDERS[slot_name]['key'] = env_key
+    return [name for name in AI_PROVIDER_ORDER if (AI_PROVIDERS.get(name, {}).get('key') or '').strip()]
 
 
 def _build_provider_chain(wanted, available):
@@ -305,7 +306,6 @@ PUBLIC_FILES = {
     'career/chat.html', 'career/chat.js', 'career/chat.css',
     'schedule/create.html', 'schedule/create.js', 'schedule/create.css',
     'todo/mylist.html', 'todo/mylist.js', 'todo/mylist.css',
-    'flashcard/flashcard.html', 'flashcard/flashcard.js', 'flashcard/flashcard.css',
 }
 
 ROUTE_ALIASES = {
@@ -313,7 +313,6 @@ ROUTE_ALIASES = {
     'career': 'career/chat.html',
     'schedule': 'schedule/create.html',
     'todo': 'todo/mylist.html',
-    'flashcard': 'flashcard/flashcard.html',
 }
 
 
@@ -597,7 +596,7 @@ def api_send_email():
 
 @app.route('/<path:path>')
 def serve_static(path):
-    # Hỗ trợ URL ngắn (ví dụ /flashcard, /todo, /schedule, /career, /account)
+    # Hỗ trợ URL ngắn (ví dụ /todo, /schedule, /career, /account)
     norm = path.strip('/')
     if norm in ROUTE_ALIASES:
         return send_from_directory(BASE_DIR, ROUTE_ALIASES[norm])
@@ -1656,115 +1655,6 @@ def ai_actions_preview():
     )
     return jsonify({'actions': actions, 'summary': summary, 'problems': problems})
 
-
-# ==================== PHẦN FLASHCARD ====================
-@app.route('/api/flashcards/parse-file', methods=['POST'])
-def flashcard_parse_file():
-    """Nhận tệp tin tải lên (multipart/form-data) hoặc chuỗi JSON,
-    trích xuất nội dung văn bản và flashcard có cấu trúc sẵn (nếu có).
-    Hỗ trợ: .txt, .md, .json, .csv, .tsv, .docx, .pdf.
-    """
-    file_storage = request.files.get('file')
-    if file_storage:
-        filename = file_storage.filename or 'document.txt'
-        file_bytes = file_storage.read()
-        if not file_bytes:
-            return jsonify({'error': 'Tệp tải lên rỗng.'}), 400
-    else:
-        # Hỗ trợ nhận qua json body: { filename, content / text }
-        data, error = get_json_body()
-        if error:
-            return error
-        filename = data.get('filename') or 'pasted_text.txt'
-        content = data.get('content') or data.get('text') or ''
-        if not content:
-            return jsonify({'error': 'Vui lòng cung cấp tệp tin hoặc nội dung văn bản.'}), 400
-        file_bytes = content.encode('utf-8')
-
-    try:
-        result = extract_file_content(file_bytes, filename)
-        return jsonify({
-            'ok': True,
-            'filename': result['filename'],
-            'extension': result['extension'],
-            'text': result['text'],
-            'cards': result['cards'],
-            'has_prestructured_cards': result['has_prestructured_cards'],
-            'char_count': result['char_count'],
-        })
-    except ValueError as val_err:
-        return jsonify({'error': str(val_err)}), 400
-    except Exception as exc:
-        app.logger.warning('Lỗi xử lý file flashcard (%s): %s', filename, exc)
-        return jsonify({'error': f'Không thể phân tích tệp tin: {str(exc)}'}), 500
-
-
-@app.route('/api/flashcards/generate', methods=['POST'])
-def flashcard_generate():
-    """Phân tích nội dung văn bản để tạo danh sách flashcard.
-    Hỗ trợ chế độ 'ai' (với fallback tự động sang heuristic khi AI không khả dụng)
-    hoặc chế độ 'heuristic' (chạy trực tiếp offline).
-    Body JSON: { text, num_cards?, style?, mode?, provider? }
-    """
-    data, error = get_json_body()
-    if error:
-        return error
-
-    text = data.get('text')
-    if not isinstance(text, str) or not text.strip():
-        return jsonify({'error': 'Nội dung văn bản không được để trống.'}), 400
-
-    if len(text) > 100_000:
-        return jsonify({'error': 'Văn bản quá dài (tối đa 100,000 ký tự).'}), 400
-
-    raw_num = data.get('num_cards', 10)
-    try:
-        num_cards = max(1, min(int(raw_num), 50))
-    except (TypeError, ValueError):
-        num_cards = 10
-
-    style = data.get('style') or 'concept'
-    if style not in ('concept', 'qa', 'quiz'):
-        style = 'concept'
-
-    mode = data.get('mode') or 'ai'
-    provider = data.get('provider')
-
-    # Nếu chọn AI:
-    if mode == 'ai':
-        available = detect_available_providers()
-        if available or provider:
-            messages = build_ai_prompt(text, num_cards=num_cards, style=style)
-            reply, ai_error = request_ai(messages, max_tokens=1800, provider=provider)
-            if not ai_error and reply:
-                cards = parse_ai_cards_response(reply)
-                if cards:
-                    return jsonify({
-                        'ok': True,
-                        'source': 'ai',
-                        'count': len(cards),
-                        'cards': cards
-                    })
-
-        # Fallback tự động sang Heuristic nếu AI thất bại / không khả dụng
-        heuristic_cards = generate_flashcards_heuristic(text, num_cards=num_cards)
-        return jsonify({
-            'ok': True,
-            'source': 'heuristic',
-            'fallback': True,
-            'notice': 'Trợ lý AI tạm thời không phản hồi, đã tự động phân tích theo thuật toán nội bộ.',
-            'count': len(heuristic_cards),
-            'cards': heuristic_cards
-        })
-
-    # Chế độ Heuristic:
-    cards = generate_flashcards_heuristic(text, num_cards=num_cards)
-    return jsonify({
-        'ok': True,
-        'source': 'heuristic',
-        'count': len(cards),
-        'cards': cards
-    })
 
 
 # khởi chạy app

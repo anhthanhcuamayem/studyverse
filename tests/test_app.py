@@ -44,7 +44,7 @@ def test_index_root_serves_home(client):
 
 
 def test_route_aliases_are_served(client):
-    for alias in ['account', 'career', 'schedule', 'todo', 'flashcard']:
+    for alias in ['account', 'career', 'schedule', 'todo']:
         res1 = client.get(f'/{alias}')
         assert res1.status_code == 200, f'GET /{alias} failed'
         res2 = client.get(f'/{alias}/')
